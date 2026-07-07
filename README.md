@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MatterDock
 
-## Getting Started
+**Read once, use everywhere.** A workspace for litigation matters: read case bundles, turn
+highlights into typed, source-linked cards, and assemble court-ready artefacts from them.
 
-First, run the development server:
+This repo implements **Phase 0** of the PRD: matter workspace (F1), PDF reader with
+highlight-to-card (F2), card board (F3), chronology (F4) and the List of Dates Word export.
+Phase 1/2 features (traverse, brief generation, compilation, annexures, AI assists, auth)
+are stubbed in the sidebar and not yet implemented.
+
+## Stack
+
+- Next.js 14 (App Router) · TypeScript · Tailwind
+- Postgres via Prisma
+- PDF rendering: pdf.js (`pdfjs-dist`) — worker served from `public/`
+- Word export: `docx` · sample PDFs: `pdf-lib`
+- Tests: Playwright
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install                       # also copies the pdf.js worker to public/
+createdb matterdock               # any Postgres ≥ 14; set DATABASE_URL in .env
+npx prisma migrate dev
+npm run db:seed                   # one sample matter with two generated PDFs + cards
+npm run dev                       # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+DATABASE_URL="postgresql://<user>@localhost:5432/matterdock"
+STORAGE_DIR="./storage"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Docker (pilot deployment)
 
-## Learn More
+```bash
+docker compose up --build         # app on :3000, Postgres with persistent volume
+```
 
-To learn more about Next.js, take a look at the following resources:
+Migrations run automatically on container start. Uploaded PDFs live in the `appstorage`
+volume behind the `Storage` interface (`src/lib/storage.ts`), swappable for S3-compatible
+object storage later.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tests
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run test:e2e                  # requires the seeded database
+```
 
-## Deploy on Vercel
+Covers the two Phase 0 acceptance flows: highlight → typed card → persistent highlight →
+chronology, and the List of Dates docx export.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## How it fits together
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Ingestion** (`src/lib/pdf/extract.ts`): on upload, pdf.js extracts per-page text and
+  line positions; `paraMap.ts` detects numbered paragraphs (`12.`, `(i)`, `(a)`, Roman) and
+  stores markers. Page text is stored per page for search. Scanned PDFs are flagged
+  "no text layer".
+- **Cards** carry document, page, detected para, exact quote and normalized highlight
+  rects. Highlight colour is keyed to card type (`src/lib/labels.ts`).
+- **Chronology** entries are derived rows synced from Date cards
+  (`src/lib/chronology.ts`) plus manual rows; same-date/similar-text pairs are flagged as
+  duplicates.
+- **List of Dates** export (`/api/matters/:id/exports/list-of-dates`) produces the
+  conventional two-column table, DD.MM.YYYY, Times New Roman 14, synopsis placeholder;
+  house style constants live in `src/lib/houseStyle.ts`.
+
+## Known Phase 0 limitations
+
+- No auth (single-user pilot; auth abstraction planned per PRD §8).
+- Board renders columns without list virtualisation; fine to ~1k cards.
+- Reader has page-jump, zoom, in-document search; thumbnails not yet implemented.
+- OCR out of scope; scanned PDFs are read-only.

@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# app
+storage/
+test-results/
+playwright-report/
+pdf.worker.min.mjs

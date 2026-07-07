@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OurSide {
+  PETITIONER_PLAINTIFF
+  RESPONDENT_DEFENDANT
+  OTHER
+}
+
+enum MatterStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum DocType {
+  PLAINT
+  WRITTEN_STATEMENT
+  PETITION
+  REPLY
+  REJOINDER
+  JUDGMENT
+  ORDER
+  ANNEXURE
+  CORRESPONDENCE
+  MISC
+}
+
+enum CardType {
+  FACT
+  DATE
+  ISSUE
+  OUR_ARGUMENT
+  THEIR_ARGUMENT
+  EVIDENCE
+  CASE_LAW
+  ADMISSION
+  QUESTION
+  MISC
+}
+
+enum Treatment {
+  RELIED_ON
+  DISTINGUISHED
+  OVERRULED_RISK
+}
+
+model Matter {
+  id         String       @id @default(cuid())
+  title      String
+  court      String       @default("")
+  caseNumber String       @default("")
+  parties    String       @default("")
+  ourSide    OurSide      @default(OTHER)
+  status     MatterStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  createdBy  String       @default("local")
+
+  documents         Document[]
+  cards             Card[]
+  chronologyEntries ChronologyEntry[]
+}
+
+model Document {
+  id            String   @id @default(cuid())
+  matterId      String
+  matter        Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  filename      String
+  docType       DocType  @default(MISC)
+  annexureLabel String?
+  storagePath   String
+  pageCount     Int      @default(0)
+  hasTextLayer  Boolean  @default(true)
+  /// list of { label: string, page: number, y: number } paragraph markers in reading order
+  paraMap       Json     @default("[]")
+  status        String   @default("ready")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String   @default("local")
+
+  pages DocumentPage[]
+  cards Card[]
+
+  @@index([matterId])
+}
+
+model DocumentPage {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  page       Int
+  text       String
+
+  @@unique([documentId, page])
+}
+
+model Card {
+  id         String    @id @default(cuid())
+  matterId   String
+  matter     Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  page       Int?
+  para       String?
+  /// exact highlighted source text
+  quote      String    @default("")
+  /// normalized highlight rects: [{ page, x, y, w, h }] with 0..1 coords
+  rects      Json      @default("[]")
+
+  cardType  CardType  @default(MISC)
+  body      String    @default("")
+  eventDate DateTime? @db.Date
+  tags      String[]  @default([])
+  pinned    Boolean   @default(false)
+
+  citation    String?
+  proposition String?
+  treatment   Treatment?
+
+  orderIndex Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String   @default("local")
+
+  chronologyEntries ChronologyEntry[]
+
+  @@index([matterId, cardType])
+  @@index([documentId])
+}
+
+model ChronologyEntry {
+  id              String   @id @default(cuid())
+  matterId        String
+  matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  eventDate       DateTime @db.Date
+  description     String
+  sourceCardId    String?  @unique
+  sourceCard      Card?    @relation(fields: [sourceCardId], references: [id], onDelete: Cascade)
+  includeInFiling Boolean  @default(true)
+  sortOrder       Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String   @default("local")
+
+  @@index([matterId, eventDate])
+}
