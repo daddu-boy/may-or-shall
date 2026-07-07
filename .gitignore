@@ -40,3 +40,6 @@ storage/
 test-results/
 playwright-report/
 pdf.worker.min.mjs
+
+# environment
+.env
