@@ -50,6 +50,24 @@ enum Treatment {
   OVERRULED_RISK
 }
 
+enum TraverseStatus {
+  NOT_STARTED
+  DENIED_BARE
+  DENIED_SPECIFIC
+  ADMITTED
+  ADMITTED_PARTLY
+  LEGAL_OBJECTION
+}
+
+enum ArtefactType {
+  SENIOR_BRIEF
+  WRITTEN_SUBMISSIONS
+  JUDGE_NOTE
+  LIST_OF_DATES
+  CONVENIENCE_COMPILATION
+  WRITTEN_STATEMENT_DRAFT
+}
+
 model Matter {
   id         String       @id @default(cuid())
   title      String
@@ -58,6 +76,10 @@ model Matter {
   parties    String       @default("")
   ourSide    OurSide      @default(OTHER)
   status     MatterStatus @default(ACTIVE)
+  /// per-matter switch to disable AI features (confidentiality restrictions)
+  aiEnabled  Boolean      @default(true)
+  /// annexure label prefix, e.g. "P" or "R"; empty = derive from ourSide
+  annexurePrefix String   @default("")
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   createdBy  String       @default("local")
@@ -65,6 +87,9 @@ model Matter {
   documents         Document[]
   cards             Card[]
   chronologyEntries ChronologyEntry[]
+  traverseSheet     TraverseSheet?
+  artefacts         GeneratedArtefact[]
+  annexureItems     AnnexureItem[]
 }
 
 model Document {
@@ -132,6 +157,68 @@ model Card {
 
   @@index([matterId, cardType])
   @@index([documentId])
+}
+
+model TraverseSheet {
+  id         String   @id @default(cuid())
+  matterId   String   @unique
+  matter     Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documentId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String   @default("local")
+
+  rows TraverseRow[]
+}
+
+model TraverseRow {
+  id           String         @id @default(cuid())
+  sheetId      String
+  sheet        TraverseSheet  @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  order        Int
+  paraNo       String
+  paraText     String
+  /// rich text (HTML) reply
+  responseText String         @default("")
+  status       TraverseStatus @default(NOT_STARTED)
+  /// ids of Fact/Evidence cards attached to this row
+  linkedCardIds Json          @default("[]")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([sheetId, order])
+}
+
+model GeneratedArtefact {
+  id             String       @id @default(cuid())
+  matterId       String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  artefactType   ArtefactType
+  title          String
+  /// rich text (HTML) content
+  content        String       @default("")
+  version        Int          @default(1)
+  /// prompt snapshot for AI-generated versions
+  promptSnapshot String       @default("")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdBy      String       @default("local")
+
+  @@index([matterId, artefactType])
+}
+
+/// Annexure registry: ordered mapping of documents to labels (PRD F8).
+/// Labels are computed from position + the matter's prefix and mirrored to
+/// Document.annexureLabel on every renumber.
+model AnnexureItem {
+  id         String   @id @default(cuid())
+  matterId   String
+  matter     Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documentId String   @unique
+  position   Int
+  createdAt  DateTime @default(now())
+
+  @@index([matterId, position])
 }
 
 model ChronologyEntry {

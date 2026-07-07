@@ -23,10 +23,13 @@ const NAV = [
   { label: "Documents", slug: "documents" },
   { label: "Cards", slug: "cards" },
   { label: "Chronology", slug: "chronology" },
+  { label: "Traverse", slug: "traverse" },
+  { label: "Drafts", slug: "drafts" },
+  { label: "Compilation", slug: "compilation" },
+  { label: "Annexures", slug: "annexures" },
 ] as const;
 
-// Phase 1 / 2 features shown greyed-out so the shell matches the PRD sidebar.
-const UPCOMING = ["Traverse", "Drafts", "Compilation", "Annexures"];
+const UPCOMING: string[] = [];
 
 export default function MatterShell({
   matterId,

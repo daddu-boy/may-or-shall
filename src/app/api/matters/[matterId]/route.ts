@@ -20,6 +20,8 @@ const patchSchema = z.object({
   parties: z.string().optional(),
   ourSide: z.enum(["PETITIONER_PLAINTIFF", "RESPONDENT_DEFENDANT", "OTHER"]).optional(),
   status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
+  aiEnabled: z.boolean().optional(),
+  annexurePrefix: z.string().max(8).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -28,5 +30,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
   const matter = await prisma.matter.update({ where: { id: params.matterId }, data: parsed.data });
+  if (parsed.data.annexurePrefix !== undefined || parsed.data.ourSide !== undefined) {
+    const { renumberAnnexures } = await import("@/lib/annexures");
+    await renumberAnnexures(matter.id);
+  }
   return NextResponse.json(matter);
 }
