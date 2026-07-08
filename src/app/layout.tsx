@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MatterDock",
+  title: "May or Shall",
   description: "Read once, use everywhere — a workspace for litigation matters",
 };
 

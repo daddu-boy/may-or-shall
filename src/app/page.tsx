@@ -26,7 +26,7 @@ export default function Dashboard() {
     <main className="max-w-4xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold">MatterDock</h1>
+          <h1 className="text-2xl font-semibold">May or Shall</h1>
           <p className="text-sm text-slate-500 mt-1">Read once, use everywhere.</p>
         </div>
         <button

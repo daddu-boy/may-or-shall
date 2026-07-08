@@ -1,4 +1,6 @@
-# MatterDock
+# May or Shall
+
+*(formerly MatterDock)*
 
 **Read once, use everywhere.** A workspace for litigation matters: read case bundles, turn
 highlights into typed, source-linked cards, and assemble court-ready artefacts from them.

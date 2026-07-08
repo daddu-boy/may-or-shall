@@ -2,11 +2,14 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "matterdock",
+      "name": "may-or-shall",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
-      "cwd": "/Users/sidharthkapoor/Desktop/matterdock"
+      "cwd": "/Users/sidharthkapoor/Desktop/Desktop/may-or-shall"
     }
   ]
 }
