@@ -48,6 +48,8 @@ export interface CardDto {
   tags: string[];
   pinned: boolean;
   citation: string | null;
+  sourceUrl: string | null;
+  sourceTitle: string | null;
   proposition: string | null;
   treatment: "RELIED_ON" | "DISTINGUISHED" | "OVERRULED_RISK" | null;
   orderIndex: number;

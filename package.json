@@ -10,7 +10,8 @@
     "lint": "next lint",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "dev:addin": "next dev --experimental-https --experimental-https-key $HOME/.office-addin-dev-certs/localhost.key --experimental-https-cert $HOME/.office-addin-dev-certs/localhost.crt"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

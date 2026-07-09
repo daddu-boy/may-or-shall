@@ -3,7 +3,13 @@ import type { Card } from "@prisma/client";
 type CardWithDoc = Card & { document?: { filename: string } | null };
 
 export function sourceChip(card: CardWithDoc): string {
-  if (!card.document) return "";
+  if (!card.document) {
+    if (card.sourceUrl) {
+      const title = card.sourceTitle ? `${card.sourceTitle}, ` : "";
+      return `(${title}${card.sourceUrl})`;
+    }
+    return "";
+  }
   const name = card.document.filename.replace(/\.pdf$/i, "");
   const bits = [name];
   if (card.page) bits.push(`p.${card.page}`);

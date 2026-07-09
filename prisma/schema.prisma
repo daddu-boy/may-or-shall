@@ -137,6 +137,9 @@ model Card {
   quote      String    @default("")
   /// normalized highlight rects: [{ page, x, y, w, h }] with 0..1 coords
   rects      Json      @default("[]")
+  /// web captures (browser extension): source page URL + title
+  sourceUrl   String?
+  sourceTitle String?
 
   cardType  CardType  @default(MISC)
   body      String    @default("")
@@ -219,6 +222,16 @@ model AnnexureItem {
   createdAt  DateTime @default(now())
 
   @@index([matterId, position])
+}
+
+/// Bearer tokens for cross-origin clients (browser extension, remote add-ins).
+model ApiToken {
+  id         String    @id @default(cuid())
+  name       String
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
 }
 
 model ChronologyEntry {

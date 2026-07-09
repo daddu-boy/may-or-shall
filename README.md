@@ -55,6 +55,20 @@ Migrations run automatically on container start. Uploaded PDFs live in the `apps
 volume behind the `Storage` interface (`src/lib/storage.ts`), swappable for S3-compatible
 object storage later.
 
+## Companion clients
+
+The web app is the hub; two thin clients extend it (the "two-step composition"):
+
+- **Chrome extension** (`extension/`) — select text on any web page and save it as a typed
+  card with the page URL as its source. Authenticates with an API token (app → Settings).
+  See `extension/README.md`.
+- **Word add-in** (`office-addin/`) — a task pane (served by this app at `/addin/taskpane`)
+  that plots selected cards into the document as labelled, source-cited content controls;
+  any AI add-in in Word can then work on the plotted material. See `office-addin/README.md`.
+
+API tokens are managed at `/settings`. Set `API_REQUIRE_TOKEN=1` in deployments where the
+backend is reachable beyond localhost to require a token (or same-origin) on client APIs.
+
 ## Tests
 
 ```bash

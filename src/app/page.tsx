@@ -29,13 +29,18 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold">May or Shall</h1>
           <p className="text-sm text-slate-500 mt-1">Read once, use everywhere.</p>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-700"
-          data-testid="new-matter"
-        >
-          New matter
-        </button>
+        <div className="flex items-center gap-3">
+          <Link href="/settings" className="text-sm text-slate-400 hover:text-slate-700">
+            Settings
+          </Link>
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-700"
+            data-testid="new-matter"
+          >
+            New matter
+          </button>
+        </div>
       </div>
 
       {showForm && (

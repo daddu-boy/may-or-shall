@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <Id>821b4bda-4a71-4033-b811-ef6f5b462988</Id>
+  <Version>1.0.0</Version>
+  <ProviderName>May or Shall</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="May or Shall"/>
+  <Description DefaultValue="Plot your matter's cards — labelled, source-cited highlights — into the document you are drafting."/>
+  <IconUrl DefaultValue="https://localhost:3000/addin/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/addin/icon-128.png"/>
+  <SupportUrl DefaultValue="https://github.com/daddu-boy/may-or-shall"/>
+
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/addin/taskpane"/>
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="MayOrShall.Group">
+                <Label resid="MayOrShall.GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="MayOrShall.Icon16"/>
+                  <bt:Image size="32" resid="MayOrShall.Icon32"/>
+                  <bt:Image size="80" resid="MayOrShall.Icon80"/>
+                </Icon>
+                <Control xsi:type="Button" id="MayOrShall.OpenPane">
+                  <Label resid="MayOrShall.ButtonLabel"/>
+                  <Supertip>
+                    <Title resid="MayOrShall.ButtonLabel"/>
+                    <Description resid="MayOrShall.ButtonTip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="MayOrShall.Icon16"/>
+                    <bt:Image size="32" resid="MayOrShall.Icon32"/>
+                    <bt:Image size="80" resid="MayOrShall.Icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>MayOrShallPane</TaskpaneId>
+                    <SourceLocation resid="MayOrShall.Taskpane"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="MayOrShall.Icon16" DefaultValue="https://localhost:3000/addin/icon-16.png"/>
+        <bt:Image id="MayOrShall.Icon32" DefaultValue="https://localhost:3000/addin/icon-32.png"/>
+        <bt:Image id="MayOrShall.Icon80" DefaultValue="https://localhost:3000/addin/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="MayOrShall.Taskpane" DefaultValue="https://localhost:3000/addin/taskpane"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="MayOrShall.GroupLabel" DefaultValue="May or Shall"/>
+        <bt:String id="MayOrShall.ButtonLabel" DefaultValue="Cards"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="MayOrShall.ButtonTip" DefaultValue="Open the matter's card base and plot cards into this document."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

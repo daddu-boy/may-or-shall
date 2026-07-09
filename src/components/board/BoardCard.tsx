@@ -63,6 +63,18 @@ function BoardCard({
             {card.para ? ` ¶${card.para}` : ""}
           </span>
         )}
+        {!card.document && card.sourceUrl && (
+          <a
+            href={card.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-[10px] text-blue-500 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 hover:underline"
+            title={card.sourceTitle ?? card.sourceUrl}
+          >
+            🌐 {new URL(card.sourceUrl).hostname.replace(/^www\./, "")}
+          </a>
+        )}
         {card.tags.map((t) => (
           <span key={t} className="text-[10px] text-indigo-600 bg-indigo-50 rounded px-1.5 py-0.5">
             {t}

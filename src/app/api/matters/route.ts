@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { checkApiAuth } from "@/lib/apiAuth";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = await checkApiAuth(req);
+  if (denied) return denied;
   const matters = await prisma.matter.findMany({
     orderBy: { updatedAt: "desc" },
     include: { _count: { select: { documents: true, cards: true } } },

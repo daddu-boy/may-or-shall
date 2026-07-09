@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body{width:290px;margin:0;font:12.5px/1.45 -apple-system,system-ui,sans-serif;color:#0f172a}
+  .wrap{padding:12px}
+  .head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+  .logo{width:10px;height:10px;border-radius:2px;background:#4f46e5}
+  h1{font-size:13px;margin:0}
+  label{display:block;font-size:11px;color:#64748b;margin:0 0 4px}
+  select{width:100%;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px}
+  .status{margin-top:9px;font-size:11px;color:#64748b}
+  .status.err{color:#dc2626}
+  a{color:#4f46e5;text-decoration:none;font-size:11px}
+  .foot{margin-top:10px;display:flex;justify-content:space-between;align-items:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><span class="logo"></span><h1>May or Shall — Web Clipper</h1></div>
+  <label for="matter">Save cards to matter</label>
+  <select id="matter"><option>Loading…</option></select>
+  <div class="status" id="status"></div>
+  <div class="foot">
+    <span style="font-size:11px;color:#94a3b8">Select text on any page to clip</span>
+    <a href="#" id="options">Options</a>
+  </div>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

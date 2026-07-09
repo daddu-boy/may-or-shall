@@ -3,12 +3,15 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { syncCardChronology } from "@/lib/chronology";
+import { checkApiAuth } from "@/lib/apiAuth";
 import { resolvePara, type ParaMarker } from "@/lib/pdf/paraMap";
 import { CARD_TYPES } from "@/lib/labels";
 
 type Params = { params: { matterId: string } };
 
 export async function GET(req: NextRequest, { params }: Params) {
+  const denied = await checkApiAuth(req);
+  if (denied) return denied;
   const sp = req.nextUrl.searchParams;
   const where: Prisma.CardWhereInput = { matterId: params.matterId };
 
@@ -66,11 +69,15 @@ const createSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   pinned: z.boolean().optional().default(false),
   citation: z.string().nullable().optional(),
+  sourceUrl: z.string().url().max(2000).nullable().optional(),
+  sourceTitle: z.string().max(300).nullable().optional(),
   proposition: z.string().nullable().optional(),
   treatment: z.enum(["RELIED_ON", "DISTINGUISHED", "OVERRULED_RISK"]).nullable().optional(),
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
+  const denied = await checkApiAuth(req);
+  if (denied) return denied;
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -108,6 +115,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       tags: data.tags,
       pinned: data.pinned,
       citation: data.citation ?? null,
+      sourceUrl: data.sourceUrl ?? null,
+      sourceTitle: data.sourceTitle ?? null,
       proposition: data.proposition ?? null,
       treatment: data.treatment ?? null,
       orderIndex: (last?.orderIndex ?? 0) + 1,

@@ -89,6 +89,16 @@ export default function CardDrawer({
             “{card.quote}”
           </blockquote>
         )}
+        {!card.document && card.sourceUrl && (
+          <a
+            href={card.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block mt-2 text-xs text-blue-600 hover:underline"
+          >
+            Open source → {card.sourceTitle ?? card.sourceUrl}
+          </a>
+        )}
         {card.document && card.page && (
           <Link
             href={`/matters/${matterId}/documents/${card.document.id}?card=${card.id}`}
