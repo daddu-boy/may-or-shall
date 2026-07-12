@@ -9,12 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "test:e2e": "playwright test",
     "dev:addin": "next dev --experimental-https --experimental-https-key $HOME/.office-addin-dev-certs/localhost.key --experimental-https-cert $HOME/.office-addin-dev-certs/localhost.crt"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx --env-file=.env prisma/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
