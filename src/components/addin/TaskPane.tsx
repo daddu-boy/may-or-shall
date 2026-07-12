@@ -29,12 +29,32 @@ export default function TaskPane() {
   const [withHeading, setWithHeading] = useState(false);
   const [status, setStatus] = useState("");
 
-  useEffect(() => {
-    api<MatterDto[]>("/api/matters").then((list) => {
-      setMatters(list.filter((m) => m.status === "ACTIVE"));
-      if (list.length > 0) setMatterId((cur) => cur || list[0].id);
-    });
+  const loadMatters = useCallback(async (selectId?: string) => {
+    const list = await api<MatterDto[]>("/api/matters");
+    const active = list.filter((m) => m.status === "ACTIVE");
+    setMatters(active);
+    if (selectId) setMatterId(selectId);
+    else if (active.length > 0) setMatterId((cur) => cur || active[0].id);
   }, []);
+
+  useEffect(() => {
+    loadMatters();
+  }, [loadMatters]);
+
+  const createMatter = async () => {
+    const title = window.prompt("New matter title:");
+    if (!title?.trim()) return;
+    try {
+      const matter = await api<MatterDto>("/api/matters", {
+        method: "POST",
+        body: JSON.stringify({ title: title.trim() }),
+      });
+      await loadMatters(matter.id);
+      setStatus(`Matter "${matter.title}" created.`);
+    } catch (e) {
+      setStatus(`Could not create matter: ${(e as Error).message}`);
+    }
+  };
 
   const loadCards = useCallback(async () => {
     if (!matterId) return;
@@ -181,7 +201,13 @@ export default function TaskPane() {
         </div>
         <select
           value={matterId}
-          onChange={(e) => setMatterId(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value === "__new__") {
+              createMatter();
+              return;
+            }
+            setMatterId(e.target.value);
+          }}
           className="w-full border border-slate-200 rounded px-2 py-1.5 mb-2"
           data-testid="addin-matter"
         >
@@ -190,6 +216,7 @@ export default function TaskPane() {
               {m.title}
             </option>
           ))}
+          <option value="__new__">＋ New matter…</option>
         </select>
         <div className="flex gap-1.5">
           <select

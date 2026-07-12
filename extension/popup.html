@@ -3,15 +3,24 @@
 <head>
 <meta charset="utf-8">
 <style>
-  body{width:290px;margin:0;font:12.5px/1.45 -apple-system,system-ui,sans-serif;color:#0f172a}
+  body{width:300px;margin:0;font:12.5px/1.45 -apple-system,system-ui,sans-serif;color:#0f172a}
   .wrap{padding:12px}
   .head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
   .logo{width:10px;height:10px;border-radius:2px;background:#4f46e5}
   h1{font-size:13px;margin:0}
-  label{display:block;font-size:11px;color:#64748b;margin:0 0 4px}
-  select{width:100%;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px}
-  .status{margin-top:9px;font-size:11px;color:#64748b}
-  .status.err{color:#dc2626}
+  label{display:block;font-size:11px;color:#64748b;margin:10px 0 4px}
+  select,textarea,input{width:100%;box-sizing:border-box;padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit}
+  textarea{resize:vertical;min-height:52px}
+  .row{display:flex;gap:5px;margin-top:5px}
+  .row select{flex:1}
+  button{border:none;border-radius:6px;background:#0f172a;color:#fff;font-size:11.5px;font-weight:600;padding:6px 12px;cursor:pointer}
+  button.indigo{background:#4f46e5}
+  button:disabled{opacity:.4}
+  .newrow{display:none;gap:5px;margin-top:5px}
+  .newrow.show{display:flex}
+  .newrow input{flex:1}
+  .status{margin-top:8px;font-size:11px;color:#64748b;min-height:14px}
+  .status.ok{color:#059669}.status.err{color:#dc2626}
   a{color:#4f46e5;text-decoration:none;font-size:11px}
   .foot{margin-top:10px;display:flex;justify-content:space-between;align-items:center}
 </style>
@@ -19,11 +28,35 @@
 <body>
 <div class="wrap">
   <div class="head"><span class="logo"></span><h1>May or Shall — Web Clipper</h1></div>
-  <label for="matter">Save cards to matter</label>
+
+  <label for="matter">Matter</label>
   <select id="matter"><option>Loading…</option></select>
+  <div class="newrow" id="newrow">
+    <input id="newname" placeholder="New matter title…">
+    <button id="create" class="indigo">Create</button>
+  </div>
+
+  <label for="note">Rough note → card</label>
+  <textarea id="note" placeholder="Jot anything — it becomes a card in the matter above…"></textarea>
+  <div class="row">
+    <select id="notetype">
+      <option value="MISC">Misc</option>
+      <option value="FACT">Fact</option>
+      <option value="DATE">Date</option>
+      <option value="ISSUE">Issue</option>
+      <option value="OUR_ARGUMENT">Our argument</option>
+      <option value="THEIR_ARGUMENT">Their argument</option>
+      <option value="EVIDENCE">Evidence</option>
+      <option value="CASE_LAW">Case law</option>
+      <option value="ADMISSION">Admission</option>
+      <option value="QUESTION">Question</option>
+    </select>
+    <button id="save">Save note</button>
+  </div>
+
   <div class="status" id="status"></div>
   <div class="foot">
-    <span style="font-size:11px;color:#94a3b8">Select text on any page to clip</span>
+    <span style="font-size:11px;color:#94a3b8">Or select text on any page</span>
     <a href="#" id="options">Options</a>
   </div>
 </div>

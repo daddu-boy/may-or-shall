@@ -22,6 +22,8 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const denied = await checkApiAuth(req);
+  if (denied) return denied;
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
