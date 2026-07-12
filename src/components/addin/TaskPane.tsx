@@ -188,7 +188,8 @@ export default function TaskPane() {
 
       <header className="px-3 pt-3 pb-2 border-b border-slate-100 sticky top-0 bg-white z-10">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2.5 h-2.5 rounded-sm bg-indigo-600" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/addin/icon-32.png" alt="" className="w-5 h-5 rounded" />
           <h1 className="font-semibold">May or Shall</h1>
           <span
             className={`ml-auto text-[10px] rounded-full px-2 py-0.5 ${

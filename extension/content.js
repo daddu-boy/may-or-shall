@@ -56,7 +56,7 @@
         box-shadow:0 12px 32px rgba(15,23,42,.18);padding:10px;
         font:12px/1.4 -apple-system,system-ui,sans-serif;color:#0f172a}
       .head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-      .logo{width:9px;height:9px;border-radius:2px;background:#4f46e5}
+      .logo{width:16px;height:16px;border-radius:3px}
       .title{font-weight:600;font-size:11px}
       .quote{color:#94a3b8;font-size:11px;max-height:2.6em;overflow:hidden;margin-bottom:6px}
       input,select{width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:6px;
@@ -79,7 +79,7 @@
     const box = document.createElement("div");
     box.className = "box";
     box.innerHTML = `
-      <div class="head"><span class="logo"></span><span class="title">May or Shall</span>
+      <div class="head"><img class="logo" src="${chrome.runtime.getURL("icons/icon-32.png")}" alt=""><span class="title">May or Shall</span>
         <button class="close" title="Dismiss">✕</button></div>
       <div class="quote">&ldquo;${quote.slice(0, 160).replace(/</g, "&lt;")}&rdquo;</div>
       <select class="matter"><option value="">Loading matters…</option></select>

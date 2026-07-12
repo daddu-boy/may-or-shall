@@ -55,6 +55,30 @@ Migrations run automatically on container start. Uploaded PDFs live in the `apps
 volume behind the `Storage` interface (`src/lib/storage.ts`), swappable for S3-compatible
 object storage later.
 
+## Install the clients (for users)
+
+**Chrome / Edge extension** — no build needed:
+
+1. Download `may-or-shall-web-clipper.zip` from the latest
+   [GitHub release](https://github.com/daddu-boy/may-or-shall/releases), unzip it.
+2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, select the
+   unzipped folder.
+3. The extension talks to *your* May or Shall app. Run one locally (see Quick start below, or
+   `docker compose up`), then in the extension **Options** set the App URL, paste an API token
+   (app → Settings → API tokens) and pick a matter. Select text on any page to clip.
+
+**Word add-in:**
+
+1. Run the app over HTTPS (`npx office-addin-dev-certs install` once, then `npm run dev:addin`),
+   or host it under a proper HTTPS domain.
+2. Download `may-or-shall-word-manifest.xml` from the release (edit the URLs if your app is not
+   at `https://localhost:3000`) and sideload it: on Mac, copy it to
+   `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/`; on Windows/M365, use
+   centralized deployment or a network share catalog.
+3. In Word: Home ribbon → **Cards** (or Insert → Add-ins → Developer Add-ins).
+
+Both clients are thin front-ends: your matter data stays in your own May or Shall server.
+
 ## Companion clients
 
 The web app is the hub; two thin clients extend it (the "two-step composition"):
