@@ -25,8 +25,9 @@ function loadMatters(selectedId) {
 
 chrome.runtime.sendMessage({ type: "getConfig" }, (res) => {
   if (!res?.ok) return;
-  apiBase.value = res.config.apiBase || "https://localhost:3000";
-  token.value = res.config.token || "";
+  // don't clobber anything the user has already typed
+  if (!apiBase.value) apiBase.value = res.config.apiBase || "https://localhost:3000";
+  if (!token.value) token.value = res.config.token || "";
   if (res.config.apiBase) loadMatters(res.config.matterId);
 });
 

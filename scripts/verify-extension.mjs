@@ -8,10 +8,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const EXT = path.join(ROOT, "extension");
-const APP = "http://localhost:3000";
+const APP = process.env.APP || "http://localhost:3000";
 // different origin string for the same server, so the content script treats it
 // as a foreign page (the popover is suppressed on the app's own origin)
-const PAGE = "http://127.0.0.1:3000/settings";
+const PAGE = (process.env.APP || "http://localhost:3000").replace("localhost", "127.0.0.1") + "/settings";
 
 const api = async (pathname, init) => {
   const res = await fetch(`${APP}${pathname}`, {

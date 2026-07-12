@@ -4,7 +4,13 @@
 const DEFAULTS = { apiBase: "https://localhost:3000", token: "", matterId: "" };
 
 async function getConfig() {
-  const stored = await chrome.storage.sync.get(DEFAULTS);
+  const stored = await chrome.storage.sync.get({ ...DEFAULTS, explicitApiBase: false });
+  // migrate the pre-1.1 default (app moved to HTTPS) — but never override a
+  // URL the user explicitly saved in the options page
+  if (stored.apiBase === "http://localhost:3000" && !stored.explicitApiBase) {
+    stored.apiBase = "https://localhost:3000";
+    await chrome.storage.sync.set({ apiBase: stored.apiBase, explicitApiBase: true });
+  }
   return { ...DEFAULTS, ...stored };
 }
 
@@ -15,10 +21,25 @@ function headers(config) {
 }
 
 async function apiFetch(config, path, init = {}) {
-  const res = await fetch(`${config.apiBase.replace(/\/$/, "")}${path}`, {
-    ...init,
-    headers: { ...headers(config), ...(init.headers || {}) },
-  });
+  const base = config.apiBase.replace(/\/$/, "");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  let res;
+  try {
+    res = await fetch(`${base}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: { ...headers(config), ...(init.headers || {}) },
+    });
+  } catch (e) {
+    throw new Error(
+      e.name === "AbortError"
+        ? `Timed out reaching ${base} — is the app running?`
+        : `Cannot reach ${base} (${e.message})`
+    );
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     try {
@@ -97,7 +118,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       } else if (msg.type === "getConfig") {
         sendResponse({ ok: true, config: await getConfig() });
       } else if (msg.type === "setConfig") {
-        await chrome.storage.sync.set(msg.config);
+        const config = { ...msg.config };
+        if (config.apiBase) config.explicitApiBase = true;
+        await chrome.storage.sync.set(config);
         sendResponse({ ok: true });
       } else {
         sendResponse({ ok: false, error: `Unknown message: ${msg.type}` });
