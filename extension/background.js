@@ -1,7 +1,7 @@
 // May or Shall — Web Clipper: background service worker.
 // All API calls happen here (host_permissions exempt them from CORS).
 
-const DEFAULTS = { apiBase: "http://localhost:3000", token: "", matterId: "" };
+const DEFAULTS = { apiBase: "https://localhost:3000", token: "", matterId: "" };
 
 async function getConfig() {
   const stored = await chrome.storage.sync.get(DEFAULTS);
