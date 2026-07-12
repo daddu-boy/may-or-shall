@@ -32,7 +32,7 @@ chrome.runtime.sendMessage({ type: "getConfig" }, (res) => {
 
 document.getElementById("save").addEventListener("click", () => {
   const config = {
-    apiBase: apiBase.value.trim().replace(/\/$/, "") || "http://localhost:3000",
+    apiBase: apiBase.value.trim().replace(/\/$/, "") || "https://localhost:3000",
     token: token.value.trim(),
   };
   if (matter.value) config.matterId = matter.value;
