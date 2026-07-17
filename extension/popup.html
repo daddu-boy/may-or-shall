@@ -8,6 +8,15 @@
   .head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
   .logo{width:18px;height:18px;border-radius:4px}
   h1{font-size:13px;margin:0}
+  .switch{margin-left:auto;position:relative;display:inline-block;width:34px;height:19px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;cursor:pointer;background:#cbd5e1;border-radius:999px;transition:.15s}
+  .slider::before{content:"";position:absolute;height:15px;width:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
+  .switch input:checked + .slider{background:#4f46e5}
+  .switch input:checked + .slider::before{transform:translateX(15px)}
+  .off .wrap > *:not(.head):not(.offnote){opacity:.4;pointer-events:none}
+  .offnote{display:none;margin-top:8px;font-size:11px;color:#94a3b8}
+  .off .offnote{display:block}
   label{display:block;font-size:11px;color:#64748b;margin:10px 0 4px}
   select,textarea,input{width:100%;box-sizing:border-box;padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit}
   textarea{resize:vertical;min-height:52px}
@@ -27,7 +36,10 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="head"><img class="logo" src="icons/icon-32.png" alt=""><h1>May or Shall — Web Clipper</h1></div>
+  <div class="head"><img class="logo" src="icons/icon-32.png" alt=""><h1>May or Shall — Web Clipper</h1>
+    <label class="switch" title="Turn clipping on or off"><input type="checkbox" id="enabled"><span class="slider"></span></label>
+  </div>
+  <div class="offnote">Clipping is off. Selecting text on a page won’t show the popover. Flip the switch to turn it back on.</div>
 
   <label for="matter">Matter</label>
   <select id="matter"><option>Loading…</option></select>

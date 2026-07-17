@@ -19,12 +19,22 @@
 
   let host = null;
   let apiOrigin = null;
+  let enabled = true;
 
   chrome.runtime.sendMessage({ type: "getConfig" }, (res) => {
     if (res?.ok) {
+      enabled = res.config.enabled !== false;
       try {
         apiOrigin = new URL(res.config.apiBase).origin;
       } catch {}
+    }
+  });
+
+  // reflect the popup's on/off switch live, without needing a page reload
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes.enabled) {
+      enabled = changes.enabled.newValue !== false;
+      if (!enabled) dismiss();
     }
   });
 
@@ -212,6 +222,7 @@
 
   document.addEventListener("mouseup", (e) => {
     if (host && e.composedPath().includes(host)) return;
+    if (!enabled) return; // clipping switched off from the popup
     // don't double up on the May or Shall app's own reader popover
     if (apiOrigin && location.origin === apiOrigin) return;
     setTimeout(() => {

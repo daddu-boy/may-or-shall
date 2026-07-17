@@ -6,8 +6,19 @@ const noteType = document.getElementById("notetype");
 const saveBtn = document.getElementById("save");
 const status = document.getElementById("status");
 const fixRow = document.getElementById("fixrow");
+const enabledToggle = document.getElementById("enabled");
 const NEW = "__new__";
 let appUrl = "https://localhost:3000";
+
+function applyEnabled(on) {
+  enabledToggle.checked = on;
+  document.body.classList.toggle("off", !on);
+}
+enabledToggle.addEventListener("change", () => {
+  const on = enabledToggle.checked;
+  document.body.classList.toggle("off", !on);
+  chrome.runtime.sendMessage({ type: "setConfig", config: { enabled: on } });
+});
 
 const setStatus = (text, cls = "") => {
   status.textContent = text;
@@ -46,6 +57,7 @@ function refresh() {
   setStatus("Connecting…");
   chrome.runtime.sendMessage({ type: "getState" }, (res) => {
     if (res?.config?.apiBase) appUrl = res.config.apiBase;
+    if (res?.config) applyEnabled(res.config.enabled !== false);
     if (!res?.ok || res.error) {
       matterSelect.innerHTML = "<option>—</option>";
       setStatus(res?.error || "Cannot reach the app — check Options.", "err");
