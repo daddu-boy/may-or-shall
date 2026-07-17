@@ -68,19 +68,29 @@ works normally.
 
 ## Install the clients (for users)
 
-**Chrome / Edge extension** — no build needed:
+**Chrome / Edge extension:**
 
-1. Download `may-or-shall-web-clipper.zip` from the latest
-   [GitHub release](https://github.com/daddu-boy/may-or-shall/releases), unzip it.
-2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, select
-   the unzipped folder.
-3. The extension talks to *your* May or Shall app (see Quick start above). In the
+1. Install **May or Shall — Web Clipper** from the
+   [Chrome Web Store](https://chromewebstore.google.com/detail/jcdaggdinfgihjbjgmpieohgehalpfac)
+   (or download `may-or-shall-web-clipper.zip` from the latest
+   [GitHub release](https://github.com/daddu-boy/may-or-shall/releases), unzip, and
+   **Load unpacked** on `chrome://extensions` with Developer mode on).
+2. The extension talks to *your* May or Shall app (see Quick start above). In the
    extension **Options** set the App URL, paste an API token (app → Settings → API
    tokens) and pick a matter. Select text on any page to clip; the toolbar popup also
    takes rough free-text notes.
 
-After updating the extension files, hit ↻ reload on `chrome://extensions` **and refresh
-any pages that were already open** — old tabs keep running the previous version.
+**If the popup says "Can't reach https://localhost:3000":**
+
+- Make sure the app is actually running (`npm run dev:addin` in the app folder).
+- If it is, open <https://localhost:3000> in a normal browser tab. A certificate warning
+  there means your computer doesn't trust the local dev certificate yet: run
+  `npx office-addin-dev-certs install` in the app folder (enter your computer password in
+  the dialog that appears — this marks the certificate as trusted), then quit and reopen
+  the browser.
+
+When developing on the extension files, hit ↻ reload on `chrome://extensions` **and
+refresh any pages that were already open** — old tabs keep running the previous version.
 
 **Word add-in:**
 

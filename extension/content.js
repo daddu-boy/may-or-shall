@@ -118,9 +118,20 @@
 
     chrome.runtime.sendMessage({ type: "getState" }, (res) => {
       if (!res?.ok || res.error) {
-        matterSel.innerHTML = `<option value="">⚠ ${res?.error || "Cannot reach the app"}</option>`;
-        status.textContent = "Check the extension options (app URL / token).";
+        matterSel.innerHTML = `<option value="">⚠ Not connected</option>`;
+        status.textContent = res?.error || "Cannot reach the app — check the extension options.";
         status.className = "status err";
+        const base = res?.config?.apiBase;
+        if (base) {
+          const open = document.createElement("a");
+          open.textContent = "Open the app ↗";
+          open.href = base;
+          open.target = "_blank";
+          open.rel = "noopener";
+          open.style.cssText = "display:inline-block;margin-top:4px;color:#4f46e5;font-weight:600";
+          status.appendChild(document.createElement("br"));
+          status.appendChild(open);
+        }
         return;
       }
       fillMatters(res.matters, res.config.matterId);

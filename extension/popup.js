@@ -5,7 +5,9 @@ const note = document.getElementById("note");
 const noteType = document.getElementById("notetype");
 const saveBtn = document.getElementById("save");
 const status = document.getElementById("status");
+const fixRow = document.getElementById("fixrow");
 const NEW = "__new__";
+let appUrl = "https://localhost:3000";
 
 const setStatus = (text, cls = "") => {
   status.textContent = text;
@@ -41,17 +43,26 @@ function fillMatters(matters, selectedId) {
 }
 
 function refresh() {
+  setStatus("Connecting…");
   chrome.runtime.sendMessage({ type: "getState" }, (res) => {
+    if (res?.config?.apiBase) appUrl = res.config.apiBase;
     if (!res?.ok || res.error) {
       matterSelect.innerHTML = "<option>—</option>";
       setStatus(res?.error || "Cannot reach the app — check Options.", "err");
+      fixRow.style.display = "flex";
       return;
     }
+    fixRow.style.display = "none";
     fillMatters(res.matters, res.config.matterId);
     setStatus(`Connected · ${res.matters.length} active matter${res.matters.length === 1 ? "" : "s"}`);
   });
 }
 refresh();
+
+document.getElementById("openapp").addEventListener("click", () => {
+  chrome.tabs.create({ url: appUrl });
+});
+document.getElementById("retry").addEventListener("click", refresh);
 
 matterSelect.addEventListener("change", () => {
   const isNew = matterSelect.value === NEW;

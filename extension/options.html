@@ -23,7 +23,11 @@
 
   <label for="apiBase">App URL</label>
   <input id="apiBase" placeholder="https://localhost:3000">
-  <div class="hint">Where your May or Shall app runs.</div>
+  <div class="hint">Where your May or Shall app runs. If this is https://localhost and the test
+    says it can't connect: make sure the app is running, then open the URL in a normal tab —
+    a certificate warning means your computer doesn't trust the local dev certificate yet.
+    Fix it by running <code>npx office-addin-dev-certs install</code> in the app folder
+    (enter your computer password when asked), then restart the browser.</div>
 
   <label for="token">API token</label>
   <input id="token" type="password" placeholder="mos_…">

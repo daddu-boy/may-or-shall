@@ -32,10 +32,14 @@ async function apiFetch(config, path, init = {}) {
       headers: { ...headers(config), ...(init.headers || {}) },
     });
   } catch (e) {
+    if (e.name === "AbortError")
+      throw new Error(`Timed out reaching ${base} — is the May or Shall app running?`);
+    const localHttps = /^https:\/\/(localhost|127\.0\.0\.1)/.test(base);
     throw new Error(
-      e.name === "AbortError"
-        ? `Timed out reaching ${base} — is the app running?`
-        : `Cannot reach ${base} (${e.message})`
+      `Can't reach ${base} — the app isn't running` +
+        (localHttps
+          ? " there, or your browser doesn't trust the local certificate yet. Open the app in a tab to check."
+          : " at that address. Check it in Options.")
     );
   } finally {
     clearTimeout(timer);
