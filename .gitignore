@@ -43,3 +43,6 @@ pdf.worker.min.mjs
 
 # environment
 .env
+
+# private prompt templates (kept local, not distributed)
+/prompts/

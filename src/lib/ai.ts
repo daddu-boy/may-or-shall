@@ -33,7 +33,15 @@ export async function loadPrompt(
   name: string,
   vars: Record<string, string>
 ): Promise<string> {
-  let template = await fs.readFile(path.join(PROMPTS_DIR, `${name}.md`), "utf-8");
+  let template: string;
+  try {
+    template = await fs.readFile(path.join(PROMPTS_DIR, `${name}.md`), "utf-8");
+  } catch {
+    throw new Error(
+      `Prompt template "${name}" not found. This deployment does not ship prompt ` +
+        `templates — create prompts/${name}.md (see README) to enable AI drafting.`
+    );
+  }
   for (const [key, value] of Object.entries(vars)) {
     template = template.replaceAll(`{{${key}}}`, value);
   }

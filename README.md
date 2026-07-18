@@ -66,6 +66,12 @@ MODEL_BRIEF="claude-opus-4-8"
 Without `ANTHROPIC_API_KEY`, the AI buttons show a clear message and everything else
 works normally.
 
+The AI features also need prompt templates, which are not distributed with this repo.
+To enable them, create a `prompts/` folder in the project root with four markdown files
+(`traverse-response.md`, `senior-brief.md`, `written-submissions.md`, `judge-note.md`).
+Each is a plain prompt with `{{placeholder}}` variables filled in at runtime — see
+`src/lib/ai.ts` and its call sites for the variables each template receives.
+
 ## Install the clients (for users)
 
 **Chrome / Edge extension:**
@@ -108,8 +114,8 @@ Both clients are thin front-ends: your matter data stays in your own May or Shal
 
 - Next.js 14 (App Router) · TypeScript · Tailwind · PostgreSQL via Prisma
 - PDF rendering with pdf.js; Word export with `docx`; PDF compilation with `pdf-lib`;
-  rich text with Tiptap; AI via the Anthropic API (server-side only, prompts versioned
-  in `/prompts`)
+  rich text with Tiptap; AI via the Anthropic API (server-side only; prompt templates
+  are user-supplied, see Quick start)
 - Tests: Playwright (`npm run test:e2e`, needs the seeded database); the extension has
   its own end-to-end check (`node scripts/verify-extension.mjs`)
 
