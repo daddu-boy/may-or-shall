@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>May or Shall — Cards</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font:13px/1.45 -apple-system,"Segoe UI",system-ui,sans-serif;color:#0f172a;background:#fff;display:flex;flex-direction:column;min-height:100vh}
+  header{padding:10px 12px 8px;border-bottom:1px solid #f1f5f9;position:sticky;top:0;background:#fff;z-index:10}
+  .brand{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .brand img{width:20px;height:20px;border-radius:4px}
+  .brand h1{font-size:14px;margin:0}
+  .badge{margin-left:auto;font-size:10px;border-radius:999px;padding:2px 8px;background:#fffbeb;color:#b45309}
+  .badge.ok{background:#ecfdf5;color:#047857}
+  .gear{border:none;background:none;cursor:pointer;font-size:13px;color:#94a3b8;padding:2px}
+  select,input[type=text],input[type=password],input[type=search]{width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:12.5px;font-family:inherit;background:#fff;color:#0f172a}
+  .filters{display:flex;gap:6px;margin-top:6px}
+  .filters select{width:auto;font-size:11.5px}
+  .filters input{flex:1;font-size:11.5px}
+  main{flex:1;overflow:auto;padding:8px 12px}
+  .card{display:flex;gap:8px;align-items:flex-start;border:1px solid #e2e8f0;border-radius:8px;padding:8px;margin-bottom:6px;cursor:pointer}
+  .card.sel{border-color:#a5b4fc;background:#eef2ff66}
+  .card .meta{display:flex;align-items:center;gap:6px;min-width:0}
+  .pill{font-size:9px;font-weight:600;color:#fff;border-radius:999px;padding:2px 6px;white-space:nowrap}
+  .chip{font-size:10px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .card p{font-size:12px;color:#334155;margin:4px 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .one{flex-shrink:0;font-size:10px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;background:#fff;color:#64748b;cursor:pointer}
+  footer{padding:10px 12px;border-top:1px solid #f1f5f9;position:sticky;bottom:0;background:#fff}
+  .hd{display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b;margin-bottom:8px}
+  .plot{width:100%;border:none;border-radius:8px;background:#0f172a;color:#fff;padding:9px;font-size:13px;font-weight:600;cursor:pointer}
+  .plot:disabled{opacity:.4}
+  .status{font-size:11px;color:#64748b;margin-top:6px;min-height:14px}
+  .status.err{color:#dc2626}
+  .settings{padding:16px 14px}
+  .settings h2{font-size:14px;margin:0 0 4px}
+  .settings p.sub{font-size:11.5px;color:#64748b;margin:0 0 14px}
+  .settings label{display:block;font-size:11px;font-weight:600;margin:12px 0 4px}
+  .hint{font-size:10.5px;color:#94a3b8;margin-top:3px}
+  .save{margin-top:16px;border:none;border-radius:8px;background:#4f46e5;color:#fff;padding:8px 16px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .empty{font-size:12px;color:#94a3b8;text-align:center;padding:24px 0}
+  a{color:#4f46e5}
+</style>
+</head>
+<body>
+
+<div id="settingsView" class="settings" style="display:none">
+  <h2>Connect to your May or Shall</h2>
+  <p class="sub">This pane is only the viewer — your cards live on your own May or Shall
+    server. Use the <b>same App URL and API token as your Chrome extension</b> and the two
+    stay in sync: clip in Chrome, plot in Word.</p>
+  <label for="apiBase">App URL</label>
+  <input type="text" id="apiBase" placeholder="https://localhost:3000">
+  <div class="hint">Where your May or Shall app runs. Don't have it? <a href="https://github.com/daddu-boy/may-or-shall" target="_blank" rel="noopener">Set it up here</a>.</div>
+  <label for="token">API token</label>
+  <input type="password" id="token" placeholder="mos_…">
+  <div class="hint">Create one in the app: Settings → API tokens. The same token works for the Chrome extension.</div>
+  <button class="save" id="saveBtn">Save &amp; connect</button>
+  <div class="status" id="settingsStatus"></div>
+</div>
+
+<div id="mainView" style="display:none;display:flex;flex-direction:column;min-height:100vh">
+  <header>
+    <div class="brand">
+      <img src="icon-32.png" alt="">
+      <h1>May or Shall</h1>
+      <span class="badge" id="hostBadge">Browser preview</span>
+      <button class="gear" id="gearBtn" title="Connection settings">⚙︎</button>
+    </div>
+    <select id="matterSel"></select>
+    <div class="filters">
+      <select id="typeSel"><option value="">All types</option></select>
+      <input type="search" id="searchBox" placeholder="Search cards…">
+    </div>
+  </header>
+  <main id="cardList"></main>
+  <footer>
+    <label class="hd"><input type="checkbox" id="withHeading"> Add a “MATERIALS” heading above the block</label>
+    <button class="plot" id="plotBtn" disabled>Plot selected into document</button>
+    <div class="status" id="status"></div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var TYPES = ["FACT","DATE","ISSUE","OUR_ARGUMENT","THEIR_ARGUMENT","EVIDENCE","CASE_LAW","ADMISSION","QUESTION","MISC"];
+  var LABEL = {FACT:"Fact",DATE:"Date",ISSUE:"Issue",OUR_ARGUMENT:"Our argument",THEIR_ARGUMENT:"Their argument",EVIDENCE:"Evidence",CASE_LAW:"Case law",ADMISSION:"Admission",QUESTION:"Question",MISC:"Misc"};
+  var COLOR = {FACT:"#3b82f6",DATE:"#f59e0b",ISSUE:"#8b5cf6",OUR_ARGUMENT:"#10b981",THEIR_ARGUMENT:"#ef4444",EVIDENCE:"#06b6d4",CASE_LAW:"#d946ef",ADMISSION:"#84cc16",QUESTION:"#f97316",MISC:"#6b7280"};
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = {
+    apiBase: localStorage.getItem("mos.apiBase") || "",
+    token: localStorage.getItem("mos.token") || "",
+    matterId: localStorage.getItem("mos.matterId") || "",
+    matters: [], cards: [], selected: {}, inWord: false, officeReady: false
+  };
+
+  if (typeof Office !== "undefined" && Office.onReady) {
+    Office.onReady(function (info) {
+      state.officeReady = true;
+      state.inWord = String(info && info.host).toLowerCase().indexOf("word") !== -1;
+      var b = $("hostBadge");
+      b.textContent = state.inWord ? "Word connected" : "Not in Word — copy mode";
+      if (state.inWord) b.className = "badge ok";
+      updatePlotBtn();
+    });
+  }
+
+  function api(path, init) {
+    var base = state.apiBase.replace(/\/$/, "");
+    init = init || {};
+    init.headers = Object.assign({ "Content-Type": "application/json" }, init.headers || {});
+    if (state.token) init.headers["Authorization"] = "Bearer " + state.token;
+    return fetch(base + path, init).then(function (res) {
+      if (!res.ok) return res.json().catch(function(){return {};}).then(function (b) {
+        throw new Error(b.error || ("Request failed (" + res.status + ")"));
+      });
+      return res.json();
+    }, function () {
+      throw new Error("Can't reach " + base + " — is your May or Shall app running? " +
+        "If it is, open it in a browser tab once: a certificate warning there means your " +
+        "computer doesn't trust the local certificate yet (see the README).");
+    });
+  }
+
+  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function chipText(c) {
+    if (c.document) {
+      var bits = [c.document.filename.replace(/\.pdf$/i, "")];
+      if (c.page) bits.push("p." + c.page);
+      if (c.para) bits.push("¶" + c.para);
+      return "(" + bits.join(", ") + ")";
+    }
+    if (c.sourceUrl) return "(" + (c.sourceTitle ? c.sourceTitle + ", " : "") + c.sourceUrl + ")";
+    return "";
+  }
+  function cardHtml(c) {
+    var label = "[" + LABEL[c.cardType].toUpperCase() + "]";
+    var body = esc(c.body || c.quote);
+    var quote = c.quote && c.quote !== c.body ? " — <i>&ldquo;" + esc(c.quote) + "&rdquo;</i>" : "";
+    var chip = chipText(c);
+    var chipHtml = chip ? ' <span style="color:#64748b">' + esc(chip) + "</span>" : "";
+    return '<p style="font-family:\'Times New Roman\',serif;font-size:12pt"><b style="color:' +
+      COLOR[c.cardType] + '">' + label + "</b> " + body + quote + chipHtml + "</p>";
+  }
+  function plainText(c) {
+    var quote = c.quote && c.quote !== c.body ? ' — "' + c.quote + '"' : "";
+    return ("[" + LABEL[c.cardType].toUpperCase() + "] " + (c.body || c.quote) + quote + " " + chipText(c)).trim();
+  }
+
+  function visibleCards() {
+    var t = $("typeSel").value, q = $("searchBox").value.toLowerCase();
+    return state.cards.filter(function (c) {
+      if (t && c.cardType !== t) return false;
+      if (q && (c.body || "").toLowerCase().indexOf(q) === -1 &&
+          (c.quote || "").toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+  function selectedCards() {
+    return visibleCards().filter(function (c) { return state.selected[c.id]; });
+  }
+  function updatePlotBtn() {
+    var n = selectedCards().length;
+    $("plotBtn").disabled = n === 0;
+    $("plotBtn").textContent = state.inWord
+      ? "Plot " + (n || "") + " selected into document" : "Copy " + (n || "") + " selected as text";
+  }
+
+  function renderCards() {
+    var list = $("cardList");
+    list.innerHTML = "";
+    var cards = visibleCards();
+    if (cards.length === 0) { list.innerHTML = '<div class="empty">No cards match.</div>'; updatePlotBtn(); return; }
+    cards.forEach(function (c) {
+      var el = document.createElement("div");
+      el.className = "card" + (state.selected[c.id] ? " sel" : "");
+      var meta = document.createElement("div");
+      meta.style.cssText = "min-width:0;flex:1";
+      var head = document.createElement("div"); head.className = "meta";
+      var pill = document.createElement("span"); pill.className = "pill";
+      pill.style.background = COLOR[c.cardType]; pill.textContent = LABEL[c.cardType];
+      var chip = document.createElement("span"); chip.className = "chip"; chip.textContent = chipText(c);
+      head.appendChild(pill); head.appendChild(chip);
+      var p = document.createElement("p"); p.textContent = c.body || c.quote;
+      meta.appendChild(head); meta.appendChild(p);
+      var one = document.createElement("button"); one.className = "one";
+      one.textContent = state.inWord ? "Insert" : "Copy";
+      one.addEventListener("click", function (e) { e.stopPropagation(); deliver([c]); });
+      el.appendChild(meta); el.appendChild(one);
+      el.addEventListener("click", function () {
+        state.selected[c.id] = !state.selected[c.id];
+        el.className = "card" + (state.selected[c.id] ? " sel" : "");
+        updatePlotBtn();
+      });
+      list.appendChild(el);
+    });
+    updatePlotBtn();
+  }
+
+  function deliver(cards) {
+    if (cards.length === 0) return;
+    if (!state.inWord) {
+      navigator.clipboard.writeText(cards.map(plainText).join("\n\n")).then(function () {
+        setStatus("Copied " + cards.length + " card" + (cards.length === 1 ? "" : "s") + " as text.");
+      });
+      return;
+    }
+    setStatus("Inserting…");
+    Word.run(function (context) {
+      var selection = context.document.getSelection();
+      var anchor = selection.insertParagraph("", "After");
+      if ($("withHeading").checked && cards.length > 1) {
+        var matter = state.matters.filter(function (m) { return m.id === state.matterId; })[0];
+        anchor.insertHtml('<p style="font-family:\'Times New Roman\',serif;font-size:12pt"><b>MATERIALS — ' +
+          esc(matter ? matter.title : "May or Shall") + "</b></p>", "Replace");
+        anchor = anchor.insertParagraph("", "After");
+      }
+      for (var i = 0; i < cards.length; i++) {
+        var cc = anchor.insertContentControl();
+        cc.tag = "mayorshall:card:" + cards[i].id;
+        cc.title = (LABEL[cards[i].cardType] + " " + chipText(cards[i])).slice(0, 250);
+        cc.insertHtml(cardHtml(cards[i]), "Replace");
+        if (i < cards.length - 1) anchor = cc.getRange("After").insertParagraph("", "After");
+      }
+      return context.sync();
+    }).then(function () {
+      setStatus("Inserted " + cards.length + " card" + (cards.length === 1 ? "" : "s") + ".");
+      state.selected = {}; renderCards();
+    }).catch(function (e) { setStatus("Insert failed: " + e.message, true); });
+  }
+
+  function setStatus(text, err) {
+    $("status").textContent = text;
+    $("status").className = "status" + (err ? " err" : "");
+  }
+
+  function loadMatters(selectId) {
+    return api("/api/matters").then(function (list) {
+      state.matters = list.filter(function (m) { return m.status === "ACTIVE"; });
+      var sel = $("matterSel"); sel.innerHTML = "";
+      state.matters.forEach(function (m) {
+        var o = document.createElement("option"); o.value = m.id; o.textContent = m.title;
+        sel.appendChild(o);
+      });
+      var plus = document.createElement("option"); plus.value = "__new__"; plus.textContent = "＋ New matter…";
+      sel.appendChild(plus);
+      if (selectId) state.matterId = selectId;
+      if (!state.matterId && state.matters[0]) state.matterId = state.matters[0].id;
+      if (state.matterId) sel.value = state.matterId;
+      localStorage.setItem("mos.matterId", state.matterId);
+      return loadCards();
+    });
+  }
+  function loadCards() {
+    if (!state.matterId) { state.cards = []; renderCards(); return; }
+    return api("/api/matters/" + state.matterId + "/cards").then(function (cards) {
+      state.cards = cards; state.selected = {}; renderCards();
+      setStatus("Connected · " + cards.length + " card" + (cards.length === 1 ? "" : "s") + " in this matter.");
+    });
+  }
+
+  function showSettings() {
+    $("mainView").style.display = "none";
+    $("settingsView").style.display = "block";
+    $("apiBase").value = state.apiBase;
+    $("token").value = state.token;
+  }
+  function showMain() {
+    $("settingsView").style.display = "none";
+    $("mainView").style.display = "flex";
+    loadMatters().catch(function (e) { setStatus(e.message, true); });
+  }
+
+  TYPES.forEach(function (t) {
+    var o = document.createElement("option"); o.value = t; o.textContent = LABEL[t];
+    $("typeSel").appendChild(o);
+  });
+  $("typeSel").addEventListener("change", renderCards);
+  $("searchBox").addEventListener("input", renderCards);
+  $("gearBtn").addEventListener("click", showSettings);
+  $("plotBtn").addEventListener("click", function () { deliver(selectedCards()); });
+  $("matterSel").addEventListener("change", function () {
+    if (this.value === "__new__") {
+      var title = window.prompt("New matter title:");
+      this.value = state.matterId;
+      if (!title || !title.trim()) return;
+      api("/api/matters", { method: "POST", body: JSON.stringify({ title: title.trim() }) })
+        .then(function (m) { return loadMatters(m.id); })
+        .catch(function (e) { setStatus(e.message, true); });
+      return;
+    }
+    state.matterId = this.value;
+    localStorage.setItem("mos.matterId", state.matterId);
+    loadCards().catch(function (e) { setStatus(e.message, true); });
+  });
+  $("saveBtn").addEventListener("click", function () {
+    var base = $("apiBase").value.trim().replace(/\/$/, "");
+    if (!base) { $("settingsStatus").textContent = "Enter your app's URL."; $("settingsStatus").className = "status err"; return; }
+    state.apiBase = base; state.token = $("token").value.trim();
+    localStorage.setItem("mos.apiBase", state.apiBase);
+    localStorage.setItem("mos.token", state.token);
+    $("settingsStatus").textContent = "Testing…"; $("settingsStatus").className = "status";
+    api("/api/matters").then(function () { showMain(); })
+      .catch(function (e) { $("settingsStatus").textContent = e.message; $("settingsStatus").className = "status err"; });
+  });
+
+  if (state.apiBase) showMain(); else showSettings();
+})();
+</script>
+</body>
+</html>

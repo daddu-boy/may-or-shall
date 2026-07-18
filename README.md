@@ -98,15 +98,27 @@ Each is a plain prompt with `{{placeholder}}` variables filled in at runtime —
 When developing on the extension files, hit ↻ reload on `chrome://extensions` **and
 refresh any pages that were already open** — old tabs keep running the previous version.
 
-**Word add-in:**
+**Word add-in** — the easy way (hosted pane, works for everyone):
 
-1. Run the app over HTTPS (`npx office-addin-dev-certs install` once, then
-   `npm run dev:addin`), or host it under a proper HTTPS domain.
-2. Download `may-or-shall-word-manifest.xml` from the release (edit the URLs if your app
-   is not at `https://localhost:3000`) and sideload it: on Mac, copy it to
-   `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/`; on Windows/M365, use
-   centralized deployment or a network-share catalog.
-3. In Word: Home ribbon → **Cards** (or Insert → Add-ins → Developer Add-ins).
+1. Download `may-or-shall-word-manifest-hosted.xml` from the latest
+   [GitHub release](https://github.com/daddu-boy/may-or-shall/releases). No editing needed —
+   the pane itself is hosted at daddu-boy.github.io; only your matter data stays on your
+   own server.
+2. Sideload it: on Mac, copy the file to
+   `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/` (create `wef` if missing)
+   and restart Word; on Windows/M365, use Insert → Add-ins → Upload My Add-in, or
+   centralized deployment.
+3. In Word: Home ribbon → **Cards**. On first open the pane asks for your app's URL and an
+   API token — **use the same URL and token as your Chrome extension**, and the two stay
+   in sync: clip a page in Chrome, and the card is right there in Word to plot into your
+   draft.
+4. Your app must be running over HTTPS (`npx office-addin-dev-certs install` once, then
+   `npm run dev:addin`).
+
+**Word add-in** — fully local variant (no third-party hosting at all):
+
+Download `may-or-shall-word-manifest.xml` instead; it serves the pane from your own app at
+`https://localhost:3000` (edit the URLs if yours runs elsewhere). Same sideloading steps.
 
 Both clients are thin front-ends: your matter data stays in your own May or Shall server.
 
