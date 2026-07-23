@@ -1,0 +1,80 @@
+name: Desktop app (macOS + Windows)
+
+# Builds the desktop app on each OS's own native runner (so each gets its own
+# Prisma query engine and installer tooling) and attaches the installers to an
+# existing GitHub release. Run it manually from the Actions tab and give the
+# release tag to attach to (e.g. v2.0.0). Artifacts are renamed to the exact
+# stable filenames the extension's welcome page links to.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to attach the builds to (e.g. v2.0.0)"
+        required: true
+        default: "v2.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # generate/build never connect; a dummy URL keeps Prisma quiet
+      DATABASE_URL: "file:./build.db"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build Next standalone server
+        run: npm run build
+
+      - name: Prune standalone to runtime essentials
+        run: node desktop/prune-standalone.mjs
+
+      - name: Install desktop deps
+        working-directory: desktop
+        run: npm ci
+
+      - name: Package desktop app
+        working-directory: desktop
+        run: npx electron-builder --publish never
+
+      # electron-builder emits versioned/arch names; rename to the stable names
+      # the extension welcome page links to (so /latest/download/ keeps working).
+      - name: Normalise artifact names
+        shell: bash
+        working-directory: desktop/dist
+        run: |
+          shopt -s nullglob
+          for f in *arm64.dmg; do mv -f "$f" "May-or-Shall-macOS-Apple-Silicon.dmg"; done
+          for f in *.dmg; do
+            case "$f" in
+              May-or-Shall-macOS-Apple-Silicon.dmg) ;;
+              *) mv -f "$f" "May-or-Shall-macOS-Intel.dmg" ;;
+            esac
+          done
+          for f in *.exe; do mv -f "$f" "May-or-Shall-Windows-Setup.exe"; done
+          ls -la
+
+      - name: Attach installers to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          files: |
+            desktop/dist/May-or-Shall-macOS-Apple-Silicon.dmg
+            desktop/dist/May-or-Shall-macOS-Intel.dmg
+            desktop/dist/May-or-Shall-Windows-Setup.exe
