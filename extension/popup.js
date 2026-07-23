@@ -6,6 +6,7 @@ const noteType = document.getElementById("notetype");
 const saveBtn = document.getElementById("save");
 const status = document.getElementById("status");
 const fixRow = document.getElementById("fixrow");
+const welcomeBox = document.getElementById("welcome");
 const enabledToggle = document.getElementById("enabled");
 const NEW = "__new__";
 let appUrl = "https://localhost:3000";
@@ -60,16 +61,32 @@ function refresh() {
     if (res?.config) applyEnabled(res.config.enabled !== false);
     if (!res?.ok || res.error) {
       matterSelect.innerHTML = "<option>—</option>";
-      setStatus(res?.error || "Cannot reach the app — check Options.", "err");
-      fixRow.style.display = "flex";
+      if (res?.firstRun) {
+        // fresh install, nothing configured yet — guide, don't alarm
+        setStatus("");
+        welcomeBox.style.display = "block";
+        fixRow.style.display = "none";
+      } else {
+        welcomeBox.style.display = "none";
+        setStatus(res?.error || "Cannot reach the app — check Options.", "err");
+        fixRow.style.display = "flex";
+      }
       return;
     }
+    welcomeBox.style.display = "none";
     fixRow.style.display = "none";
     fillMatters(res.matters, res.config.matterId);
     setStatus(`Connected · ${res.matters.length} active matter${res.matters.length === 1 ? "" : "s"}`);
   });
 }
 refresh();
+
+document.getElementById("guide").addEventListener("click", () => {
+  chrome.tabs.create({ url: "https://github.com/daddu-boy/may-or-shall#quick-start-run-it-locally" });
+});
+document.getElementById("openoptions").addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
+});
 
 document.getElementById("openapp").addEventListener("click", () => {
   chrome.tabs.create({ url: appUrl });

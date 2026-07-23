@@ -129,6 +129,22 @@
     chrome.runtime.sendMessage({ type: "getState" }, (res) => {
       if (!res?.ok || res.error) {
         matterSel.innerHTML = `<option value="">⚠ Not connected</option>`;
+        if (res?.firstRun) {
+          // fresh install — the user hasn't connected their app yet
+          status.textContent =
+            "Almost there: this clipper saves into your own May or Shall app. " +
+            "Set it up once, then enter its address in the extension options.";
+          status.className = "status";
+          const guide = document.createElement("a");
+          guide.textContent = "Setup guide ↗";
+          guide.href = "https://github.com/daddu-boy/may-or-shall#quick-start-run-it-locally";
+          guide.target = "_blank";
+          guide.rel = "noopener";
+          guide.style.cssText = "display:inline-block;margin-top:4px;color:#4f46e5;font-weight:600";
+          status.appendChild(document.createElement("br"));
+          status.appendChild(guide);
+          return;
+        }
         status.textContent = res?.error || "Cannot reach the app — check the extension options.";
         status.className = "status err";
         const base = res?.config?.apiBase;

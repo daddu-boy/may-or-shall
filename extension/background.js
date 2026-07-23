@@ -83,7 +83,10 @@ async function getState() {
   } catch (e) {
     error = e.message;
   }
-  return { config, matters, error };
+  // never explicitly configured + can't connect = this is a fresh install
+  // that hasn't been pointed at a server yet, not a broken connection
+  const firstRun = Boolean(error) && !config.explicitApiBase;
+  return { config, matters, error, firstRun };
 }
 
 async function createCard(payload) {
