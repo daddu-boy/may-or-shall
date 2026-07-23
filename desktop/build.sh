@@ -17,17 +17,9 @@ rm -rf "$ROOT/desktop/dist" "$ROOT/.next/standalone"
 echo "==> Next production build (output: standalone)"
 npm run build >/dev/null
 
-STANDALONE="$ROOT/.next/standalone"
 echo "==> Prune standalone to the runtime essentials"
-# the 297 MB build cache and the traced copy of the whole repo are not needed
-rm -rf "$STANDALONE/.next/cache"
-rm -rf "$STANDALONE"/{.git,.claude,src,tests,test-results,scripts,store,docs,extension,office-addin,desktop,prompts,storage,prisma}
-rm -f  "$STANDALONE"/{.env,.env.example,.env.local,.DS_Store,Dockerfile,docker-compose.yml,\
-playwright.config.ts,tsconfig.json,tsconfig.tsbuildinfo,next-env.d.ts,postcss.config.mjs,\
-tailwind.config.ts,.eslintrc.json,.gitignore,package-lock.json,README.md} 2>/dev/null || true
-
-echo "==> Standalone size after prune:"
-du -sh "$STANDALONE"
+node "$ROOT/desktop/prune-standalone.mjs"
+du -sh "$ROOT/.next/standalone"
 
 echo "==> Package with electron-builder"
 cd "$ROOT/desktop"
