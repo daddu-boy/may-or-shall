@@ -1,22 +1,73 @@
 generator client {
   provider = "prisma-client-js"
-  // include the Windows engine so the desktop app can be cross-built from macOS
-  binaryTargets = ["native", "windows"]
 }
 
-// SQLite: zero-dependency local database (desktop-app friendly).
-// SQLite has no enums, JSON columns, or scalar lists, so:
-//  - enum-like fields are String with the same uppercase values (validated by zod
-//    at the API boundary; canonical value lists live in src/lib/labels.ts)
-//  - JSON-shaped fields (paraMap, rects, linkedCardIds, tags) are String columns
-//    holding JSON text; (de)serialized by src/lib/jsonFields.ts at the API boundary
+// PostgreSQL (hosted, multi-user). The schema keeps the provider-agnostic shape
+// the desktop SQLite build used — enum-like fields are String (validated by zod
+// at the API boundary; canonical lists in src/lib/labels.ts) and JSON-shaped
+// fields (paraMap, rects, linkedCardIds, tags) are String columns holding JSON
+// text ((de)serialized by src/lib/jsonFields.ts) — so the app code is identical
+// on either database.
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---- Auth (Auth.js Prisma adapter) ----
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  accounts  Account[]
+  sessions  Session[]
+  matters   Matter[]
+  apiTokens ApiToken[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Matter {
   id         String @id @default(cuid())
+  /// owner — every matter is private to the user who created it
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   title      String
   court      String @default("")
   caseNumber String @default("")
@@ -39,6 +90,8 @@ model Matter {
   traverseSheet     TraverseSheet?
   artefacts         GeneratedArtefact[]
   annexureItems     AnnexureItem[]
+
+  @@index([userId])
 }
 
 model Document {
@@ -180,13 +233,18 @@ model AnnexureItem {
 }
 
 /// Bearer tokens for cross-origin clients (browser extension, remote add-ins).
+/// Each token belongs to a user; requests it authenticates act as that user.
 model ApiToken {
   id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name       String
   tokenHash  String    @unique
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
   revokedAt  DateTime?
+
+  @@index([userId])
 }
 
 model ChronologyEntry {

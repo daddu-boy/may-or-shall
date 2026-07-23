@@ -29,8 +29,16 @@ async function ingest(matterId: string, filename: string, docType: "PLAINT" | "J
 }
 
 async function main() {
+  // a demo user owns the sample matter (multi-tenant: matters are per-user)
+  const demoEmail = process.env.SEED_USER_EMAIL || "demo@mayorshall.local";
+  const user = await prisma.user.upsert({
+    where: { email: demoEmail },
+    update: {},
+    create: { email: demoEmail, name: "Demo User" },
+  });
+
   const existing = await prisma.matter.findFirst({
-    where: { title: "Sharma Infra Projects v. National Buildcon" },
+    where: { title: "Sharma Infra Projects v. National Buildcon", userId: user.id },
   });
   if (existing) {
     console.log("Seed matter already exists, skipping.");
@@ -39,6 +47,7 @@ async function main() {
 
   const matter = await prisma.matter.create({
     data: {
+      userId: user.id,
       title: "Sharma Infra Projects v. National Buildcon",
       court: "Delhi High Court",
       caseNumber: "CS(COMM) 412/2024",

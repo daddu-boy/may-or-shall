@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { checkApiAuth } from "@/lib/apiAuth";
+import { getRequestUserId, unauthorized } from "@/lib/requestUser";
 
 export async function GET(req: NextRequest) {
-  const denied = await checkApiAuth(req);
-  if (denied) return denied;
+  const userId = await getRequestUserId(req);
+  if (!userId) return unauthorized();
   const matters = await prisma.matter.findMany({
+    where: { userId },
     orderBy: { updatedAt: "desc" },
     include: { _count: { select: { documents: true, cards: true } } },
   });
@@ -22,12 +23,12 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const denied = await checkApiAuth(req);
-  if (denied) return denied;
+  const userId = await getRequestUserId(req);
+  if (!userId) return unauthorized();
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
-  const matter = await prisma.matter.create({ data: parsed.data });
+  const matter = await prisma.matter.create({ data: { ...parsed.data, userId } });
   return NextResponse.json(matter, { status: 201 });
 }
