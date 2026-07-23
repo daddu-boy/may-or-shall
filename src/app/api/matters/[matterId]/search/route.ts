@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const [pageHits, cardHits] = await Promise.all([
     prisma.documentPage.findMany({
       where: {
-        text: { contains: q, mode: "insensitive" },
+        text: { contains: q },
         document: { matterId: params.matterId },
       },
       include: { document: { select: { id: true, filename: true } } },
@@ -30,8 +30,8 @@ export async function GET(req: NextRequest, { params }: Params) {
       where: {
         matterId: params.matterId,
         OR: [
-          { body: { contains: q, mode: "insensitive" } },
-          { quote: { contains: q, mode: "insensitive" } },
+          { body: { contains: q } },
+          { quote: { contains: q } },
         ],
       },
       include: { document: { select: { id: true, filename: true } } },

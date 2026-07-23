@@ -1,35 +1,17 @@
 version: "3.9"
 
-# Pilot deployment stack (PRD §8): app + Postgres on an internal VM.
-# All data stays on the host volumes — India data residency by construction.
+# Single-container deployment: the app plus its SQLite database file.
+# All data stays on the host volume — India data residency by construction.
 services:
-  db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: matterdock
-      POSTGRES_PASSWORD: matterdock
-      POSTGRES_DB: matterdock
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U matterdock"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   app:
     build: .
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://matterdock:matterdock@db:5432/matterdock
+      DATABASE_URL: file:/data/storage/mayorshall.db
       STORAGE_DIR: /data/storage
     volumes:
-      - appstorage:/data/storage
+      - appdata:/data
     ports:
       - "3000:3000"
 
 volumes:
-  pgdata:
-  appstorage:
+  appdata:

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { MODELS, aiUnavailableReason, generate, loadPrompt } from "@/lib/ai";
 import { cardDigest, ourSideLabel } from "@/lib/cardDigest";
+import { parseJson } from "@/lib/jsonFields";
 
 export const maxDuration = 120;
 
@@ -22,7 +23,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
   const reason = aiUnavailableReason(row.sheet.matter.aiEnabled);
   if (reason) return NextResponse.json({ error: reason }, { status: 503 });
 
-  const cardIds = (row.linkedCardIds as string[]) ?? [];
+  const cardIds = parseJson<string[]>(row.linkedCardIds, []);
   const cards = cardIds.length
     ? await prisma.card.findMany({
         where: { id: { in: cardIds } },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { rowOut } from "@/lib/jsonFields";
 
 type Params = { params: { rowId: string } };
 
@@ -17,9 +18,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
+  const { linkedCardIds, ...rest } = parsed.data;
   const row = await prisma.traverseRow.update({
     where: { id: params.rowId },
-    data: parsed.data,
+    data: {
+      ...rest,
+      ...(linkedCardIds !== undefined ? { linkedCardIds: JSON.stringify(linkedCardIds) } : {}),
+    },
   });
-  return NextResponse.json(row);
+  return NextResponse.json(rowOut(row));
 }

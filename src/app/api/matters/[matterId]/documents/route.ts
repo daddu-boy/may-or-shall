@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { extractPdf } from "@/lib/pdf/extract";
 import { DOC_TYPES, type DocTypeValue } from "@/lib/labels";
+import { documentOut } from "@/lib/jsonFields";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -15,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     orderBy: { createdAt: "asc" },
     include: { _count: { select: { cards: true } } },
   });
-  return NextResponse.json(documents);
+  return NextResponse.json(documents.map(documentOut));
 }
 
 /** Multi-file upload happens as one request per file so the client can show per-file progress. */
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       storagePath: "",
       pageCount: extraction.pageCount,
       hasTextLayer: extraction.hasTextLayer,
-      paraMap: extraction.paraMap as object[],
+      paraMap: JSON.stringify(extraction.paraMap),
       status: "ready",
     },
   });
@@ -72,5 +73,5 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
   }
 
-  return NextResponse.json({ ...doc, storagePath }, { status: 201 });
+  return NextResponse.json(documentOut({ ...doc, storagePath }), { status: 201 });
 }

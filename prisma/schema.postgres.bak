@@ -2,34 +2,87 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// SQLite: zero-dependency local database (desktop-app friendly).
-// SQLite has no enums, JSON columns, or scalar lists, so:
-//  - enum-like fields are String with the same uppercase values (validated by zod
-//    at the API boundary; canonical value lists live in src/lib/labels.ts)
-//  - JSON-shaped fields (paraMap, rects, linkedCardIds, tags) are String columns
-//    holding JSON text; (de)serialized by src/lib/jsonFields.ts at the API boundary
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum OurSide {
+  PETITIONER_PLAINTIFF
+  RESPONDENT_DEFENDANT
+  OTHER
+}
+
+enum MatterStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum DocType {
+  PLAINT
+  WRITTEN_STATEMENT
+  PETITION
+  REPLY
+  REJOINDER
+  JUDGMENT
+  ORDER
+  ANNEXURE
+  CORRESPONDENCE
+  MISC
+}
+
+enum CardType {
+  FACT
+  DATE
+  ISSUE
+  OUR_ARGUMENT
+  THEIR_ARGUMENT
+  EVIDENCE
+  CASE_LAW
+  ADMISSION
+  QUESTION
+  MISC
+}
+
+enum Treatment {
+  RELIED_ON
+  DISTINGUISHED
+  OVERRULED_RISK
+}
+
+enum TraverseStatus {
+  NOT_STARTED
+  DENIED_BARE
+  DENIED_SPECIFIC
+  ADMITTED
+  ADMITTED_PARTLY
+  LEGAL_OBJECTION
+}
+
+enum ArtefactType {
+  SENIOR_BRIEF
+  WRITTEN_SUBMISSIONS
+  JUDGE_NOTE
+  LIST_OF_DATES
+  CONVENIENCE_COMPILATION
+  WRITTEN_STATEMENT_DRAFT
+}
+
 model Matter {
-  id         String @id @default(cuid())
+  id         String       @id @default(cuid())
   title      String
-  court      String @default("")
-  caseNumber String @default("")
-  parties    String @default("")
-  /// OurSide: PETITIONER_PLAINTIFF | RESPONDENT_DEFENDANT | OTHER
-  ourSide    String @default("OTHER")
-  /// MatterStatus: ACTIVE | ARCHIVED
-  status     String @default("ACTIVE")
+  court      String       @default("")
+  caseNumber String       @default("")
+  parties    String       @default("")
+  ourSide    OurSide      @default(OTHER)
+  status     MatterStatus @default(ACTIVE)
   /// per-matter switch to disable AI features (confidentiality restrictions)
-  aiEnabled  Boolean @default(true)
+  aiEnabled  Boolean      @default(true)
   /// annexure label prefix, e.g. "P" or "R"; empty = derive from ourSide
-  annexurePrefix String @default("")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  createdBy  String   @default("local")
+  annexurePrefix String   @default("")
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  createdBy  String       @default("local")
 
   documents         Document[]
   cards             Card[]
@@ -44,14 +97,13 @@ model Document {
   matterId      String
   matter        Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
   filename      String
-  /// DocType: PLAINT | WRITTEN_STATEMENT | PETITION | REPLY | REJOINDER | JUDGMENT | ORDER | ANNEXURE | CORRESPONDENCE | MISC
-  docType       String   @default("MISC")
+  docType       DocType  @default(MISC)
   annexureLabel String?
   storagePath   String
   pageCount     Int      @default(0)
   hasTextLayer  Boolean  @default(true)
-  /// JSON text: list of { label: string, page: number, y: number } paragraph markers in reading order
-  paraMap       String   @default("[]")
+  /// list of { label: string, page: number, y: number } paragraph markers in reading order
+  paraMap       Json     @default("[]")
   status        String   @default("ready")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -83,24 +135,21 @@ model Card {
   para       String?
   /// exact highlighted source text
   quote      String    @default("")
-  /// JSON text: normalized highlight rects [{ page, x, y, w, h }] with 0..1 coords
-  rects      String    @default("[]")
+  /// normalized highlight rects: [{ page, x, y, w, h }] with 0..1 coords
+  rects      Json      @default("[]")
   /// web captures (browser extension): source page URL + title
   sourceUrl   String?
   sourceTitle String?
 
-  /// CardType: FACT | DATE | ISSUE | OUR_ARGUMENT | THEIR_ARGUMENT | EVIDENCE | CASE_LAW | ADMISSION | QUESTION | MISC
-  cardType  String    @default("MISC")
+  cardType  CardType  @default(MISC)
   body      String    @default("")
-  eventDate DateTime?
-  /// JSON text: string[] of tags
-  tags      String    @default("[]")
+  eventDate DateTime? @db.Date
+  tags      String[]  @default([])
   pinned    Boolean   @default(false)
 
   citation    String?
   proposition String?
-  /// Treatment: RELIED_ON | DISTINGUISHED | OVERRULED_RISK (nullable)
-  treatment   String?
+  treatment   Treatment?
 
   orderIndex Float    @default(0)
   createdAt  DateTime @default(now())
@@ -126,39 +175,37 @@ model TraverseSheet {
 }
 
 model TraverseRow {
-  id           String        @id @default(cuid())
+  id           String         @id @default(cuid())
   sheetId      String
-  sheet        TraverseSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  sheet        TraverseSheet  @relation(fields: [sheetId], references: [id], onDelete: Cascade)
   order        Int
   paraNo       String
   paraText     String
   /// rich text (HTML) reply
-  responseText String        @default("")
-  /// TraverseStatus: NOT_STARTED | DENIED_BARE | DENIED_SPECIFIC | ADMITTED | ADMITTED_PARTLY | LEGAL_OBJECTION
-  status       String        @default("NOT_STARTED")
-  /// JSON text: ids of Fact/Evidence cards attached to this row
-  linkedCardIds String       @default("[]")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  responseText String         @default("")
+  status       TraverseStatus @default(NOT_STARTED)
+  /// ids of Fact/Evidence cards attached to this row
+  linkedCardIds Json          @default("[]")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@unique([sheetId, order])
 }
 
 model GeneratedArtefact {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   matterId       String
-  matter         Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
-  /// ArtefactType: SENIOR_BRIEF | WRITTEN_SUBMISSIONS | JUDGE_NOTE | LIST_OF_DATES | CONVENIENCE_COMPILATION | WRITTEN_STATEMENT_DRAFT
-  artefactType   String
+  matter         Matter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  artefactType   ArtefactType
   title          String
   /// rich text (HTML) content
-  content        String   @default("")
-  version        Int      @default(1)
+  content        String       @default("")
+  version        Int          @default(1)
   /// prompt snapshot for AI-generated versions
-  promptSnapshot String   @default("")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  createdBy      String   @default("local")
+  promptSnapshot String       @default("")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdBy      String       @default("local")
 
   @@index([matterId, artefactType])
 }
@@ -191,7 +238,7 @@ model ChronologyEntry {
   id              String   @id @default(cuid())
   matterId        String
   matter          Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
-  eventDate       DateTime
+  eventDate       DateTime @db.Date
   description     String
   sourceCardId    String?  @unique
   sourceCard      Card?    @relation(fields: [sourceCardId], references: [id], onDelete: Cascade)

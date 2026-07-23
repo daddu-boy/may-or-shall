@@ -6,6 +6,7 @@ import { syncCardChronology } from "@/lib/chronology";
 import { checkApiAuth } from "@/lib/apiAuth";
 import { resolvePara, type ParaMarker } from "@/lib/pdf/paraMap";
 import { CARD_TYPES } from "@/lib/labels";
+import { cardOut, parseJson } from "@/lib/jsonFields";
 
 type Params = { params: { matterId: string } };
 
@@ -22,14 +23,14 @@ export async function GET(req: NextRequest, { params }: Params) {
   const documentId = sp.get("documentId");
   if (documentId) where.documentId = documentId;
   const tag = sp.get("tag");
-  if (tag) where.tags = { has: tag };
   const q = sp.get("q");
   if (q) {
+    // SQLite LIKE is case-insensitive for ASCII, so plain `contains` suffices
     where.OR = [
-      { body: { contains: q, mode: "insensitive" } },
-      { quote: { contains: q, mode: "insensitive" } },
-      { citation: { contains: q, mode: "insensitive" } },
-      { proposition: { contains: q, mode: "insensitive" } },
+      { body: { contains: q } },
+      { quote: { contains: q } },
+      { citation: { contains: q } },
+      { proposition: { contains: q } },
     ];
   }
   const from = sp.get("from");
@@ -46,7 +47,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
     include: { document: { select: { id: true, filename: true } } },
   });
-  return NextResponse.json(cards);
+  let out = cards.map(cardOut);
+  if (tag) out = out.filter((c) => c.tags.includes(tag)); // tags live as JSON text in SQLite
+  return NextResponse.json(out);
 }
 
 const rectSchema = z.object({
@@ -91,7 +94,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     const doc = await prisma.document.findUnique({ where: { id: data.documentId } });
     if (doc) {
       const topRect = data.rects.reduce((a, b) => (a.y <= b.y ? a : b));
-      para = resolvePara(doc.paraMap as unknown as ParaMarker[], data.page, topRect.y);
+      para = resolvePara(parseJson<ParaMarker[]>(doc.paraMap, []), data.page, topRect.y);
     }
   }
 
@@ -108,11 +111,11 @@ export async function POST(req: NextRequest, { params }: Params) {
       page: data.page,
       para,
       quote: data.quote,
-      rects: data.rects,
+      rects: JSON.stringify(data.rects),
       cardType: data.cardType,
       body: data.body || data.quote,
       eventDate: data.eventDate ? new Date(data.eventDate) : null,
-      tags: data.tags,
+      tags: JSON.stringify(data.tags),
       pinned: data.pinned,
       citation: data.citation ?? null,
       sourceUrl: data.sourceUrl ?? null,
@@ -125,5 +128,5 @@ export async function POST(req: NextRequest, { params }: Params) {
   });
 
   await syncCardChronology(card.id);
-  return NextResponse.json(card, { status: 201 });
+  return NextResponse.json(cardOut(card), { status: 201 });
 }

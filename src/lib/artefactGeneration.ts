@@ -2,6 +2,7 @@ import type { Matter } from "@prisma/client";
 import { prisma } from "./db";
 import { MODELS, generate, loadPrompt } from "./ai";
 import { cardDigest, ourSideLabel } from "./cardDigest";
+import { cardOut } from "./jsonFields";
 import { mdToHtml } from "./docxUtils";
 
 export const GENERATABLE_TYPES = {
@@ -17,11 +18,12 @@ export type GeneratableType = keyof typeof GENERATABLE_TYPES;
  * everything tagged to the selected issues; if no issues selected, all cards.
  */
 export async function selectCards(matterId: string, issues: string[]) {
-  const cards = await prisma.card.findMany({
+  const raw = await prisma.card.findMany({
     where: { matterId },
     include: { document: { select: { filename: true } } },
     orderBy: [{ cardType: "asc" }, { orderIndex: "asc" }],
   });
+  const cards = raw.map(cardOut);
   if (issues.length === 0) return cards;
   return cards.filter((c) => c.pinned || c.tags.some((t) => issues.includes(t)));
 }

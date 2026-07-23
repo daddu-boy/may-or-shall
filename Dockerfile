@@ -15,4 +15,4 @@ ENV NODE_ENV=production
 COPY --from=build /app ./
 EXPOSE 3000
 # Apply migrations on boot, then start the app.
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["sh", "-c", "mkdir -p /data/storage && npx prisma migrate deploy && npm run start"]

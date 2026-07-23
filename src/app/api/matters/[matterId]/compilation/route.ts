@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { buildCompilation, resolveSources } from "@/lib/compilation";
+import { parseJson } from "@/lib/jsonFields";
 
 export const maxDuration = 300;
 
@@ -27,12 +28,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const { cardIds, issues, pinnedOnly, scope, contextPages } = parsed.data;
 
-  let cards = await prisma.card.findMany({
+  const rawCards = await prisma.card.findMany({
     where: cardIds?.length
       ? { matterId: params.matterId, id: { in: cardIds } }
       : { matterId: params.matterId },
     select: { id: true, documentId: true, page: true, tags: true, pinned: true },
   });
+  let cards = rawCards.map((c) => ({ ...c, tags: parseJson<string[]>(c.tags, []) }));
   if (!cardIds?.length) {
     if (issues.length) cards = cards.filter((c) => c.tags.some((t) => issues.includes(t)));
     if (pinnedOnly) cards = cards.filter((c) => c.pinned);

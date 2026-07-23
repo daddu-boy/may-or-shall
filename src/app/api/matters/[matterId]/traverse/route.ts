@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { splitPlaintParas } from "@/lib/paraSplit";
+import { cardOut, rowOut } from "@/lib/jsonFields";
 
 type Params = { params: { matterId: string } };
 
@@ -18,9 +19,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
   });
 
   // hydrate linked cards for all rows in one query
-  const cardIds = [
-    ...new Set(sheet.rows.flatMap((r) => (r.linkedCardIds as string[]) ?? [])),
-  ];
+  const rows = sheet.rows.map(rowOut);
+  const cardIds = [...new Set(rows.flatMap((r) => r.linkedCardIds))];
   const cards = cardIds.length
     ? await prisma.card.findMany({
         where: { id: { in: cardIds } },
@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       })
     : [];
 
-  return NextResponse.json({ ...sheet, document: doc, linkedCards: cards });
+  return NextResponse.json({ ...sheet, rows, document: doc, linkedCards: cards.map(cardOut) });
 }
 
 const createSchema = z.object({ documentId: z.string().min(1) });
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     include: { rows: { orderBy: { order: "asc" } } },
   });
 
-  return NextResponse.json(sheet, { status: 201 });
+  return NextResponse.json({ ...sheet, rows: sheet.rows.map(rowOut) }, { status: 201 });
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {

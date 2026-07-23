@@ -16,7 +16,7 @@ async function ingest(matterId: string, filename: string, docType: "PLAINT" | "J
       storagePath: "",
       pageCount: extraction.pageCount,
       hasTextLayer: extraction.hasTextLayer,
-      paraMap: extraction.paraMap as object[],
+      paraMap: JSON.stringify(extraction.paraMap),
     },
   });
   const storagePath = `documents/${doc.id}.pdf`;
@@ -67,7 +67,7 @@ async function main() {
         page: data.page,
         para: data.para,
         quote: data.quote,
-        rects: [{ page: data.page, x: 0.12, y: data.y, w: 0.76, h: 0.02 }],
+        rects: JSON.stringify([{ page: data.page, x: 0.12, y: data.y, w: 0.76, h: 0.02 }]),
         cardType: data.cardType,
         body: data.body,
         eventDate: data.eventDate ? new Date(data.eventDate) : null,

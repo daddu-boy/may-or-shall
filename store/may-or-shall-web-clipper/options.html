@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>May or Shall — Web Clipper options</title>
+<style>
+  body{max-width:560px;margin:40px auto;font:13.5px/1.5 -apple-system,system-ui,sans-serif;color:#0f172a;padding:0 20px}
+  .head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .logo{width:22px;height:22px;border-radius:4px}
+  h1{font-size:17px;margin:0}
+  p.sub{color:#64748b;font-size:12.5px;margin-top:4px}
+  label{display:block;font-weight:600;font-size:12px;margin:18px 0 5px}
+  input,select{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px}
+  .hint{font-size:11.5px;color:#94a3b8;margin-top:4px}
+  button{margin-top:20px;background:#0f172a;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer}
+  #status{margin-left:12px;font-size:12.5px;color:#059669}
+  #status.err{color:#dc2626}
+</style>
+</head>
+<body>
+  <div class="head"><img class="logo" src="icons/icon-32.png" alt=""><h1>May or Shall — Web Clipper</h1></div>
+  <p class="sub">Clips selected text from any page into your matter as typed, source-linked cards.</p>
+
+  <label for="apiBase">App URL</label>
+  <input id="apiBase" placeholder="https://localhost:3000">
+  <div class="hint">Where your May or Shall app runs.</div>
+
+  <label for="token">API token</label>
+  <input id="token" type="password" placeholder="mos_…">
+  <div class="hint">Create one in the app under Settings → API tokens.</div>
+
+  <label for="matter">Default matter</label>
+  <select id="matter"><option value="">— connect first —</option></select>
+
+  <button id="save">Save &amp; test connection</button><span id="status"></span>
+
+  <script src="options.js"></script>
+</body>
+</html>

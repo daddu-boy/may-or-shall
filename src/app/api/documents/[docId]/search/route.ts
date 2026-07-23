@@ -9,7 +9,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (q.length < 2) return NextResponse.json([]);
 
   const hits = await prisma.documentPage.findMany({
-    where: { documentId: params.docId, text: { contains: q, mode: "insensitive" } },
+    where: { documentId: params.docId, text: { contains: q } },
     orderBy: { page: "asc" },
     select: { page: true, text: true },
     take: 100,

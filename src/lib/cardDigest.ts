@@ -1,6 +1,11 @@
 import type { Card } from "@prisma/client";
+import { parseJson } from "./jsonFields";
 
-type CardWithDoc = Card & { document?: { filename: string } | null };
+/** tags may arrive raw from Prisma (JSON text) or already parsed (string[]). */
+type CardWithDoc = Omit<Card, "tags"> & {
+  tags: string | string[];
+  document?: { filename: string } | null;
+};
 
 export function sourceChip(card: CardWithDoc): string {
   if (!card.document) {
@@ -29,7 +34,8 @@ export function cardDigest(cards: CardWithDoc[]): string {
       if (card.citation) lines.push(`  citation: ${card.citation}`);
       if (card.proposition) lines.push(`  proposition: ${card.proposition}`);
       if (card.treatment) lines.push(`  treatment: ${card.treatment}`);
-      if (card.tags.length) lines.push(`  issues: ${card.tags.join(", ")}`);
+      const tags = Array.isArray(card.tags) ? card.tags : parseJson<string[]>(card.tags, []);
+      if (tags.length) lines.push(`  issues: ${tags.join(", ")}`);
       return lines.join("\n");
     })
     .join("\n");

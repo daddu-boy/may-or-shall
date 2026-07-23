@@ -38,23 +38,23 @@ documents from them — the chronology, the written statement, briefs, and compi
 
 ## Quick start (run it locally)
 
+No database server needed — the app stores everything in a single SQLite file.
+
 ```bash
 git clone https://github.com/daddu-boy/may-or-shall.git && cd may-or-shall
 npm install                       # also sets up the PDF engine
-createdb mayorshall               # any PostgreSQL ≥ 14
-cp .env.example .env              # then set DATABASE_URL to your database
-npx prisma migrate deploy
+cp .env.example .env
+npx prisma migrate deploy         # creates storage/mayorshall.db
 npm run db:seed                   # a sample matter with two generated PDFs + cards
 npm run dev                       # http://localhost:3000
 ```
 
-Or with Docker: `docker compose up --build` (app on :3000, PostgreSQL included,
-migrations run automatically).
+Or with Docker: `docker compose up --build` (app on :3000, migrations run automatically).
 
 `.env` options:
 
 ```
-DATABASE_URL="postgresql://<user>@localhost:5432/mayorshall"
+DATABASE_URL="file:../storage/mayorshall.db"
 STORAGE_DIR="./storage"
 # optional — enables the AI drafting features
 ANTHROPIC_API_KEY="sk-ant-..."
@@ -124,7 +124,7 @@ Both clients are thin front-ends: your matter data stays in your own May or Shal
 
 ## Stack
 
-- Next.js 14 (App Router) · TypeScript · Tailwind · PostgreSQL via Prisma
+- Next.js 14 (App Router) · TypeScript · Tailwind · SQLite via Prisma (single-file database)
 - PDF rendering with pdf.js; Word export with `docx`; PDF compilation with `pdf-lib`;
   rich text with Tiptap; AI via the Anthropic API (server-side only; prompt templates
   are user-supplied, see Quick start)
@@ -146,3 +146,8 @@ external client; set `API_REQUIRE_TOKEN=1` when the backend is reachable beyond 
 - Scanned PDFs without a text layer can't be highlighted (no OCR yet).
 - Rich text is a pragmatic subset (paragraphs, headings, bold/italic, bullets); Word
   export converts that subset.
+
+## Upgrading from a Postgres install
+
+Older versions used PostgreSQL. To carry your data across:
+`PG_URL="postgresql://<user>@localhost:5432/<db>" node scripts/migrate-pg-to-sqlite.mjs`
