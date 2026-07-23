@@ -16,6 +16,10 @@ if (!existsSync(standalone)) {
 
 const drop = [
   ".next/cache", // ~300 MB webpack build cache
+  // Next over-copies public/ into standalone; desktop packaging copies ../public
+  // in as extraResources, so drop this duplicate or electron-builder hits EEXIST
+  // hardlinking public/pdf.worker.min.mjs.
+  "public",
   ".git", ".claude", "src", "tests", "test-results", "scripts",
   "store", "docs", "extension", "office-addin", "desktop", "prompts",
   "storage", "prisma",
