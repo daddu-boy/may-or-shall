@@ -38,18 +38,21 @@ documents from them — the chronology, the written statement, briefs, and compi
 
 ## Get started (the easy way — desktop app)
 
-Download **May or Shall** for macOS from the
-[latest release](https://github.com/daddu-boy/may-or-shall/releases/latest)
-(`May or Shall-*-arm64.dmg` for Apple Silicon, `May or Shall-*.dmg` for Intel), drag it to
-Applications, and open it. No terminal, no database, no setup — everything lives in a
-single file on your Mac.
+Download **May or Shall** from the
+[latest release](https://github.com/daddu-boy/may-or-shall/releases/latest): a `.dmg` for
+macOS (Apple Silicon or Intel) or `May-or-Shall-Windows-Setup.exe` for Windows. Install and
+open it. No terminal, no database, no setup — everything lives in a single file on your own
+computer.
 
-First launch: because the app isn't code-signed yet, macOS shows an "unidentified
-developer" notice. **Right-click the app → Open → Open** (once) and it runs normally
-thereafter.
+First launch: because the app isn't code-signed yet, you'll see an "unidentified developer"
+(macOS) or "unknown publisher" (Windows SmartScreen) notice. macOS: **right-click → Open →
+Open**. Windows: **More info → Run anyway**. Once only.
 
 Then install the [Chrome extension](https://chromewebstore.google.com/detail/jcdaggdinfgihjbjgmpieohgehalpfac):
 it finds the running app automatically — nothing to configure.
+
+(The Windows build is currently cross-compiled and not yet tested on Windows hardware
+end-to-end; please report issues.)
 
 ## Run it from source (for developers)
 
