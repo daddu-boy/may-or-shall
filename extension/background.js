@@ -147,6 +147,14 @@ async function createCard(payload) {
   });
 }
 
+// First install: open the welcome page so the user knows to get the companion
+// app (Chrome can't install it for them — this guides the one manual step).
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
+  }
+});
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     try {

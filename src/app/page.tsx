@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, type MatterDto } from "@/lib/clientTypes";
 import { OUR_SIDES, OUR_SIDE_LABEL } from "@/lib/labels";
+import ExtensionNudge from "@/components/ExtensionNudge";
 
 export default function Dashboard() {
   const [matters, setMatters] = useState<MatterDto[]>([]);
@@ -42,6 +43,8 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      <ExtensionNudge />
 
       {showForm && (
         <NewMatterForm
