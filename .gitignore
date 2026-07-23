@@ -46,3 +46,10 @@ pdf.worker.min.mjs
 
 # private prompt templates (kept local, not distributed)
 /prompts/
+
+# desktop app build
+/desktop/node_modules
+/desktop/dist
+# generated Postgres client used only by the one-time migration
+/node_modules/.prisma-pg-client
+/prisma/schema-pg-migrate.prisma

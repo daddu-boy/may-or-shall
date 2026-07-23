@@ -1,6 +1,9 @@
 // Verifies the two disconnected states:
-//  A. fresh install (nothing configured, default server unreachable) -> welcome guidance
+//  A. fresh install (nothing configured, auto-detect finds no server) -> welcome guidance
 //  B. explicitly configured server that is down -> red error + Open-the-app/Retry
+//
+// PRECONDITION: nothing may be listening on localhost:3000 (http or https),
+// so auto-detection genuinely fails for state A.
 import { chromium } from "@playwright/test";
 
 const EXT = "/Users/sidharthkapoor/Desktop/Desktop/may-or-shall/extension";
@@ -15,9 +18,8 @@ try {
   if (!w) w = await context.waitForEvent("serviceworker", { timeout: 10000 });
   const extId = new URL(w.url()).host;
 
-  // A: simulate fresh install — default apiBase, but point it at a dead port
-  // WITHOUT the explicit flag (as if it were the default and no server exists)
-  await w.evaluate((dead) => chrome.storage.sync.set({ apiBase: dead }), DEAD);
+  // A: fresh install — nothing configured at all; auto-detect probes the
+  // localhost candidates, finds nothing, and the popup should welcome, not alarm
   const p1 = await context.newPage();
   await p1.goto(`chrome-extension://${extId}/popup.html`);
   await p1.locator("#welcome").waitFor({ state: "visible", timeout: 15000 });

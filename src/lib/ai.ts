@@ -26,7 +26,7 @@ function getClient(): Anthropic {
   return client;
 }
 
-const PROMPTS_DIR = path.resolve(process.cwd(), "prompts");
+const PROMPTS_DIR = process.env.PROMPTS_DIR || path.resolve(process.cwd(), "prompts");
 
 /** Load a versioned prompt template from /prompts and fill {{placeholders}}. */
 export async function loadPrompt(

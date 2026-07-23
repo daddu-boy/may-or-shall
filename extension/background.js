@@ -1,17 +1,51 @@
 // May or Shall — Web Clipper: background service worker.
 // All API calls happen here (host_permissions exempt them from CORS).
 
-const DEFAULTS = { apiBase: "https://localhost:3000", token: "", matterId: "", enabled: true };
+const DEFAULTS = { apiBase: "http://localhost:3000", token: "", matterId: "", enabled: true };
+
+// When the user hasn't set a URL in Options, we auto-detect the server so the
+// desktop app (serves http) and the run-from-source path (serves https with a
+// dev cert) both connect out of the box. Order: http first (the desktop app is
+// the common case), then https.
+const AUTO_CANDIDATES = ["http://localhost:3000", "https://localhost:3000"];
+let discoveredBase = null; // cached for the life of this service worker
+
+// Is this base actually a May or Shall server? (200 with a JSON array, or 401
+// when it's ours but wants a token.)
+async function probe(base) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  try {
+    const res = await fetch(`${base}/api/matters`, { signal: controller.signal });
+    if (res.status === 401) return true;
+    if (!res.ok) return false;
+    return Array.isArray(await res.json());
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function autoDetectBase() {
+  if (discoveredBase) return discoveredBase;
+  for (const cand of AUTO_CANDIDATES) {
+    if (await probe(cand)) {
+      discoveredBase = cand;
+      return cand;
+    }
+  }
+  return null; // nothing found — caller falls back for a sensible error
+}
 
 async function getConfig() {
   const stored = await chrome.storage.sync.get({ ...DEFAULTS, explicitApiBase: false });
-  // migrate the pre-1.1 default (app moved to HTTPS) — but never override a
-  // URL the user explicitly saved in the options page
-  if (stored.apiBase === "http://localhost:3000" && !stored.explicitApiBase) {
-    stored.apiBase = "https://localhost:3000";
-    await chrome.storage.sync.set({ apiBase: stored.apiBase, explicitApiBase: true });
+  let apiBase = stored.apiBase;
+  // respect a URL the user explicitly saved; otherwise auto-detect
+  if (!stored.explicitApiBase) {
+    apiBase = (await autoDetectBase()) || AUTO_CANDIDATES[0];
   }
-  return { ...DEFAULTS, ...stored };
+  return { ...DEFAULTS, ...stored, apiBase };
 }
 
 function headers(config) {
@@ -32,6 +66,9 @@ async function apiFetch(config, path, init = {}) {
       headers: { ...headers(config), ...(init.headers || {}) },
     });
   } catch (e) {
+    // a failed request may mean the auto-detected server moved (or the desktop
+    // app just started on the other protocol) — re-probe next time
+    discoveredBase = null;
     if (e.name === "AbortError")
       throw new Error(`Timed out reaching ${base} — is the May or Shall app running?`);
     const localHttps = /^https:\/\/(localhost|127\.0\.0\.1)/.test(base);

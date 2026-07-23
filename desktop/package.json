@@ -1,0 +1,61 @@
+{
+  "name": "may-or-shall-desktop",
+  "productName": "May or Shall",
+  "version": "1.0.0",
+  "private": true,
+  "description": "May or Shall — litigation matter workspace (desktop)",
+  "author": "May or Shall <sdhkapr22@gmail.com>",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac",
+    "dist:dir": "electron-builder --mac --dir"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "in.mayorshall.desktop",
+    "productName": "May or Shall",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../.next/standalone",
+        "to": "standalone",
+        "filter": [
+          "**/*",
+          "!storage/**",
+          "!prompts/**",
+          "!store/**",
+          "!docs/**",
+          "!extension/**",
+          "!office-addin/**",
+          "!desktop/**",
+          "!tests/**",
+          "!test-results/**",
+          "!scripts/**",
+          "!Dockerfile",
+          "!docker-compose.yml",
+          "!.env*"
+        ]
+      },
+      { "from": "../.next/static", "to": "standalone/.next/static" },
+      { "from": "../public", "to": "standalone/public" },
+      { "from": "../prisma/migrations", "to": "migrations" }
+    ],
+    "mac": {
+      "icon": "icon.png",
+      "category": "public.app-category.productivity",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ]
+    }
+  }
+}
