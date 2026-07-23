@@ -1,5 +1,7 @@
 generator client {
   provider = "prisma-client-js"
+  // include the Windows engine so the desktop app can be cross-built from macOS
+  binaryTargets = ["native", "windows"]
 }
 
 // SQLite: zero-dependency local database (desktop-app friendly).
