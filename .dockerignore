@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+desktop/dist
+desktop/node_modules
+storage
+*.db
+.env*
+store
+docs
+tests
+test-results
+playwright-report

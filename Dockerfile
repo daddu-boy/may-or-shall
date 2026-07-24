@@ -12,7 +12,9 @@ RUN npx prisma generate && npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production
+# PDFs live under STORAGE_DIR — on Railway/Render, point this at a mounted disk.
+ENV STORAGE_DIR=/data/storage
 COPY --from=build /app ./
 EXPOSE 3000
-# Apply migrations on boot, then start the app.
-CMD ["sh", "-c", "mkdir -p /data/storage && npx prisma migrate deploy && npm run start"]
+# Ensure the storage dir exists, apply DB migrations, then start (Next honours $PORT).
+CMD ["sh", "-c", "mkdir -p \"$STORAGE_DIR\" && npx prisma migrate deploy && npm run start"]
