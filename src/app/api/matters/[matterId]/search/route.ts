@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { matterId: string } };
 
@@ -13,6 +14,8 @@ function snippet(text: string, q: string, radius = 60): string {
 
 /** Global search within a matter across document text and cards (PRD F1). */
 export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const q = (req.nextUrl.searchParams.get("q") || "").trim();
   if (q.length < 2) return NextResponse.json({ documents: [], cards: [] });
 

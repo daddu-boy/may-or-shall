@@ -10,11 +10,14 @@ import {
 } from "docx";
 import { prisma } from "@/lib/db";
 import { run, styledDoc } from "@/lib/docxUtils";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { matterId: string } };
 
 /** Index of Annexures document (PRD F8). */
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const matter = await prisma.matter.findUnique({ where: { id: params.matterId } });
   if (!matter) return NextResponse.json({ error: "Matter not found" }, { status: 404 });
 

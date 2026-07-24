@@ -3,10 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { DOC_TYPES } from "@/lib/labels";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { docId: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.document.findUnique({ where: { id: params.docId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const doc = await prisma.document.findUnique({
     where: { id: params.docId },
     include: { _count: { select: { cards: true } } },
@@ -22,6 +25,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.document.findUnique({ where: { id: params.docId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const parsed = patchSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -36,6 +41,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
  * can warn about orphaning.
  */
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.document.findUnique({ where: { id: params.docId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const doc = await prisma.document.findUnique({
     where: { id: params.docId },
     include: { _count: { select: { cards: true } } },

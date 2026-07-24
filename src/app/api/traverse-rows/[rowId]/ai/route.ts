@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { MODELS, aiUnavailableReason, generate, loadPrompt } from "@/lib/ai";
 import { cardDigest, ourSideLabel } from "@/lib/cardDigest";
 import { parseJson } from "@/lib/jsonFields";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
 export const maxDuration = 120;
 
@@ -13,7 +14,9 @@ type Params = { params: { rowId: string } };
  * the plaint para plus attached cards. Returns a suggestion for the editor —
  * never saved automatically.
  */
-export async function POST(_req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.traverseRow.findUnique({ where: { id: params.rowId }, select: { sheet: { select: { matterId: true } } } }).then((r) => r?.sheet.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const row = await prisma.traverseRow.findUnique({
     where: { id: params.rowId },
     include: { sheet: { include: { matter: true } } },

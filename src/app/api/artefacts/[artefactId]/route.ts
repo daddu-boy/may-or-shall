@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { artefactId: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.generatedArtefact.findUnique({ where: { id: params.artefactId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const artefact = await prisma.generatedArtefact.findUnique({ where: { id: params.artefactId } });
   if (!artefact) return NextResponse.json({ error: "Artefact not found" }, { status: 404 });
   return NextResponse.json(artefact);
@@ -16,6 +19,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.generatedArtefact.findUnique({ where: { id: params.artefactId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const parsed = patchSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -27,7 +32,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   return NextResponse.json(artefact);
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.generatedArtefact.findUnique({ where: { id: params.artefactId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   await prisma.generatedArtefact.delete({ where: { id: params.artefactId } });
   return NextResponse.json({ ok: true });
 }

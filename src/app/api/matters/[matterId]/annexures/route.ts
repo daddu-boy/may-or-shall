@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { derivePrefix, renumberAnnexures } from "@/lib/annexures";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { matterId: string } };
 
@@ -22,7 +23,9 @@ async function registry(matterId: string) {
   };
 }
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   return NextResponse.json(await registry(params.matterId));
 }
 
@@ -30,6 +33,8 @@ const postSchema = z.object({ documentId: z.string().min(1) });
 
 /** Add a document to the registry at the end (labels recomputed). */
 export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const parsed = postSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -63,6 +68,8 @@ const reorderSchema = z.object({ order: z.array(z.string()).min(1) });
 
 /** Reorder: renumbers labels and updates all live references (PRD F8). */
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const parsed = reorderSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { aiUnavailableReason } from "@/lib/ai";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 import {
   GENERATABLE_TYPES,
   generateArtefactContent,
@@ -12,7 +13,9 @@ export const maxDuration = 300;
 
 type Params = { params: { matterId: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const artefacts = await prisma.generatedArtefact.findMany({
     where: { matterId: params.matterId },
     orderBy: [{ artefactType: "asc" }, { version: "desc" }],
@@ -32,6 +35,8 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

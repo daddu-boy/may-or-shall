@@ -3,10 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { splitPlaintParas } from "@/lib/paraSplit";
 import { cardOut, rowOut } from "@/lib/jsonFields";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { matterId: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const sheet = await prisma.traverseSheet.findUnique({
     where: { matterId: params.matterId },
     include: { rows: { orderBy: { order: "asc" } } },
@@ -35,6 +38,8 @@ const createSchema = z.object({ documentId: z.string().min(1) });
 
 /** Designate a document as the plaint and split it into traverse rows (PRD F5). */
 export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -82,7 +87,9 @@ export async function POST(req: NextRequest, { params }: Params) {
   return NextResponse.json({ ...sheet, rows: sheet.rows.map(rowOut) }, { status: 201 });
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   await prisma.traverseSheet.deleteMany({ where: { matterId: params.matterId } });
   return NextResponse.json({ ok: true });
 }

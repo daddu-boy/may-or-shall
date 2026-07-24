@@ -4,10 +4,13 @@ import { prisma } from "@/lib/db";
 import { syncCardChronology } from "@/lib/chronology";
 import { CARD_TYPES } from "@/lib/labels";
 import { cardOut } from "@/lib/jsonFields";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { cardId: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.card.findUnique({ where: { id: params.cardId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const card = await prisma.card.findUnique({
     where: { id: params.cardId },
     include: { document: { select: { id: true, filename: true } } },
@@ -30,6 +33,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.card.findUnique({ where: { id: params.cardId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const parsed = patchSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -48,7 +53,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   return NextResponse.json(cardOut(card));
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.card.findUnique({ where: { id: params.cardId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   await prisma.card.delete({ where: { id: params.cardId } });
   return NextResponse.json({ ok: true });
 }

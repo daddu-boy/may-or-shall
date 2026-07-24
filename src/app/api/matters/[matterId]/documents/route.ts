@@ -4,13 +4,16 @@ import { storage } from "@/lib/storage";
 import { extractPdf } from "@/lib/pdf/extract";
 import { DOC_TYPES, type DocTypeValue } from "@/lib/labels";
 import { documentOut } from "@/lib/jsonFields";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 type Params = { params: { matterId: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const documents = await prisma.document.findMany({
     where: { matterId: params.matterId },
     orderBy: { createdAt: "asc" },
@@ -21,6 +24,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 /** Multi-file upload happens as one request per file so the client can show per-file progress. */
 export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const matter = await prisma.matter.findUnique({ where: { id: params.matterId } });
   if (!matter) return NextResponse.json({ error: "Matter not found" }, { status: 404 });
 

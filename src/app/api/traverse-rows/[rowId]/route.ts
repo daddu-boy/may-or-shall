@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { rowOut } from "@/lib/jsonFields";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { rowId: string } };
 
@@ -14,6 +15,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.traverseRow.findUnique({ where: { id: params.rowId }, select: { sheet: { select: { matterId: true } } } }).then((r) => r?.sheet.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const parsed = patchSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

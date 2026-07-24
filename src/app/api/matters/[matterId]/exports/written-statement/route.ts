@@ -3,6 +3,7 @@ import { AlignmentType, Packer, Paragraph } from "docx";
 import { prisma } from "@/lib/db";
 import { heading, htmlToParagraphs, run, styledDoc } from "@/lib/docxUtils";
 import { DEFAULT_HOUSE_STYLE } from "@/lib/houseStyle";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { matterId: string } };
 
@@ -21,7 +22,9 @@ const STATUS_FALLBACK: Record<string, string> = {
  * objections placeholder, para-wise reply assembled from rows, verification
  * block placeholder. Para numbering stays aligned with the plaint.
  */
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const matter = await prisma.matter.findUnique({ where: { id: params.matterId } });
   if (!matter) return NextResponse.json({ error: "Matter not found" }, { status: 404 });
 

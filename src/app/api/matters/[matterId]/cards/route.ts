@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { syncCardChronology } from "@/lib/chronology";
-import { checkApiAuth } from "@/lib/apiAuth";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 import { resolvePara, type ParaMarker } from "@/lib/pdf/paraMap";
 import { CARD_TYPES } from "@/lib/labels";
 import { cardOut, parseJson } from "@/lib/jsonFields";
@@ -11,8 +11,8 @@ import { cardOut, parseJson } from "@/lib/jsonFields";
 type Params = { params: { matterId: string } };
 
 export async function GET(req: NextRequest, { params }: Params) {
-  const denied = await checkApiAuth(req);
-  if (denied) return denied;
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const sp = req.nextUrl.searchParams;
   const where: Prisma.CardWhereInput = { matterId: params.matterId };
 
@@ -79,8 +79,8 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
-  const denied = await checkApiAuth(req);
-  if (denied) return denied;
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

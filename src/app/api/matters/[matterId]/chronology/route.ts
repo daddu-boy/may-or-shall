@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { textSimilarity } from "@/lib/chronology";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { matterId: string } };
 
 const DUPLICATE_THRESHOLD = 0.6;
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const entries = await prisma.chronologyEntry.findMany({
     where: { matterId: params.matterId },
     orderBy: [{ eventDate: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
@@ -49,6 +52,8 @@ const createSchema = z.object({
 
 /** Manual chronology rows not tied to a highlight (PRD F4). */
 export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const parsed = createSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

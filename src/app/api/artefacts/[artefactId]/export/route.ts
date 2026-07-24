@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { AlignmentType, Packer, Paragraph } from "docx";
 import { prisma } from "@/lib/db";
 import { htmlToParagraphs, run, styledDoc } from "@/lib/docxUtils";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { artefactId: string } };
 
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.generatedArtefact.findUnique({ where: { id: params.artefactId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const artefact = await prisma.generatedArtefact.findUnique({
     where: { id: params.artefactId },
     include: { matter: { select: { title: true } } },

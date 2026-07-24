@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { buildCompilation, resolveSources } from "@/lib/compilation";
 import { parseJson } from "@/lib/jsonFields";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 export const maxDuration = 300;
 
@@ -19,6 +20,8 @@ const buildSchema = z.object({
 
 /** Build a convenience compilation PDF from the pages referenced by cards (PRD F7). */
 export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const parsed = buildSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

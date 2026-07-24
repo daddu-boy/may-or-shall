@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { entryId: string } };
 
@@ -12,6 +13,8 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.chronologyEntry.findUnique({ where: { id: params.entryId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const parsed = patchSchema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -24,7 +27,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   return NextResponse.json(entry);
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.chronologyEntry.findUnique({ where: { id: params.entryId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const entry = await prisma.chronologyEntry.findUnique({ where: { id: params.entryId } });
   if (!entry) return NextResponse.json({ error: "Entry not found" }, { status: 404 });
   if (entry.sourceCardId) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { aiUnavailableReason } from "@/lib/ai";
+import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 import {
   GENERATABLE_TYPES,
   generateArtefactContent,
@@ -14,6 +15,8 @@ type Params = { params: { artefactId: string } };
 
 /** Regeneration creates a new version, never overwrites (PRD F6 acceptance). */
 export async function POST(req: NextRequest, { params }: Params) {
+  const owner = await requireResourceOwner(req, () => prisma.generatedArtefact.findUnique({ where: { id: params.artefactId }, select: { matterId: true } }).then((r) => r?.matterId ?? null));
+  if (isResponse(owner)) return owner;
   const body = z
     .object({ issues: z.array(z.string()).default([]) })
     .safeParse(await req.json().catch(() => ({})));

@@ -13,6 +13,7 @@ import {
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { DEFAULT_HOUSE_STYLE } from "@/lib/houseStyle";
+import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 
 type Params = { params: { matterId: string } };
 
@@ -21,7 +22,9 @@ type Params = { params: { matterId: string } };
  * two-column format, DD.MM.YYYY dates, synopsis placeholder on top for
  * Supreme Court style filings, house-standard Times New Roman 14.
  */
-export async function GET(_req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
   const matter = await prisma.matter.findUnique({ where: { id: params.matterId } });
   if (!matter) return NextResponse.json({ error: "Matter not found" }, { status: 404 });
 
