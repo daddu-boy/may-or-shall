@@ -4,11 +4,13 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm ci
+# skip lifecycle scripts here — the postinstall (copy-pdf-worker) needs files
+# that aren't copied yet; prisma generate + the worker copy run in the build stage
+RUN npm ci --ignore-scripts
 
 FROM deps AS build
 COPY . .
-RUN npx prisma generate && npm run build
+RUN node scripts/copy-pdf-worker.mjs && npx prisma generate && npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production
