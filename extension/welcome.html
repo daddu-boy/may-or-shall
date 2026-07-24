@@ -21,23 +21,19 @@
   .brand h1 { font-size: 18px; margin: 0; }
   h2 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.01em; }
   p.sub { color: #57534e; margin: 0 0 24px; }
-  .dl { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
   a.btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     background: #4f46e5; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px;
-    border-radius: 10px; padding: 13px 18px; transition: transform .1s, background .15s;
+    border-radius: 10px; padding: 13px 20px; transition: transform .1s, background .15s;
   }
   a.btn:hover { background: #4338ca; transform: translateY(-1px); }
-  a.btn.secondary { background: #fff; color: #4f46e5; border: 1.5px solid #e0e7ff; }
-  a.btn.secondary:hover { background: #f5f3ff; }
-  .hint { font-size: 12.5px; color: #a8a29e; margin: 4px 0 24px; text-align: center; }
-  ol { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  ol { margin: 24px 0 0; padding: 0; list-style: none; counter-reset: step; }
   ol li {
-    counter-increment: step; position: relative; padding: 10px 0 10px 42px;
+    counter-increment: step; position: relative; padding: 12px 0 12px 42px;
     border-top: 1px solid #f5f5f4; font-size: 14px;
   }
   ol li::before {
-    content: counter(step); position: absolute; left: 0; top: 9px;
+    content: counter(step); position: absolute; left: 0; top: 11px;
     width: 26px; height: 26px; border-radius: 50%; background: #eef2ff; color: #4f46e5;
     font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center;
   }
@@ -54,27 +50,25 @@
     </div>
     <h2>You're one step from clipping.</h2>
     <p class="sub">
-      The clipper saves highlights into the free <b>May or Shall</b> app, which runs on your
-      own computer, so your case data never leaves your machine. Download and open it once,
-      and this extension connects to it automatically.
+      This clipper saves highlights from any web page into your May or Shall account, as
+      typed, source-linked cards. Connect it to your account once and you're set.
     </p>
 
-    <div class="dl" id="downloads"><!-- filled by welcome.js per OS --></div>
-    <p class="hint" id="oshint"></p>
+    <a class="btn" id="open" href="https://may-or-shall-production.up.railway.app" target="_blank" rel="noopener">
+      Open May or Shall &amp; sign in →
+    </a>
 
     <ol>
-      <li>Download and open the app (first launch: right-click &rarr; Open on Mac, or
-        &ldquo;More info &rarr; Run anyway&rdquo; on Windows).</li>
-      <li>Come back here. This extension finds the running app on its own, no setup.</li>
-      <li>Select text on any page &mdash; a judgment, an order, a news report &mdash; and save
-        it as a typed, source-linked card in your matter.</li>
+      <li>Sign in with your email (we send you a one-click link — no password).</li>
+      <li>Go to <b>Settings → API tokens</b> and click <b>Create token</b>. Copy it.</li>
+      <li>Click the May or Shall icon in your toolbar → <b>Options</b>, and paste the token.
+        Now select text on any page to clip it.</li>
     </ol>
 
     <div class="foot">
-      Already have the app running? Just click the May or Shall icon in your toolbar.<br>
-      Questions or a different OS? <a href="https://github.com/daddu-boy/may-or-shall" target="_blank" rel="noopener">See the guide &rarr;</a>
+      Running your own May or Shall server instead? Put its address in the extension's
+      Options. Questions? <a href="https://github.com/daddu-boy/may-or-shall" target="_blank" rel="noopener">See the guide ↗</a>
     </div>
   </div>
-  <script src="welcome.js"></script>
 </body>
 </html>

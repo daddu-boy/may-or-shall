@@ -59,18 +59,19 @@ function refresh() {
   chrome.runtime.sendMessage({ type: "getState" }, (res) => {
     if (res?.config?.apiBase) appUrl = res.config.apiBase;
     if (res?.config) applyEnabled(res.config.enabled !== false);
+    if (res?.needsAuth) {
+      // not signed in / no token yet — guide the user to connect their account
+      matterSelect.innerHTML = "<option>—</option>";
+      setStatus("");
+      welcomeBox.style.display = "block";
+      fixRow.style.display = "none";
+      return;
+    }
     if (!res?.ok || res.error) {
       matterSelect.innerHTML = "<option>—</option>";
-      if (res?.firstRun) {
-        // fresh install, nothing configured yet — guide, don't alarm
-        setStatus("");
-        welcomeBox.style.display = "block";
-        fixRow.style.display = "none";
-      } else {
-        welcomeBox.style.display = "none";
-        setStatus(res?.error || "Cannot reach the app — check Options.", "err");
-        fixRow.style.display = "flex";
-      }
+      welcomeBox.style.display = "none";
+      setStatus(res?.error || "Cannot reach the server.", "err");
+      fixRow.style.display = "flex";
       return;
     }
     welcomeBox.style.display = "none";
@@ -82,7 +83,7 @@ function refresh() {
 refresh();
 
 document.getElementById("guide").addEventListener("click", () => {
-  chrome.tabs.create({ url: "https://github.com/daddu-boy/may-or-shall#quick-start-run-it-locally" });
+  chrome.tabs.create({ url: `${appUrl}/settings` });
 });
 document.getElementById("openoptions").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();

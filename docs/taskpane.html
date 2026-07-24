@@ -47,15 +47,15 @@
 
 <div id="settingsView" class="settings" style="display:none">
   <h2>Connect to your May or Shall</h2>
-  <p class="sub">This pane is only the viewer — your cards live on your own May or Shall
-    server. Use the <b>same App URL and API token as your Chrome extension</b> and the two
-    stay in sync: clip in Chrome, plot in Word.</p>
+  <p class="sub">This pane is the viewer — your cards live in your May or Shall account. Use
+    the <b>same App URL and API token as your Chrome extension</b> and the two stay in sync:
+    clip in Chrome, plot in Word.</p>
   <label for="apiBase">App URL</label>
-  <input type="text" id="apiBase" placeholder="https://localhost:3000">
-  <div class="hint">Where your May or Shall app runs. Don't have it? <a href="https://github.com/daddu-boy/may-or-shall" target="_blank" rel="noopener">Set it up here</a>.</div>
+  <input type="text" id="apiBase" placeholder="https://may-or-shall-production.up.railway.app">
+  <div class="hint">Leave as the default for the hosted May or Shall; change it only if you run your own server.</div>
   <label for="token">API token</label>
   <input type="password" id="token" placeholder="mos_…">
-  <div class="hint">Create one in the app: Settings → API tokens. The same token works for the Chrome extension.</div>
+  <div class="hint">Sign in to May or Shall, then create one under Settings → API tokens. The same token works for the Chrome extension.</div>
   <button class="save" id="saveBtn">Save &amp; connect</button>
   <div class="status" id="settingsStatus"></div>
 </div>
@@ -91,7 +91,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var state = {
-    apiBase: localStorage.getItem("mos.apiBase") || "",
+    apiBase: localStorage.getItem("mos.apiBase") || "https://may-or-shall-production.up.railway.app",
     token: localStorage.getItem("mos.token") || "",
     matterId: localStorage.getItem("mos.matterId") || "",
     matters: [], cards: [], selected: {}, inWord: false, officeReady: false
@@ -119,9 +119,8 @@
       });
       return res.json();
     }, function () {
-      throw new Error("Can't reach " + base + " — is your May or Shall app running? " +
-        "If it is, open it in a browser tab once: a certificate warning there means your " +
-        "computer doesn't trust the local certificate yet (see the README).");
+      throw new Error("Can't reach " + base + ". Check your internet connection and that " +
+        "the App URL and API token in settings are correct.");
     });
   }
 

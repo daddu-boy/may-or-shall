@@ -22,16 +22,14 @@
   <p class="sub">Clips selected text from any page into your matter as typed, source-linked cards.</p>
 
   <label for="apiBase">App URL</label>
-  <input id="apiBase" placeholder="https://localhost:3000">
-  <div class="hint">Where your May or Shall app runs. If this is https://localhost and the test
-    says it can't connect: make sure the app is running, then open the URL in a normal tab —
-    a certificate warning means your computer doesn't trust the local dev certificate yet.
-    Fix it by running <code>npx office-addin-dev-certs install</code> in the app folder
-    (enter your computer password when asked), then restart the browser.</div>
+  <input id="apiBase" placeholder="https://may-or-shall-production.up.railway.app">
+  <div class="hint">Leave this as the default to use the hosted May or Shall. Change it only
+    if you run your own server.</div>
 
   <label for="token">API token</label>
   <input id="token" type="password" placeholder="mos_…">
-  <div class="hint">Create one in the app under Settings → API tokens.</div>
+  <div class="hint">Sign in to May or Shall, then create one under
+    <b>Settings → API tokens</b> and paste it here.</div>
 
   <label for="matter">Default matter</label>
   <select id="matter"><option value="">— connect first —</option></select>

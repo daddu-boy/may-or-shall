@@ -127,37 +127,32 @@
     };
 
     chrome.runtime.sendMessage({ type: "getState" }, (res) => {
+      const linkTo = (label, href) => {
+        const a = document.createElement("a");
+        a.textContent = label;
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.style.cssText = "display:inline-block;margin-top:4px;color:#4f46e5;font-weight:600";
+        status.appendChild(document.createElement("br"));
+        status.appendChild(a);
+      };
+      const base = res?.config?.apiBase;
+      if (res?.needsAuth) {
+        // not signed in / no token yet — guide to connect the account
+        matterSel.innerHTML = `<option value="">⚠ Not connected</option>`;
+        status.textContent =
+          "Connect your account: open May or Shall, create an API token under " +
+          "Settings, and paste it in the extension options.";
+        status.className = "status";
+        if (base) linkTo("Open Settings ↗", `${base}/settings`);
+        return;
+      }
       if (!res?.ok || res.error) {
         matterSel.innerHTML = `<option value="">⚠ Not connected</option>`;
-        if (res?.firstRun) {
-          // fresh install — the user hasn't connected their app yet
-          status.textContent =
-            "Almost there: this clipper saves into your own May or Shall app. " +
-            "Set it up once, then enter its address in the extension options.";
-          status.className = "status";
-          const guide = document.createElement("a");
-          guide.textContent = "Setup guide ↗";
-          guide.href = "https://github.com/daddu-boy/may-or-shall#quick-start-run-it-locally";
-          guide.target = "_blank";
-          guide.rel = "noopener";
-          guide.style.cssText = "display:inline-block;margin-top:4px;color:#4f46e5;font-weight:600";
-          status.appendChild(document.createElement("br"));
-          status.appendChild(guide);
-          return;
-        }
-        status.textContent = res?.error || "Cannot reach the app — check the extension options.";
+        status.textContent = res?.error || "Cannot reach the server — check the extension options.";
         status.className = "status err";
-        const base = res?.config?.apiBase;
-        if (base) {
-          const open = document.createElement("a");
-          open.textContent = "Open the app ↗";
-          open.href = base;
-          open.target = "_blank";
-          open.rel = "noopener";
-          open.style.cssText = "display:inline-block;margin-top:4px;color:#4f46e5;font-weight:600";
-          status.appendChild(document.createElement("br"));
-          status.appendChild(open);
-        }
+        if (base) linkTo("Open May or Shall ↗", base);
         return;
       }
       fillMatters(res.matters, res.config.matterId);

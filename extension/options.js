@@ -26,14 +26,14 @@ function loadMatters(selectedId) {
 chrome.runtime.sendMessage({ type: "getConfig" }, (res) => {
   if (!res?.ok) return;
   // don't clobber anything the user has already typed
-  if (!apiBase.value) apiBase.value = res.config.apiBase || "https://localhost:3000";
+  if (!apiBase.value) apiBase.value = res.config.apiBase || "https://may-or-shall-production.up.railway.app";
   if (!token.value) token.value = res.config.token || "";
   if (res.config.apiBase) loadMatters(res.config.matterId);
 });
 
 document.getElementById("save").addEventListener("click", () => {
   const config = {
-    apiBase: apiBase.value.trim().replace(/\/$/, "") || "https://localhost:3000",
+    apiBase: apiBase.value.trim().replace(/\/$/, "") || "https://may-or-shall-production.up.railway.app",
     token: token.value.trim(),
   };
   if (matter.value) config.matterId = matter.value;
