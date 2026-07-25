@@ -41,7 +41,11 @@ async function apiFetch(config, path, init = {}) {
       message = (await res.json()).error || message;
     } catch {}
     const err = new Error(message);
-    if (res.status === 401) err.needsAuth = true; // signed out / bad token
+    if (res.status === 401) {
+      err.needsAuth = true; // signed out / token revoked
+      // Drop the dead token so the next visit to the app re-connects cleanly.
+      await chrome.storage.sync.set({ token: "" });
+    }
     throw err;
   }
   return res.json();
@@ -107,8 +111,22 @@ async function createCard(payload) {
   });
 }
 
-// First install: open the welcome page so the user knows to get the companion
-// app (Chrome can't install it for them — this guides the one manual step).
+// Store the token handed over by the auto-connect handshake (connect.js) once
+// the user is signed into the web app, so being logged in IS the connection.
+async function connect({ apiBase, token, matters }) {
+  const patch = { token };
+  if (apiBase) patch.apiBase = apiBase.replace(/\/$/, "");
+  // pre-select a matter so the very first clip has somewhere to go
+  const current = await chrome.storage.sync.get({ matterId: "" });
+  if (!current.matterId && Array.isArray(matters) && matters[0]) {
+    patch.matterId = matters[0].id;
+  }
+  await chrome.storage.sync.set(patch);
+  return { ok: true };
+}
+
+// First install: open the welcome page, which walks the user to the hosted app
+// to sign in (that single step auto-connects the clipper).
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
@@ -127,6 +145,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: true, ...(await getState()) });
       } else if (msg.type === "createMatter") {
         sendResponse({ ok: true, matter: await createMatter(msg.title) });
+      } else if (msg.type === "connect") {
+        sendResponse(await connect(msg));
+      } else if (msg.type === "connectStatus") {
+        const cfg = await getConfig();
+        sendResponse({ ok: true, connected: !!cfg.token });
       } else if (msg.type === "getConfig") {
         sendResponse({ ok: true, config: await getConfig() });
       } else if (msg.type === "setConfig") {

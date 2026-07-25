@@ -139,13 +139,12 @@
       };
       const base = res?.config?.apiBase;
       if (res?.needsAuth) {
-        // not signed in / no token yet — guide to connect the account
+        // not signed in yet — signing into the app auto-connects the clipper
         matterSel.innerHTML = `<option value="">⚠ Not connected</option>`;
         status.textContent =
-          "Connect your account: open May or Shall, create an API token under " +
-          "Settings, and paste it in the extension options.";
+          "Open May or Shall and sign in — this clipper connects automatically.";
         status.className = "status";
-        if (base) linkTo("Open Settings ↗", `${base}/settings`);
+        if (base) linkTo("Open May or Shall & sign in ↗", base);
         return;
       }
       if (!res?.ok || res.error) {

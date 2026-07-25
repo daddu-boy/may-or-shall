@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "May or Shall \u2014 Web Clipper",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Select text on any page and save it as a typed, source-linked card in your May or Shall matter.",
   "permissions": [
     "storage",
@@ -23,6 +23,18 @@
       ],
       "js": [
         "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://may-or-shall-production.up.railway.app/*",
+        "https://app.mayorshall.com/*",
+        "http://localhost:3000/*",
+        "https://localhost:3000/*"
+      ],
+      "js": [
+        "connect.js"
       ],
       "run_at": "document_idle"
     }

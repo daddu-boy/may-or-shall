@@ -9,7 +9,7 @@ const fixRow = document.getElementById("fixrow");
 const welcomeBox = document.getElementById("welcome");
 const enabledToggle = document.getElementById("enabled");
 const NEW = "__new__";
-let appUrl = "https://localhost:3000";
+let appUrl = "https://may-or-shall-production.up.railway.app";
 
 function applyEnabled(on) {
   enabledToggle.checked = on;
@@ -83,9 +83,11 @@ function refresh() {
 refresh();
 
 document.getElementById("guide").addEventListener("click", () => {
-  chrome.tabs.create({ url: `${appUrl}/settings` });
+  // opening the app signs the user in; connect.js then auto-connects the clipper
+  chrome.tabs.create({ url: appUrl });
 });
-document.getElementById("openoptions").addEventListener("click", () => {
+document.getElementById("openoptions").addEventListener("click", (e) => {
+  e.preventDefault();
   chrome.runtime.openOptionsPage();
 });
 
