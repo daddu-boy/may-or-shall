@@ -8,8 +8,60 @@ const status = document.getElementById("status");
 const fixRow = document.getElementById("fixrow");
 const welcomeBox = document.getElementById("welcome");
 const enabledToggle = document.getElementById("enabled");
+const recentWrap = document.getElementById("recentwrap");
+const recentBox = document.getElementById("recent");
 const NEW = "__new__";
 let appUrl = "https://may-or-shall-production.up.railway.app";
+
+const CARD_META = {
+  FACT: ["Fact", "#3b82f6"], DATE: ["Date", "#f59e0b"], ISSUE: ["Issue", "#8b5cf6"],
+  OUR_ARGUMENT: ["Our argument", "#10b981"], THEIR_ARGUMENT: ["Their argument", "#ef4444"],
+  EVIDENCE: ["Evidence", "#06b6d4"], CASE_LAW: ["Case law", "#d946ef"],
+  ADMISSION: ["Admission", "#84cc16"], QUESTION: ["Question", "#f97316"], MISC: ["Misc", "#6b7280"],
+};
+
+// Show the last few cards saved to the selected matter, for instant confirmation.
+function loadRecent(matterId) {
+  if (!matterId || matterId === NEW) {
+    recentWrap.style.display = "none";
+    return;
+  }
+  chrome.runtime.sendMessage({ type: "listCards", matterId }, (res) => {
+    if (!res?.ok) {
+      recentWrap.style.display = "none";
+      return;
+    }
+    recentWrap.style.display = "block";
+    recentBox.innerHTML = "";
+    if (!res.cards.length) {
+      const d = document.createElement("div");
+      d.className = "clip empty";
+      d.textContent = "No clips yet in this matter — save one above or highlight text on a page.";
+      recentBox.appendChild(d);
+      return;
+    }
+    for (const c of res.cards) {
+      const [label, color] = CARD_META[c.cardType] || ["Card", "#6b7280"];
+      const el = document.createElement("div");
+      el.className = "clip";
+      const t = document.createElement("span");
+      t.className = "t";
+      t.textContent = label;
+      t.style.background = color;
+      const x = document.createElement("div");
+      x.className = "x";
+      x.textContent = c.text || "(no text)";
+      el.append(t, x);
+      if (c.source) {
+        const s = document.createElement("div");
+        s.className = "s";
+        s.textContent = c.source;
+        el.appendChild(s);
+      }
+      recentBox.appendChild(el);
+    }
+  });
+}
 
 function applyEnabled(on) {
   enabledToggle.checked = on;
@@ -65,6 +117,7 @@ function refresh() {
       setStatus("");
       welcomeBox.style.display = "block";
       fixRow.style.display = "none";
+      recentWrap.style.display = "none";
       return;
     }
     if (!res?.ok || res.error) {
@@ -72,6 +125,7 @@ function refresh() {
       welcomeBox.style.display = "none";
       setStatus(res?.error || "Cannot reach the server.", "err");
       fixRow.style.display = "flex";
+      recentWrap.style.display = "none";
       return;
     }
     welcomeBox.style.display = "none";
@@ -82,8 +136,10 @@ function refresh() {
       newRow.classList.add("show");
       newName.focus();
       setStatus("Connected. Name your first matter below and click Create.", "ok");
+      recentWrap.style.display = "none";
     } else {
       setStatus(`Connected · ${res.matters.length} active matter${res.matters.length === 1 ? "" : "s"}`);
+      loadRecent(matterSelect.value);
     }
   });
 }
@@ -103,6 +159,12 @@ document.getElementById("openapp").addEventListener("click", () => {
 });
 document.getElementById("retry").addEventListener("click", refresh);
 
+document.getElementById("viewall").addEventListener("click", (e) => {
+  e.preventDefault();
+  const id = matterSelect.value && matterSelect.value !== NEW ? matterSelect.value : "";
+  chrome.tabs.create({ url: id ? `${appUrl}/matters/${id}/cards` : appUrl });
+});
+
 matterSelect.addEventListener("change", () => {
   const isNew = matterSelect.value === NEW;
   newRow.classList.toggle("show", isNew);
@@ -114,6 +176,7 @@ matterSelect.addEventListener("change", () => {
     { type: "setConfig", config: { matterId: matterSelect.value } },
     () => setStatus("Matter updated")
   );
+  loadRecent(matterSelect.value);
 });
 
 document.getElementById("create").addEventListener("click", () => {
@@ -127,6 +190,7 @@ document.getElementById("create").addEventListener("click", () => {
       chrome.runtime.sendMessage({ type: "getState" }, (st) => {
         if (st?.ok) fillMatters(st.matters, res.matter.id);
         setStatus(`✓ Matter "${res.matter.title}" created and selected`, "ok");
+        loadRecent(res.matter.id);
       });
     } else {
       setStatus(res?.error || "Could not create matter", "err");
@@ -167,6 +231,7 @@ saveBtn.addEventListener("click", () => {
         if (res?.ok) {
           note.value = "";
           setStatus("✓ Note saved as a card", "ok");
+          loadRecent(matterSelect.value);
         } else {
           setStatus(res?.error || "Failed to save", "err");
         }

@@ -70,6 +70,24 @@ async function createMatter(title) {
   return { id: matter.id, title: matter.title };
 }
 
+// Recent cards for a matter, newest first — powers the popup's "Recent clips".
+async function listCards(matterId) {
+  const config = await getConfig();
+  const id = matterId || config.matterId;
+  if (!id) return [];
+  const cards = await apiFetch(config, `/api/matters/${id}/cards`);
+  return cards
+    .slice()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 6)
+    .map((c) => ({
+      id: c.id,
+      cardType: c.cardType,
+      text: (c.body || c.quote || "").replace(/\s+/g, " ").trim().slice(0, 140),
+      source: c.sourceTitle || c.sourceUrl || "",
+    }));
+}
+
 // config + matters in one round trip for the popover
 async function getState() {
   const config = await getConfig();
@@ -141,6 +159,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: true, card });
       } else if (msg.type === "listMatters") {
         sendResponse({ ok: true, matters: await listMatters() });
+      } else if (msg.type === "listCards") {
+        sendResponse({ ok: true, cards: await listCards(msg.matterId) });
       } else if (msg.type === "getState") {
         sendResponse({ ok: true, ...(await getState()) });
       } else if (msg.type === "createMatter") {

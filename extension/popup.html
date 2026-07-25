@@ -32,6 +32,13 @@
   .status.ok{color:#059669}.status.err{color:#dc2626}
   a{color:#4f46e5;text-decoration:none;font-size:11px}
   .foot{margin-top:10px;display:flex;justify-content:space-between;align-items:center}
+  .rechead{display:flex;align-items:center;justify-content:space-between;margin:12px 0 5px}
+  .rechead span{font-size:11px;color:#64748b;font-weight:600}
+  .clip{border:1px solid #eef2f7;border-radius:7px;padding:6px 7px;margin-bottom:5px}
+  .clip .t{display:inline-block;font-size:9.5px;font-weight:700;color:#fff;border-radius:99px;padding:1px 7px;margin-bottom:3px}
+  .clip .x{font-size:11px;color:#334155;line-height:1.35;max-height:2.8em;overflow:hidden}
+  .clip .s{font-size:10px;color:#94a3b8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .clip.empty{border:none;padding:2px 0;color:#94a3b8;font-size:11px}
 </style>
 </head>
 <body>
@@ -67,6 +74,12 @@
   </div>
 
   <div class="status" id="status"></div>
+
+  <div id="recentwrap" style="display:none">
+    <div class="rechead"><span>Recent clips</span><a href="#" id="viewall">View all ↗</a></div>
+    <div id="recent"></div>
+  </div>
+
   <div id="welcome" style="display:none;margin-top:8px;font-size:11.5px;color:#334155;background:#eef2ff;border-radius:8px;padding:10px">
     <b>Sign in to connect.</b><br>
     Open May or Shall and sign in with your email — this clipper connects
