@@ -77,7 +77,14 @@ function refresh() {
     welcomeBox.style.display = "none";
     fixRow.style.display = "none";
     fillMatters(res.matters, res.config.matterId);
-    setStatus(`Connected · ${res.matters.length} active matter${res.matters.length === 1 ? "" : "s"}`);
+    if (res.matters.length === 0) {
+      // connected, but no matters yet — invite the user to create their first
+      newRow.classList.add("show");
+      newName.focus();
+      setStatus("Connected. Name your first matter below and click Create.", "ok");
+    } else {
+      setStatus(`Connected · ${res.matters.length} active matter${res.matters.length === 1 ? "" : "s"}`);
+    }
   });
 }
 refresh();

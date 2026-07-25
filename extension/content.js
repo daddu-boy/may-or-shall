@@ -159,6 +159,8 @@
         matterSel.value = NEW;
         newRow.classList.add("show");
         newName.focus();
+        status.textContent = "No matters yet — name your first one and click Create.";
+        status.className = "status";
       }
     });
 
