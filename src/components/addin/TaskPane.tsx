@@ -30,6 +30,10 @@ export default function TaskPane() {
   const [status, setStatus] = useState("");
   const [needsAuth, setNeedsAuth] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [authError, setAuthError] = useState("");
 
   const loadMatters = useCallback(async (selectId?: string) => {
     try {
@@ -50,41 +54,62 @@ export default function TaskPane() {
   }, [loadMatters]);
 
   /**
-   * Sign in without leaving Word: open /addin/connect in an Office dialog (a
-   * top-level window, so the session cookie works there), which hands back a
-   * token via messageParent. Nothing for the user to copy.
+   * Sign in without leaving Word. A magic *link* is no good here: it opens in
+   * the user's default browser, a different context from this pane, so the pane
+   * would never learn that sign-in happened. Instead we email a short code that
+   * the user types straight into the pane.
    */
-  const connect = () => {
-    const url = `${window.location.origin}/addin/connect`;
-    if (typeof Office === "undefined" || !Office.context?.ui?.displayDialogAsync) {
-      window.open(url, "_blank", "noopener");
+  const sendCode = async () => {
+    const address = email.trim();
+    if (!address) {
+      setAuthError("Enter your email address.");
       return;
     }
     setConnecting(true);
-    Office.context.ui.displayDialogAsync(
-      url,
-      { height: 60, width: 30, promptBeforeOpen: false },
-      (result: any) => {
-        if (result.status !== Office.AsyncResultStatus.Succeeded) {
-          setConnecting(false);
-          setStatus("Could not open the sign-in window.");
-          return;
-        }
-        const dialog = result.value;
-        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg: any) => {
-          try {
-            window.localStorage.setItem(ADDIN_TOKEN_KEY, String(arg.message));
-          } catch {
-            /* private mode — the session cookie may still carry us */
-          }
-          dialog.close();
-          setConnecting(false);
-          setStatus("Connected.");
-          loadMatters();
-        });
-        dialog.addEventHandler(Office.EventType.DialogEventReceived, () => setConnecting(false));
+    setAuthError("");
+    try {
+      const res = await fetch("/api/addin/code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: address }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Could not send the code.");
+      setCodeSent(true);
+    } catch (e) {
+      setAuthError((e as Error).message);
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const submitCode = async () => {
+    if (!code.trim()) {
+      setAuthError("Enter the code from your email.");
+      return;
+    }
+    setConnecting(true);
+    setAuthError("");
+    try {
+      const res = await fetch("/api/addin/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), code }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "That code is not right.");
+      try {
+        window.localStorage.setItem(ADDIN_TOKEN_KEY, body.token);
+      } catch {
+        /* private mode — this session will still work in memory */
       }
-    );
+      setCode("");
+      setCodeSent(false);
+      await loadMatters();
+    } catch (e) {
+      setAuthError((e as Error).message);
+    } finally {
+      setConnecting(false);
+    }
   };
 
   const createMatter = async () => {
@@ -233,23 +258,70 @@ export default function TaskPane() {
       />
 
       {needsAuth && (
-        <div className="flex-1 flex items-center justify-center p-6 text-center">
-          <div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-[260px] text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/addin/icon-128.png" alt="" className="w-12 h-12 rounded-lg mx-auto mb-3" />
             <h1 className="font-semibold mb-1">Sign in to May or Shall</h1>
-            <p className="text-xs text-slate-500 mb-4">
-              You&rsquo;ll get a one-click link by email — no password, nothing to copy.
-            </p>
-            <button
-              onClick={connect}
-              disabled={connecting}
-              className="bg-indigo-600 text-white rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
-              data-testid="addin-connect"
-            >
-              {connecting ? "Waiting for sign-in…" : "Sign in"}
-            </button>
-            {status && <p className="text-[11px] text-slate-400 mt-3">{status}</p>}
+
+            {!codeSent ? (
+              <>
+                <p className="text-xs text-slate-500 mb-4">
+                  Enter your email and we&rsquo;ll send you a short code. No password.
+                </p>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendCode()}
+                  placeholder="you@firm.com"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs mb-2"
+                  data-testid="addin-email"
+                />
+                <button
+                  onClick={sendCode}
+                  disabled={connecting}
+                  className="w-full bg-indigo-600 text-white rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
+                  data-testid="addin-send-code"
+                >
+                  {connecting ? "Sending…" : "Email me a code"}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500 mb-4">
+                  We emailed a code to <b>{email}</b>. Type it here.
+                </p>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitCode()}
+                  placeholder="ABCD-EFGH"
+                  autoFocus
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-center text-sm tracking-widest uppercase mb-2"
+                  data-testid="addin-code"
+                />
+                <button
+                  onClick={submitCode}
+                  disabled={connecting}
+                  className="w-full bg-indigo-600 text-white rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
+                  data-testid="addin-verify"
+                >
+                  {connecting ? "Checking…" : "Sign in"}
+                </button>
+                <button
+                  onClick={() => {
+                    setCodeSent(false);
+                    setCode("");
+                    setAuthError("");
+                  }}
+                  className="text-[11px] text-slate-400 mt-3 underline"
+                >
+                  Use a different email
+                </button>
+              </>
+            )}
+            {authError && <p className="text-[11px] text-rose-600 mt-3">{authError}</p>}
           </div>
         </div>
       )}
