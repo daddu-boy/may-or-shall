@@ -208,11 +208,27 @@ export default function Board({
         {selectedIds.size > 0 && (
           <button
             onClick={applyTag}
-            className="ml-auto rounded bg-slate-900 text-white px-3 py-1.5 font-medium"
+            className="rounded bg-slate-900 text-white px-3 py-1.5 font-medium"
           >
             Tag {selectedIds.size} selected
           </button>
         )}
+        {/* every card, with its quote and source, as one document */}
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className="text-slate-400">Download all:</span>
+          <a
+            href={`/api/matters/${matterId}/exports/cards`}
+            className="rounded border border-slate-200 px-2.5 py-1.5 font-medium hover:bg-slate-50"
+          >
+            Word
+          </a>
+          <a
+            href={`/api/matters/${matterId}/exports/cards?format=pdf`}
+            className="rounded border border-slate-200 px-2.5 py-1.5 font-medium hover:bg-slate-50"
+          >
+            PDF
+          </a>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto">
