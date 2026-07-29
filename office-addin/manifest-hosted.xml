@@ -16,7 +16,8 @@
   <DisplayName DefaultValue="May or Shall"/>
   <Description DefaultValue="Plot your matter's cards — labelled, source-cited highlights — into the document you are drafting."/>
   <IconUrl DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-128.png"/>
+  <!-- AppSource requires exactly 32x32 here and 64x64 for the high-res icon. -->
+  <HighResolutionIconUrl DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-64.png"/>
   <SupportUrl DefaultValue="https://github.com/daddu-boy/may-or-shall"/>
 
   <Hosts>
@@ -27,10 +28,8 @@
     <SourceLocation DefaultValue="https://may-or-shall-production.up.railway.app/addin/taskpane"/>
   </DefaultSettings>
 
-  <AppDomains>
-    <AppDomain>https://may-or-shall-production.up.railway.app</AppDomain>
-  </AppDomains>
-
+  <!-- No AppDomains needed: the sign-in dialog (/addin/connect) is on the same
+       origin as the task pane. -->
   <Permissions>ReadWriteDocument</Permissions>
 
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
