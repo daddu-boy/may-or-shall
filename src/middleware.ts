@@ -13,8 +13,9 @@ const ALLOWED_ORIGINS = new Set(
   ["https://daddu-boy.github.io", process.env.ADDIN_EXTRA_ORIGIN].filter(Boolean) as string[]
 );
 
-// public paths that never require a session cookie
-const PUBLIC_PREFIXES = ["/signin", "/addin", "/api", "/_next", "/favicon"];
+// public paths that never require a session cookie ("/privacy" is linked from
+// the store listings, so it must be reachable signed out)
+const PUBLIC_PREFIXES = ["/signin", "/addin", "/api", "/_next", "/favicon", "/privacy"];
 
 function withCors(req: NextRequest, res: NextResponse): NextResponse {
   const origin = req.headers.get("origin");
