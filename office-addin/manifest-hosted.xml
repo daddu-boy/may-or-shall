@@ -10,7 +10,7 @@
        manifest works for everyone — each user connects it to their own
        May or Shall server (same App URL + API token as the Chrome extension). -->
   <Id>6f26230c-64cf-47b4-a0c7-746ddbf7c24b</Id>
-  <Version>1.0.0</Version>
+  <Version>1.0.0.0</Version>
   <ProviderName>May or Shall</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="May or Shall"/>
