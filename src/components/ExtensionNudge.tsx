@@ -2,20 +2,54 @@
 
 import { useEffect, useState } from "react";
 
-const STORE_URL =
-  "https://chromewebstore.google.com/detail/jcdaggdinfgihjbjgmpieohgehalpfac";
+const EXT_ID = "jcdaggdinfgihjbjgmpieohgehalpfac";
+const STORE_URL = `https://chromewebstore.google.com/detail/${EXT_ID}`;
 const KEY = "mos.extNudgeDismissed";
 
+/** Chromium-only: nobody else can install the extension, so don't suggest it. */
+function canInstall(): boolean {
+  const ua = navigator.userAgent;
+  return /Chrome|Chromium|Edg\//.test(ua) && !/OPR\//.test(ua);
+}
+
 /**
- * Companion nudge: points the user to the Chrome web clipper. The extension
- * finds this app on its own; the two just need to both be installed. Shown
- * until dismissed.
+ * Is the clipper already installed? Two signals, because older builds can't
+ * announce themselves:
+ *  - v2.1.2+ stamps data-mos-extension on <html> from its content script
+ *  - any published build exposes its icon as a web-accessible resource, which
+ *    only loads when the extension is present
+ */
+async function extensionInstalled(): Promise<boolean> {
+  for (const wait of [0, 300, 800]) {
+    // the content script runs at document_idle, so it may land after we mount
+    await new Promise((r) => setTimeout(r, wait));
+    if (document.documentElement.hasAttribute("data-mos-extension")) return true;
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = `chrome-extension://${EXT_ID}/icons/icon-32.png`;
+  });
+}
+
+/**
+ * Companion nudge: points the user to the Chrome web clipper. Hidden once the
+ * extension is installed, on browsers that can't install it, and once
+ * dismissed.
  */
 export default function ExtensionNudge() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    setShow(localStorage.getItem(KEY) !== "1");
+    if (localStorage.getItem(KEY) === "1" || !canInstall()) return;
+    let cancelled = false;
+    extensionInstalled().then((installed) => {
+      if (!cancelled && !installed) setShow(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!show) return null;

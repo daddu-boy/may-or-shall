@@ -7,6 +7,16 @@
 (() => {
   const apiBase = location.origin;
 
+  // Tell the page we're installed, so it doesn't nag the user to install us.
+  try {
+    document.documentElement.setAttribute(
+      "data-mos-extension",
+      chrome.runtime.getManifest().version
+    );
+  } catch {
+    /* non-fatal */
+  }
+
   chrome.runtime.sendMessage({ type: "connectStatus" }, (res) => {
     if (chrome.runtime.lastError) return;
     if (res?.connected) return; // already connected — nothing to do
