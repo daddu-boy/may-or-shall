@@ -1,0 +1,23 @@
+May or Shall is a workspace for litigation matters. This add-in opens a task pane beside your document and inserts saved research passages ("cards") into the draft, each carrying its exact quote and source citation.
+
+NO TEST CREDENTIALS NEEDED. Sign-up is free, instant and self-serve. The product is free to use: there are no in-app purchases, no licence keys and no paid service to buy.
+
+SIGNING IN (happens entirely inside Word)
+1. In Word, click Home > Cards (or Add-ins > May or Shall) to open the pane.
+2. Enter any email address you control and click "Email me a code".
+3. A short code (e.g. K7MP-3RQF) is emailed from no-reply@mayorshall.com. If it has not arrived within a minute, please check the spam folder. Codes expire after 10 minutes and can be used once.
+4. Type the code into the pane. You are signed in and an account is created automatically. There is no password and nothing to configure.
+
+SEEING THE ADD-IN WORK
+5. In the pane's dropdown, choose "+ New matter..." and give it any title.
+6. A new matter starts empty, so add a card or two: open https://may-or-shall-production.up.railway.app in a browser, sign in with the SAME email address (you will be sent a one-click link), open the matter, upload any PDF under Documents, and select text in it - each saved selection becomes a card. Alternatively, install the free May or Shall Web Clipper from the Chrome Web Store and select text on any web page.
+7. Return to Word and reopen the pane. Select the matter; its cards are listed, and can be filtered by type or searched.
+8. Tick one or more cards and click "Plot selected into document". They are inserted into the document as labelled, source-cited paragraphs. The badge at the top of the pane reads "Word connected".
+
+TECHNICAL NOTES
+- The task pane is served from https://may-or-shall-production.up.railway.app/addin/taskpane, the same origin as the service API.
+- The add-in does not use Microsoft Entra ID, SSO or Microsoft Graph.
+- No remote code: all scripts come from that origin; nothing is fetched or evaluated from third-party sources.
+- Privacy policy: https://may-or-shall-production.up.railway.app/privacy
+- Support: https://github.com/daddu-boy/may-or-shall
+- Any problem during certification: sdhkapr22@gmail.com
