@@ -10,6 +10,7 @@ const welcomeBox = document.getElementById("welcome");
 const enabledToggle = document.getElementById("enabled");
 const recentWrap = document.getElementById("recentwrap");
 const recentBox = document.getElementById("recent");
+const appLinks = document.getElementById("applinks");
 const NEW = "__new__";
 let appUrl = "https://may-or-shall-production.up.railway.app";
 
@@ -118,8 +119,10 @@ function refresh() {
       welcomeBox.style.display = "block";
       fixRow.style.display = "none";
       recentWrap.style.display = "none";
+      appLinks.style.display = "none";
       return;
     }
+    appLinks.style.display = "flex";
     if (!res?.ok || res.error) {
       matterSelect.innerHTML = "<option>—</option>";
       welcomeBox.style.display = "none";
@@ -163,6 +166,17 @@ document.getElementById("viewall").addEventListener("click", (e) => {
   e.preventDefault();
   const id = matterSelect.value && matterSelect.value !== NEW ? matterSelect.value : "";
   chrome.tabs.create({ url: id ? `${appUrl}/matters/${id}/cards` : appUrl });
+});
+
+// Straight into the app's PDF reader for the selected matter; without one,
+// the matter list — where the user can pick or create one first.
+document.getElementById("uploadpdf").addEventListener("click", () => {
+  const id = matterSelect.value && matterSelect.value !== NEW ? matterSelect.value : "";
+  chrome.tabs.create({ url: id ? `${appUrl}/matters/${id}/documents` : appUrl });
+});
+
+document.getElementById("viewmatters").addEventListener("click", () => {
+  chrome.tabs.create({ url: appUrl });
 });
 
 matterSelect.addEventListener("change", () => {
