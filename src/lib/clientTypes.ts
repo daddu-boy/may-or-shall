@@ -74,10 +74,31 @@ export interface ChronologyEntryDto {
   } | null;
 }
 
+/**
+ * Token issued to the Word task pane by /addin/connect. In Word on the web the
+ * pane is a cross-site iframe, so the session cookie is not sent — the token is
+ * the fallback. On the desktop the cookie works and this stays empty.
+ */
+export const ADDIN_TOKEN_KEY = "mos.addinToken";
+
+function addinToken(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(ADDIN_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
 export async function api<T>(url: string, init?: RequestInit): Promise<T> {
+  const token = addinToken();
   const res = await fetch(url, {
     ...init,
-    headers: init?.body ? { "Content-Type": "application/json", ...init?.headers } : init?.headers,
+    headers: {
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...init?.headers,
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

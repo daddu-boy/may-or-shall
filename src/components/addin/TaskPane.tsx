@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Script from "next/script";
-import { api, type CardDto, type MatterDto } from "@/lib/clientTypes";
+import { api, ADDIN_TOKEN_KEY, type CardDto, type MatterDto } from "@/lib/clientTypes";
 import { CARD_TYPES, CARD_TYPE_COLOR, CARD_TYPE_LABEL } from "@/lib/labels";
 
 /* Office.js globals (loaded from the CDN at runtime inside Word). */
@@ -28,18 +28,64 @@ export default function TaskPane() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [withHeading, setWithHeading] = useState(false);
   const [status, setStatus] = useState("");
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   const loadMatters = useCallback(async (selectId?: string) => {
-    const list = await api<MatterDto[]>("/api/matters");
-    const active = list.filter((m) => m.status === "ACTIVE");
-    setMatters(active);
-    if (selectId) setMatterId(selectId);
-    else if (active.length > 0) setMatterId((cur) => cur || active[0].id);
+    try {
+      const list = await api<MatterDto[]>("/api/matters");
+      setNeedsAuth(false);
+      const active = list.filter((m) => m.status === "ACTIVE");
+      setMatters(active);
+      if (selectId) setMatterId(selectId);
+      else if (active.length > 0) setMatterId((cur) => cur || active[0].id);
+    } catch (e) {
+      if ((e as { status?: number }).status === 401) setNeedsAuth(true);
+      else setStatus((e as Error).message);
+    }
   }, []);
 
   useEffect(() => {
     loadMatters();
   }, [loadMatters]);
+
+  /**
+   * Sign in without leaving Word: open /addin/connect in an Office dialog (a
+   * top-level window, so the session cookie works there), which hands back a
+   * token via messageParent. Nothing for the user to copy.
+   */
+  const connect = () => {
+    const url = `${window.location.origin}/addin/connect`;
+    if (typeof Office === "undefined" || !Office.context?.ui?.displayDialogAsync) {
+      window.open(url, "_blank", "noopener");
+      return;
+    }
+    setConnecting(true);
+    Office.context.ui.displayDialogAsync(
+      url,
+      { height: 60, width: 30, promptBeforeOpen: false },
+      (result: any) => {
+        if (result.status !== Office.AsyncResultStatus.Succeeded) {
+          setConnecting(false);
+          setStatus("Could not open the sign-in window.");
+          return;
+        }
+        const dialog = result.value;
+        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg: any) => {
+          try {
+            window.localStorage.setItem(ADDIN_TOKEN_KEY, String(arg.message));
+          } catch {
+            /* private mode — the session cookie may still carry us */
+          }
+          dialog.close();
+          setConnecting(false);
+          setStatus("Connected.");
+          loadMatters();
+        });
+        dialog.addEventHandler(Office.EventType.DialogEventReceived, () => setConnecting(false));
+      }
+    );
+  };
 
   const createMatter = async () => {
     const title = window.prompt("New matter title:");
@@ -186,7 +232,33 @@ export default function TaskPane() {
         onLoad={onOfficeLoaded}
       />
 
-      <header className="px-3 pt-3 pb-2 border-b border-slate-100 sticky top-0 bg-white z-10">
+      {needsAuth && (
+        <div className="flex-1 flex items-center justify-center p-6 text-center">
+          <div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/addin/icon-128.png" alt="" className="w-12 h-12 rounded-lg mx-auto mb-3" />
+            <h1 className="font-semibold mb-1">Sign in to May or Shall</h1>
+            <p className="text-xs text-slate-500 mb-4">
+              You&rsquo;ll get a one-click link by email — no password, nothing to copy.
+            </p>
+            <button
+              onClick={connect}
+              disabled={connecting}
+              className="bg-indigo-600 text-white rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-50"
+              data-testid="addin-connect"
+            >
+              {connecting ? "Waiting for sign-in…" : "Sign in"}
+            </button>
+            {status && <p className="text-[11px] text-slate-400 mt-3">{status}</p>}
+          </div>
+        </div>
+      )}
+
+      <header
+        className={`px-3 pt-3 pb-2 border-b border-slate-100 sticky top-0 bg-white z-10 ${
+          needsAuth ? "hidden" : ""
+        }`}
+      >
         <div className="flex items-center gap-2 mb-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/addin/icon-32.png" alt="" className="w-5 h-5 rounded" />
@@ -241,7 +313,10 @@ export default function TaskPane() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto px-3 py-2 space-y-1.5" data-testid="addin-cards">
+      <div
+        className={`flex-1 overflow-auto px-3 py-2 space-y-1.5 ${needsAuth ? "hidden" : ""}`}
+        data-testid="addin-cards"
+      >
         {visible.map((card) => (
           <label
             key={card.id}
@@ -286,7 +361,11 @@ export default function TaskPane() {
         )}
       </div>
 
-      <footer className="px-3 py-2.5 border-t border-slate-100 sticky bottom-0 bg-white">
+      <footer
+        className={`px-3 py-2.5 border-t border-slate-100 sticky bottom-0 bg-white ${
+          needsAuth ? "hidden" : ""
+        }`}
+      >
         <label className="flex items-center gap-1.5 text-[11px] text-slate-500 mb-2">
           <input
             type="checkbox"

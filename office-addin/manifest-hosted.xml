@@ -6,17 +6,17 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
 
-  <!-- Hosted variant: the task pane is served from GitHub Pages, so this one
-       manifest works for everyone — each user connects it to their own
-       May or Shall server (same App URL + API token as the Chrome extension). -->
+  <!-- The task pane is served by the hosted May or Shall app itself, so it
+       shares the app's origin: signing in there signs in the pane, with no
+       token to copy. -->
   <Id>6f26230c-64cf-47b4-a0c7-746ddbf7c24b</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>May or Shall</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="May or Shall"/>
   <Description DefaultValue="Plot your matter's cards — labelled, source-cited highlights — into the document you are drafting."/>
-  <IconUrl DefaultValue="https://daddu-boy.github.io/may-or-shall/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://daddu-boy.github.io/may-or-shall/icon-128.png"/>
+  <IconUrl DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-128.png"/>
   <SupportUrl DefaultValue="https://github.com/daddu-boy/may-or-shall"/>
 
   <Hosts>
@@ -24,8 +24,12 @@
   </Hosts>
 
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://daddu-boy.github.io/may-or-shall/taskpane.html"/>
+    <SourceLocation DefaultValue="https://may-or-shall-production.up.railway.app/addin/taskpane"/>
   </DefaultSettings>
+
+  <AppDomains>
+    <AppDomain>https://may-or-shall-production.up.railway.app</AppDomain>
+  </AppDomains>
 
   <Permissions>ReadWriteDocument</Permissions>
 
@@ -66,12 +70,12 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="MayOrShall.Icon16" DefaultValue="https://daddu-boy.github.io/may-or-shall/icon-16.png"/>
-        <bt:Image id="MayOrShall.Icon32" DefaultValue="https://daddu-boy.github.io/may-or-shall/icon-32.png"/>
-        <bt:Image id="MayOrShall.Icon80" DefaultValue="https://daddu-boy.github.io/may-or-shall/icon-80.png"/>
+        <bt:Image id="MayOrShall.Icon16" DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-16.png"/>
+        <bt:Image id="MayOrShall.Icon32" DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-32.png"/>
+        <bt:Image id="MayOrShall.Icon80" DefaultValue="https://may-or-shall-production.up.railway.app/addin/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="MayOrShall.Taskpane" DefaultValue="https://daddu-boy.github.io/may-or-shall/taskpane.html"/>
+        <bt:Url id="MayOrShall.Taskpane" DefaultValue="https://may-or-shall-production.up.railway.app/addin/taskpane"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="MayOrShall.GroupLabel" DefaultValue="May or Shall"/>
