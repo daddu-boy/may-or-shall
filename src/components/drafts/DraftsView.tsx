@@ -21,7 +21,14 @@ const TYPE_LABEL: Record<string, string> = {
   CONVENIENCE_COMPILATION: "Convenience compilation",
 };
 
-export default function DraftsView({ matterId }: { matterId: string }) {
+export default function DraftsView({
+  matterId,
+  aiAvailable = false,
+}: {
+  matterId: string;
+  /** false when the server has no ANTHROPIC_API_KEY — AI options are hidden */
+  aiAvailable?: boolean;
+}) {
   const [artefacts, setArtefacts] = useState<ArtefactSummary[]>([]);
   const [matter, setMatter] = useState<MatterDto & { aiEnabled?: boolean }>();
   const [tags, setTags] = useState<string[]>([]);
@@ -30,7 +37,9 @@ export default function DraftsView({ matterId }: { matterId: string }) {
   // new-draft form
   const [artefactType, setArtefactType] = useState("SENIOR_BRIEF");
   const [issues, setIssues] = useState<string[]>([]);
-  const [mode, setMode] = useState<"generate" | "blank">("generate");
+  const [mode, setMode] = useState<"generate" | "blank">(
+    aiAvailable ? "generate" : "blank"
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -92,13 +101,17 @@ export default function DraftsView({ matterId }: { matterId: string }) {
         <div>
           <h1 className="text-lg font-semibold">Drafts</h1>
           <p className="text-xs text-slate-500">
-            AI-generated first drafts from your card base — always reviewed and edited before use.
+            {aiAvailable
+              ? "AI-generated first drafts from your card base — always reviewed and edited before use."
+              : "Draft here and export to Word, with your cards a click away."}
           </p>
         </div>
-        <label className="flex items-center gap-2 text-xs text-slate-500">
-          <input type="checkbox" checked={matter?.aiEnabled ?? true} onChange={toggleAi} />
-          AI enabled for this matter
-        </label>
+        {aiAvailable && (
+          <label className="flex items-center gap-2 text-xs text-slate-500">
+            <input type="checkbox" checked={matter?.aiEnabled ?? true} onChange={toggleAi} />
+            AI enabled for this matter
+          </label>
+        )}
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 mb-6">
@@ -114,14 +127,16 @@ export default function DraftsView({ matterId }: { matterId: string }) {
             <option value="WRITTEN_SUBMISSIONS">Written submissions</option>
             <option value="JUDGE_NOTE">Note for the judge</option>
           </select>
-          <select
-            value={mode}
-            onChange={(e) => setMode(e.target.value as "generate" | "blank")}
-            className="border border-slate-200 rounded-md px-3 py-2 text-sm"
-          >
-            <option value="generate">Generate with AI from cards</option>
-            <option value="blank">Start blank</option>
-          </select>
+          {aiAvailable && (
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value as "generate" | "blank")}
+              className="border border-slate-200 rounded-md px-3 py-2 text-sm"
+            >
+              <option value="generate">Generate with AI from cards</option>
+              <option value="blank">Start blank</option>
+            </select>
+          )}
           <button
             onClick={create}
             disabled={busy}

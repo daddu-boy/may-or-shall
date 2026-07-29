@@ -18,9 +18,12 @@ interface ArtefactDto {
 export default function DraftEditor({
   matterId,
   artefactId,
+  aiAvailable = false,
 }: {
   matterId: string;
   artefactId: string;
+  /** false when the server has no ANTHROPIC_API_KEY — AI actions are hidden */
+  aiAvailable?: boolean;
 }) {
   const router = useRouter();
   const [artefact, setArtefact] = useState<ArtefactDto | null>(null);
@@ -111,13 +114,15 @@ export default function DraftEditor({
         <span className="text-[10px] text-slate-300 w-12">
           {saved === "saving" ? "Saving…" : saved === "saved" ? "Saved" : ""}
         </span>
-        <button
-          onClick={regenerate}
-          disabled={regenBusy}
-          className="text-xs rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 px-2.5 py-1.5 font-medium disabled:opacity-50"
-        >
-          {regenBusy ? "Regenerating…" : "✦ Regenerate (new version)"}
-        </button>
+        {aiAvailable && (
+          <button
+            onClick={regenerate}
+            disabled={regenBusy}
+            className="text-xs rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 px-2.5 py-1.5 font-medium disabled:opacity-50"
+          >
+            {regenBusy ? "Regenerating…" : "✦ Regenerate (new version)"}
+          </button>
+        )}
         <a
           href={`/api/artefacts/${artefactId}/export`}
           className="text-xs rounded-md bg-slate-900 text-white px-2.5 py-1.5 font-medium"
@@ -129,9 +134,11 @@ export default function DraftEditor({
         </button>
       </div>
 
-      <p className="text-[11px] text-slate-400 mb-2">
-        Sentences in [square brackets] were bridging text added by the AI — verify before filing.
-      </p>
+      {aiAvailable && (
+        <p className="text-[11px] text-slate-400 mb-2">
+          Sentences in [square brackets] were bridging text added by the AI — verify before filing.
+        </p>
+      )}
 
       <RichTextEditor
         content={content}

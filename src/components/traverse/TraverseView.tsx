@@ -34,7 +34,14 @@ const STATUS_LABEL: Record<string, string> = {
 
 const AT_RISK = new Set(["NOT_STARTED", "DENIED_BARE"]);
 
-export default function TraverseView({ matterId }: { matterId: string }) {
+export default function TraverseView({
+  matterId,
+  aiAvailable = false,
+}: {
+  matterId: string;
+  /** false when the server has no ANTHROPIC_API_KEY — the AI button is hidden */
+  aiAvailable?: boolean;
+}) {
   const [sheet, setSheet] = useState<SheetDto | null>(null);
   const [docs, setDocs] = useState<DocumentDto[]>([]);
   const [cards, setCards] = useState<CardDto[]>([]);
@@ -195,6 +202,7 @@ export default function TraverseView({ matterId }: { matterId: string }) {
             row={row}
             attachable={attachable}
             annexures={annexures}
+            aiAvailable={aiAvailable}
             onStatusChange={(status) =>
               setSheet((cur) =>
                 cur
@@ -221,11 +229,13 @@ function TraverseRowCard({
   row,
   attachable,
   annexures,
+  aiAvailable,
   onStatusChange,
 }: {
   row: TraverseRowDto;
   attachable: CardDto[];
   annexures: AnnexureOption[];
+  aiAvailable: boolean;
   onStatusChange: (status: string) => void;
 }) {
   const [responseText, setResponseText] = useState(row.responseText);
@@ -316,14 +326,16 @@ function TraverseRowCard({
               </option>
             ))}
           </select>
-          <button
-            onClick={askAi}
-            disabled={aiBusy}
-            className="text-xs rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 px-2 py-1 font-medium disabled:opacity-50"
-            data-testid="row-ai"
-          >
-            {aiBusy ? "Drafting…" : "✦ Draft specific denial"}
-          </button>
+          {aiAvailable && (
+            <button
+              onClick={askAi}
+              disabled={aiBusy}
+              className="text-xs rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 px-2 py-1 font-medium disabled:opacity-50"
+              data-testid="row-ai"
+            >
+              {aiBusy ? "Drafting…" : "✦ Draft specific denial"}
+            </button>
+          )}
           <span className="ml-auto text-[10px] text-slate-300">
             {saved === "saving" ? "Saving…" : saved === "saved" ? "Saved" : ""}
           </span>
