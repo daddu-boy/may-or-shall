@@ -41,3 +41,30 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
   return NextResponse.json(matter);
 }
+
+/**
+ * Delete a matter and everything in it. The database rows cascade from the
+ * Matter row; the uploaded PDFs are files on disk, so they are removed
+ * explicitly (after the delete succeeds, so a failure can't strand a matter
+ * whose documents are already gone).
+ */
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const owner = await requireMatterOwner(req, params.matterId);
+  if (isResponse(owner)) return owner;
+
+  const docs = await prisma.document.findMany({
+    where: { matterId: params.matterId },
+    select: { storagePath: true },
+  });
+
+  await prisma.matter.delete({ where: { id: params.matterId } });
+
+  const { storage } = await import("@/lib/storage");
+  await Promise.all(
+    docs
+      .filter((d) => d.storagePath)
+      .map((d) => storage.delete(d.storagePath).catch(() => {}))
+  );
+
+  return NextResponse.json({ ok: true, documentsDeleted: docs.length });
+}

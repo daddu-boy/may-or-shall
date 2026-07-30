@@ -82,6 +82,7 @@ export default function Dashboard() {
 function MatterRow({ matter, onChanged }: { matter: MatterDto; onChanged: () => void }) {
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState(matter.title);
+  const [deleting, setDeleting] = useState(false);
 
   const save = async () => {
     if (title.trim() && title !== matter.title) {
@@ -97,6 +98,39 @@ function MatterRow({ matter, onChanged }: { matter: MatterDto; onChanged: () => 
       body: JSON.stringify({ status: matter.status === "ACTIVE" ? "ARCHIVED" : "ACTIVE" }),
     });
     onChanged();
+  };
+
+  /**
+   * Deleting takes the documents, cards, chronology and drafts with it and
+   * cannot be undone, so the confirmation spells out what is about to go and
+   * asks for the matter's title back before proceeding.
+   */
+  const remove = async () => {
+    const docs = matter._count?.documents ?? 0;
+    const cards = matter._count?.cards ?? 0;
+    const contents =
+      docs || cards
+        ? `${docs} document${docs === 1 ? "" : "s"} and ${cards} card${cards === 1 ? "" : "s"}`
+        : "no documents or cards";
+    const typed = window.prompt(
+      `Delete “${matter.title}” permanently?\n\n` +
+        `This matter contains ${contents}. Its chronology, traverse, drafts and ` +
+        `annexures will be deleted too. This cannot be undone.\n\n` +
+        `Type the matter's name to confirm:`
+    );
+    if (typed === null) return;
+    if (typed.trim() !== matter.title.trim()) {
+      window.alert("That doesn't match the matter's name — nothing was deleted.");
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api(`/api/matters/${matter.id}`, { method: "DELETE" });
+      onChanged();
+    } catch (e) {
+      window.alert(`Could not delete: ${(e as Error).message}`);
+      setDeleting(false);
+    }
   };
 
   return (
@@ -134,6 +168,14 @@ function MatterRow({ matter, onChanged }: { matter: MatterDto; onChanged: () => 
         </button>
         <button onClick={toggleArchive} className="text-slate-500 hover:text-slate-900">
           {matter.status === "ACTIVE" ? "Archive" : "Restore"}
+        </button>
+        <button
+          onClick={remove}
+          disabled={deleting}
+          className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+          data-testid="matter-delete"
+        >
+          {deleting ? "Deleting…" : "Delete"}
         </button>
       </div>
     </li>
