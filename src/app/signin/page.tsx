@@ -8,13 +8,27 @@ function SignIn() {
   const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const sent = params.get("sent") === "1";
+  const [error, setError] = useState("");
+  // Confirm from our own state rather than relying on Auth.js redirecting to
+  // ?sent=1 — otherwise the page can sit on "Sending link…" saying nothing.
+  const [justSent, setJustSent] = useState(false);
+  const sent = justSent || params.get("sent") === "1";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const address = email.trim();
+    if (!address) return;
     setBusy(true);
-    await signIn("resend", { email: email.trim(), callbackUrl: "/" });
+    setError("");
+    try {
+      const res = await signIn("resend", { email: address, redirect: false, callbackUrl: "/" });
+      if (res?.error) setError("We couldn't send the link. Check the address and try again.");
+      else setJustSent(true);
+    } catch {
+      setError("We couldn't send the link. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -24,8 +38,32 @@ function SignIn() {
         <p className="mt-1 text-sm text-slate-500">Read once, use everywhere.</p>
 
         {sent ? (
-          <div className="mt-6 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
-            Check your email — we sent you a one-click sign-in link. It expires shortly.
+          <div className="mt-6">
+            <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800">
+              <p className="font-semibold">Link sent ✓</p>
+              <p className="mt-1">
+                We emailed a one-click sign-in link
+                {email.trim() ? (
+                  <>
+                    {" "}
+                    to <b>{email.trim()}</b>
+                  </>
+                ) : null}
+                . Open it on this device to sign in — it expires shortly and can be used once.
+              </p>
+              <p className="mt-2 text-emerald-700">
+                Nothing after a minute? Check your spam folder.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setJustSent(false);
+                setError("");
+              }}
+              className="mt-3 w-full text-center text-xs text-slate-500 underline hover:text-slate-700"
+            >
+              Use a different email address
+            </button>
           </div>
         ) : (
           <form onSubmit={submit} className="mt-6 space-y-3">
@@ -45,6 +83,7 @@ function SignIn() {
             >
               {busy ? "Sending link…" : "Email me a sign-in link"}
             </button>
+            {error && <p className="text-center text-xs text-rose-600">{error}</p>}
             <p className="text-center text-xs text-slate-400">
               No password. We email you a secure link to sign in.
             </p>

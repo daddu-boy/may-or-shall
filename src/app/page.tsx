@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, type MatterDto } from "@/lib/clientTypes";
 import { OUR_SIDES, OUR_SIDE_LABEL } from "@/lib/labels";
 import ExtensionNudge from "@/components/ExtensionNudge";
 
 export default function Dashboard() {
+  const router = useRouter();
   const [matters, setMatters] = useState<MatterDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -48,9 +50,9 @@ export default function Dashboard() {
 
       {showForm && (
         <NewMatterForm
-          onCreated={() => {
+          onCreated={(matterId) => {
             setShowForm(false);
-            load();
+            router.push(`/matters/${matterId}/documents`);
           }}
         />
       )}
@@ -58,7 +60,20 @@ export default function Dashboard() {
       {loading ? (
         <p className="text-slate-400 text-sm">Loading…</p>
       ) : visible.length === 0 ? (
-        <p className="text-slate-400 text-sm">No matters yet. Create one to get started.</p>
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white/60 px-6 py-10 text-center">
+          <p className="font-medium text-slate-700">Start with a matter</p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+            A matter is your workspace: upload the bundle, read and highlight the PDFs,
+            and build the chronology, traverse, compilations and drafts from what you mark.
+          </p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+            data-testid="empty-create"
+          >
+            Create your first matter →
+          </button>
+        </div>
       ) : (
         <ul className="space-y-3">
           {visible.map((m) => (
@@ -182,7 +197,7 @@ function MatterRow({ matter, onChanged }: { matter: MatterDto; onChanged: () => 
   );
 }
 
-function NewMatterForm({ onCreated }: { onCreated: () => void }) {
+function NewMatterForm({ onCreated }: { onCreated: (matterId: string) => void }) {
   const [title, setTitle] = useState("");
   const [court, setCourt] = useState("");
   const [caseNumber, setCaseNumber] = useState("");
@@ -195,11 +210,11 @@ function NewMatterForm({ onCreated }: { onCreated: () => void }) {
     if (!title.trim()) return;
     setBusy(true);
     try {
-      await api("/api/matters", {
+      const matter = await api<{ id: string }>("/api/matters", {
         method: "POST",
         body: JSON.stringify({ title, court, caseNumber, parties, ourSide }),
       });
-      onCreated();
+      onCreated(matter.id);
     } finally {
       setBusy(false);
     }
