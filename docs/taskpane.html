@@ -51,7 +51,7 @@
     the <b>same App URL and API token as your Chrome extension</b> and the two stay in sync:
     clip in Chrome, plot in Word.</p>
   <label for="apiBase">App URL</label>
-  <input type="text" id="apiBase" placeholder="https://may-or-shall-production.up.railway.app">
+  <input type="text" id="apiBase" placeholder="https://app.mayorshall.com">
   <div class="hint">Leave as the default for the hosted May or Shall; change it only if you run your own server.</div>
   <label for="token">API token</label>
   <input type="password" id="token" placeholder="mos_…">
@@ -91,7 +91,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var state = {
-    apiBase: localStorage.getItem("mos.apiBase") || "https://may-or-shall-production.up.railway.app",
+    apiBase: localStorage.getItem("mos.apiBase") || "https://app.mayorshall.com",
     token: localStorage.getItem("mos.token") || "",
     matterId: localStorage.getItem("mos.matterId") || "",
     matters: [], cards: [], selected: {}, inWord: false, officeReady: false

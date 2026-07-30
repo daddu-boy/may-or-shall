@@ -12,7 +12,7 @@ const recentWrap = document.getElementById("recentwrap");
 const recentBox = document.getElementById("recent");
 const appLinks = document.getElementById("applinks");
 const NEW = "__new__";
-let appUrl = "https://may-or-shall-production.up.railway.app";
+let appUrl = "https://app.mayorshall.com";
 
 const CARD_META = {
   FACT: ["Fact", "#3b82f6"], DATE: ["Date", "#f59e0b"], ISSUE: ["Issue", "#8b5cf6"],

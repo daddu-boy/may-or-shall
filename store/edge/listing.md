@@ -33,7 +33,7 @@ Assets in this folder: `logo-300x300.png`, `promo-small-440x280.png`, `promo-lar
 
     PRIVACY
 
-    Nothing is collected passively. The extension reads a page only at the moment you select text and choose to save it. It has no analytics, no advertising and no tracking, and your clips go only to your own May or Shall account. Full policy: https://may-or-shall-production.up.railway.app/privacy
+    Nothing is collected passively. The extension reads a page only at the moment you select text and choose to save it. It has no analytics, no advertising and no tracking, and your clips go only to your own May or Shall account. Full policy: https://app.mayorshall.com/privacy
 
     To pause clipping at any time, use the switch in the extension's popup.
 
@@ -59,7 +59,7 @@ Leave blank.
 | Category | Productivity |
 | Support / website URL | `https://github.com/daddu-boy/may-or-shall` |
 | Support contact email | `sdhkapr22@gmail.com` |
-| Privacy policy URL | `https://may-or-shall-production.up.railway.app/privacy` |
+| Privacy policy URL | `https://app.mayorshall.com/privacy` |
 
 ---
 
@@ -87,7 +87,7 @@ Leave blank.
 
     Page content is accessed only at the moment the user selects text and clicks a card-type button to save it. Nothing is read, logged, or transmitted passively, and no page is modified.
 
-    Host access is also required to send the saved passage to the user's May or Shall account (https://may-or-shall-production.up.railway.app by default, or a self-hosted server address the user enters in Options), which is why http/https hosts are requested rather than a single fixed origin.
+    Host access is also required to send the saved passage to the user's May or Shall account (https://app.mayorshall.com by default, or a self-hosted server address the user enters in Options), which is why http/https hosts are requested rather than a single fixed origin.
 
 ### Remote code
 
@@ -118,7 +118,7 @@ purpose, no use for creditworthiness or lending.
     HOW TO TEST (no test credentials needed — sign-up is free, self-serve and instant)
 
     1. Install the extension. A welcome page opens.
-    2. Go to https://may-or-shall-production.up.railway.app and enter ANY email address you control. You will be emailed a one-click sign-in link (passwordless — there is no password to set). The sender is no-reply@mayorshall.com; if it does not appear within a minute, please check the spam folder. No invitation, approval or payment is required.
+    2. Go to https://app.mayorshall.com and enter ANY email address you control. You will be emailed a one-click sign-in link (passwordless — there is no password to set). The sender is no-reply@mayorshall.com; if it does not appear within a minute, please check the spam folder. No invitation, approval or payment is required.
     3. Click the link. You are signed in, and the extension connects to your account automatically — there is nothing to copy, paste or configure.
     4. In the web app or in the extension popup, create a matter (any title, e.g. "Test matter").
     5. Visit any web page, select a sentence, and a popover appears. Click any category chip — Fact, Date, Issue, Evidence, Case law, etc. The passage is saved as a card, with the page URL and title as its source.

@@ -12,7 +12,7 @@ note ("card") in a matter in your May or Shall account.
 ## Where your data goes
 
 By default the clipper talks to the hosted May or Shall service at
-`https://may-or-shall-production.up.railway.app`, which is operated by the developer of
+`https://app.mayorshall.com`, which is operated by the developer of
 this extension (Sidharth Kapoor). If you run your own May or Shall server instead, you can
 point the extension at that address in its Options, in which case your data goes only
 there.
