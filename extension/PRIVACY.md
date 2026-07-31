@@ -13,9 +13,8 @@ note ("card") in a matter in your May or Shall account.
 
 By default the clipper talks to the hosted May or Shall service at
 `https://app.mayorshall.com`, which is operated by the developer of
-this extension (Sidharth Kapoor). If you run your own May or Shall server instead, you can
-point the extension at that address in its Options, in which case your data goes only
-there.
+this extension (Sidharth Kapoor). The extension can be pointed at a different May or Shall
+server address in its Options, in which case your data goes only there.
 
 ## What the extension collects
 

@@ -54,7 +54,12 @@ it finds the running app automatically — nothing to configure.
 (The Windows build is currently cross-compiled and not yet tested on Windows hardware
 end-to-end; please report issues.)
 
-## Run it from source (for developers)
+## Run it from source (for the maintainer and approved contributors)
+
+> The source is published so anyone can inspect how the service handles their data.
+> It is **not** licensed for you to run your own copy or offer it as a service —
+> see [LICENSE](LICENSE). The steps below are for the maintainer and for
+> contributors who have been given permission.
 
 No database server needed — the app stores everything in a single SQLite file.
 
@@ -169,3 +174,15 @@ external client; set `API_REQUIRE_TOKEN=1` when the backend is reachable beyond 
 
 Older versions used PostgreSQL. To carry your data across:
 `PG_URL="postgresql://<user>@localhost:5432/<db>" node scripts/migrate-pg-to-sqlite.mjs`
+
+## Licence
+
+**All rights reserved.** Copyright (c) 2026 Sidharth Kapoor.
+
+This code is public so that anyone considering May or Shall can read how it works
+and how it treats their data. That visibility is not a grant of rights: it may not
+be copied, modified, redistributed, or run as a service without written permission.
+See [LICENSE](LICENSE) for the full terms, or ask: sdhkapr22@gmail.com
+
+May or Shall is not a law firm and does not give legal advice. Anything it drafts,
+extracts, or exports must be reviewed by the lawyer responsible for the matter.

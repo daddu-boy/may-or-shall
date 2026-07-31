@@ -87,7 +87,7 @@ Leave blank.
 
     Page content is accessed only at the moment the user selects text and clicks a card-type button to save it. Nothing is read, logged, or transmitted passively, and no page is modified.
 
-    Host access is also required to send the saved passage to the user's May or Shall account (https://app.mayorshall.com by default, or a self-hosted server address the user enters in Options), which is why http/https hosts are requested rather than a single fixed origin.
+    Host access is also required to send the saved passage to the user's May or Shall account (https://app.mayorshall.com by default, or a different server address the user enters in Options), which is why http/https hosts are requested rather than a single fixed origin.
 
 ### Remote code
 
@@ -129,4 +129,4 @@ purpose, no use for creditworthiness or lending.
 
     - Broad host permissions are required because users clip from arbitrary sites (court and judgment databases, government portals, news, PDFs opened in the browser), which cannot be listed in advance. Page content is read only at the moment the user selects text and clicks to save.
     - No remote code: all JavaScript ships in the package. Network calls are JSON API requests only.
-    - Dependency: the hosted May or Shall web app above, operated by the same developer. Users may instead point the extension at their own self-hosted server via Options.
+    - Dependency: the hosted May or Shall web app above, operated by the same developer. Users may instead point the extension at a different May or Shall server address via Options.

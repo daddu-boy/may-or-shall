@@ -1,8 +1,8 @@
 // May or Shall — Web Clipper: background service worker.
 // All API calls happen here (host_permissions exempt them from CORS).
 
-// The clipper talks to the hosted May or Shall by default; self-hosters can
-// point it at their own server in Options. It authenticates with an API token
+// The clipper talks to the hosted May or Shall by default; it can be pointed at
+// a different server address in Options. It authenticates with an API token
 // the user creates under Settings on the web app.
 const HOSTED_URL = "https://app.mayorshall.com";
 const DEFAULTS = { apiBase: HOSTED_URL, token: "", matterId: "", enabled: true };
