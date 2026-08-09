@@ -5,6 +5,13 @@
 // a different server address in Options. It authenticates with an API token
 // the user creates under Settings on the web app.
 const HOSTED_URL = "https://app.mayorshall.com";
+// origins where the app itself lives; the old host stays for existing installs
+const APP_ORIGINS = [
+  "https://app.mayorshall.com",
+  "https://may-or-shall-production.up.railway.app",
+  "http://localhost:3000",
+  "https://localhost:3000",
+];
 const DEFAULTS = { apiBase: HOSTED_URL, token: "", matterId: "", enabled: true };
 
 async function getConfig() {
@@ -143,12 +150,35 @@ async function connect({ apiBase, token, matters }) {
   return { ok: true };
 }
 
+/**
+ * Chrome only runs content scripts in pages loaded *after* the extension is
+ * installed, so every tab already open would do nothing until reloaded. Rather
+ * than tell people to refresh, inject into those tabs ourselves.
+ */
+async function injectIntoOpenTabs() {
+  try {
+    const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      const files = ["content.js"];
+      // the app's own pages also carry the silent auto-connect script
+      if (APP_ORIGINS.some((o) => (tab.url || "").startsWith(o))) files.push("connect.js");
+      chrome.scripting
+        .executeScript({ target: { tabId: tab.id }, files })
+        .catch(() => {}); // chrome:// pages and the Web Store refuse injection
+    }
+  } catch {
+    /* nothing to do: newly opened tabs work regardless */
+  }
+}
+
 // First install: open the welcome page, which walks the user to the hosted app
 // to sign in (that single step auto-connects the clipper).
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
   }
+  injectIntoOpenTabs();
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

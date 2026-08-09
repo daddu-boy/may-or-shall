@@ -13,6 +13,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "database" },
   pages: { signIn: "/signin", verifyRequest: "/signin?sent=1" },
+  events: {
+    /**
+     * Fires once, when the account is first created. A brand new user would
+     * otherwise land on an empty workspace with nothing to look at, so we seed
+     * a worked example they can read, clip from, export — or delete.
+     */
+    async createUser({ user }) {
+      if (!user.id) return;
+      const { createSampleMatter } = await import("@/lib/sampleMatter");
+      await createSampleMatter(user.id);
+    },
+  },
   providers: [
     Resend({
       apiKey: process.env.RESEND_API_KEY || "dev-no-key",

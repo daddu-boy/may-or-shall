@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api, type MatterDto } from "@/lib/clientTypes";
 import { OUR_SIDES, OUR_SIDE_LABEL } from "@/lib/labels";
 import ExtensionNudge from "@/components/ExtensionNudge";
+import Coachmarks from "@/components/Coachmarks";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function Dashboard() {
             onClick={() => setShowForm((v) => !v)}
             className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-700"
             data-testid="new-matter"
+            data-tour="new-matter"
           >
             New matter
           </button>
@@ -47,6 +49,22 @@ export default function Dashboard() {
       </div>
 
       <ExtensionNudge />
+
+      <Coachmarks
+        id="dashboard-v1"
+        steps={[
+          {
+            anchor: "matter-row",
+            title: "Start with the sample matter",
+            body: "We have put a worked example in your account: a plaint, seven cards taken from it, and a chronology. Open it to see how the pieces fit, then delete it whenever you like.",
+          },
+          {
+            anchor: "new-matter",
+            title: "Then create your own",
+            body: "A matter is your workspace: upload the bundle, read and highlight it, and the chronology, traverse, compilation and drafts build from what you mark.",
+          },
+        ]}
+      />
 
       {showForm && (
         <NewMatterForm
@@ -76,8 +94,8 @@ export default function Dashboard() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {visible.map((m) => (
-            <MatterRow key={m.id} matter={m} onChanged={load} />
+          {visible.map((m, i) => (
+            <MatterRow key={m.id} matter={m} onChanged={load} first={i === 0} />
           ))}
         </ul>
       )}
@@ -94,7 +112,15 @@ export default function Dashboard() {
   );
 }
 
-function MatterRow({ matter, onChanged }: { matter: MatterDto; onChanged: () => void }) {
+function MatterRow({
+  matter,
+  onChanged,
+  first,
+}: {
+  matter: MatterDto;
+  onChanged: () => void;
+  first?: boolean;
+}) {
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState(matter.title);
   const [deleting, setDeleting] = useState(false);
@@ -149,7 +175,10 @@ function MatterRow({ matter, onChanged }: { matter: MatterDto; onChanged: () => 
   };
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between gap-4">
+    <li
+      data-tour={first ? "matter-row" : undefined}
+      className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between gap-4"
+    >
       <div className="min-w-0">
         {renaming ? (
           <input

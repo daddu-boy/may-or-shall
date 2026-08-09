@@ -4,6 +4,12 @@
 // its source. Rendered in a shadow root so page CSS can't interfere.
 
 (() => {
+  // The background worker injects this file into tabs that were already open
+  // when the extension was installed or updated. Those tabs may already be
+  // running an earlier copy, so bail out rather than binding a second listener.
+  if (window.__mosClipperLoaded) return;
+  window.__mosClipperLoaded = true;
+
   const CARD_TYPES = [
     ["FACT", "Fact", "#3b82f6"],
     ["DATE", "Date", "#f59e0b"],
@@ -80,6 +86,12 @@
       .chips button{border:none;border-radius:99px;color:#fff;font-size:10.5px;font-weight:600;
         padding:4px 9px;cursor:pointer;opacity:.95}
       .chips button:hover{opacity:1;transform:translateY(-1px)}
+      .hint{margin:-2px 0 7px;padding:6px 8px;border-radius:6px;font-size:10.5px;line-height:1.35;
+        background:#eef2ff;color:#3730a3;border:1px solid #e0e7ff;
+        animation:mosfade .35s ease-out}
+      @keyframes mosfade{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+      .chips button.first{animation:mospulse 1.6s ease-out 2}
+      @keyframes mospulse{0%{box-shadow:0 0 0 0 rgba(79,70,229,.45)}70%{box-shadow:0 0 0 7px rgba(79,70,229,0)}100%{box-shadow:0 0 0 0 rgba(79,70,229,0)}}
       .status{margin-top:7px;font-size:11px;color:#64748b}
       .status.ok{color:#059669}.status.err{color:#dc2626}
       .close{margin-left:auto;border:none;background:none;color:#94a3b8;cursor:pointer;font-size:12px}
@@ -96,12 +108,21 @@
       <div class="newrow"><input type="text" class="newname" placeholder="New matter title…">
         <button type="button" class="createbtn">Create</button></div>
       <input type="text" class="note" placeholder="Optional note…">
+      <div class="hint" hidden>Pick what this passage is. It saves to your matter with the citation attached.</div>
       <div class="chips"></div>
       <div class="status"></div>
     `;
     root.appendChild(box);
 
     const chips = box.querySelector(".chips");
+    const hint = box.querySelector(".hint");
+    // first time anyone opens the popover, say what to do — once, ever
+    chrome.storage.sync.get({ hintSeen: false }, (v) => {
+      if (v.hintSeen) return;
+      hint.hidden = false;
+      chips.querySelector("button")?.classList.add("first");
+      chrome.storage.sync.set({ hintSeen: true });
+    });
     const note = box.querySelector(".note");
     const matterSel = box.querySelector(".matter");
     const newRow = box.querySelector(".newrow");

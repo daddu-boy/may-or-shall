@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/clientTypes";
 import { CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
+import Coachmarks from "@/components/Coachmarks";
 
 interface SearchResults {
   documents: { documentId: string; filename: string; page: number; snippet: string }[];
@@ -86,6 +87,7 @@ export default function MatterShell({
               <Link
                 key={item.slug}
                 href={href}
+                data-tour={`nav-${item.slug}`}
                 className={`block rounded-md px-3 py-1.5 text-sm ${
                   active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
                 }`}
@@ -104,6 +106,26 @@ export default function MatterShell({
             </span>
           ))}
         </nav>
+        <Coachmarks
+          id="workspace-v1"
+          steps={[
+            {
+              anchor: "nav-documents",
+              title: "Documents: the case bundle",
+              body: "Drag PDFs in here. Open one and it becomes a reader: select any passage and it turns into a card that keeps its page and paragraph.",
+            },
+            {
+              anchor: "nav-cards",
+              title: "Cards: everything you marked",
+              body: "Every highlight lands here, grouped by what it is. From this board you can download the whole set as Word or PDF, citations attached.",
+            },
+            {
+              anchor: "nav-chronology",
+              title: "The filing builds itself",
+              body: "Date cards become a List of Dates. Traverse answers a plaint paragraph by paragraph. Compilation and Annexures assemble what you file.",
+            },
+          ]}
+        />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">

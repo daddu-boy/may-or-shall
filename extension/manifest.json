@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "May or Shall — Web Clipper",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "Select text on any page and save it as a typed, source-linked card in your May or Shall matter.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "http://localhost/*",
