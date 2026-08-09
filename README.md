@@ -54,12 +54,10 @@ it finds the running app automatically — nothing to configure.
 (The Windows build is currently cross-compiled and not yet tested on Windows hardware
 end-to-end; please report issues.)
 
-## Run it from source (for the maintainer and approved contributors)
+## Run it from source
 
-> The source is published so anyone can inspect how the service handles their data.
-> It is **not** licensed for you to run your own copy or offer it as a service —
-> see [LICENSE](LICENSE). The steps below are for the maintainer and for
-> contributors who have been given permission.
+> May or Shall is free software under the [GNU AGPL v3](LICENSE). You are welcome to
+> run your own copy. If you modify it and run it as a service, publish your changes.
 
 No database server needed — the app stores everything in a single SQLite file.
 
@@ -177,12 +175,15 @@ Older versions used PostgreSQL. To carry your data across:
 
 ## Licence
 
-**All rights reserved.** Copyright (c) 2026 Sidharth Kapoor.
+**GNU Affero General Public License v3.0 or later.** Copyright (c) 2026 Sidharth Kapoor.
 
-This code is public so that anyone considering May or Shall can read how it works
-and how it treats their data. That visibility is not a grant of rights: it may not
-be copied, modified, redistributed, or run as a service without written permission.
-See [LICENSE](LICENSE) for the full terms, or ask: sdhkapr22@gmail.com
+You are free to read, run, modify and share this software. The one condition that
+matters: if you run a modified version as a network service, you must make your
+modified source available to its users (AGPL §13). See [LICENSE](LICENSE).
+
+The licence covers the code. It does not cover the name "May or Shall", the brand
+assets, or the hosted service at https://app.mayorshall.com — see [NOTICE](NOTICE).
+If you run your own copy, please give it a different name.
 
 May or Shall is not a law firm and does not give legal advice. Anything it drafts,
 extracts, or exports must be reviewed by the lawyer responsible for the matter.
