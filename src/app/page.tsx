@@ -100,29 +100,7 @@ export default function Dashboard() {
         </ul>
       )}
 
-      <p className="mt-10 text-xs text-slate-400">
-        May or Shall is free software under the{" "}
-        <a
-          className="underline hover:text-slate-600"
-          href="https://www.gnu.org/licenses/agpl-3.0.html"
-          target="_blank"
-          rel="noopener"
-        >
-          GNU AGPL v3
-        </a>
-        . You can read, run and modify it:{" "}
-        <a
-          className="underline hover:text-slate-600"
-          href="https://github.com/daddu-boy/may-or-shall"
-          target="_blank"
-          rel="noopener"
-        >
-          source code
-        </a>
-        .
-      </p>
-
-      <label className="flex items-center gap-2 mt-6 text-sm text-slate-500">
+      <label className="flex items-center gap-2 mt-10 text-sm text-slate-500">
         <input
           type="checkbox"
           checked={showArchived}
