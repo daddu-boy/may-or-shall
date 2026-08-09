@@ -1,8 +1,16 @@
 # May or Shall
 
-**Read once, use everywhere.** A workspace for litigation matters: read your case bundle,
-turn highlights into reusable, source-linked notes ("cards"), and assemble court-ready
-documents from them — the chronology, the written statement, briefs, and compilations.
+A workspace for litigation matters. Read the case bundle, turn every highlight into a
+reusable note that permanently remembers where it came from, and assemble the chronology,
+the written statement, the compilation and the annexure index out of those notes instead of
+retyping them.
+
+Built by a practising litigator for the way Indian litigation actually runs — para-wise
+traverse, list of dates, convenience compilation, Annexure P-1.
+
+**Try it: [app.mayorshall.com](https://app.mayorshall.com)** — sign in with your email
+address, no password and nothing to install. A sample matter with a real plaint is waiting
+in your account so you can see the whole flow before uploading anything of your own.
 
 ## What it does
 
@@ -10,22 +18,18 @@ documents from them — the chronology, the written statement, briefs, and compi
   one click saves it as a **card** — typed as a Fact, Date, Issue, Admission, Evidence,
   Case law, Argument or Question — permanently carrying its exact quote and source
   (document, page, paragraph). Highlights stay painted on the PDF, colour-coded by type.
-- **Clip from the web.** A companion Chrome extension saves selected text from any website
-  (judgments, news, orders) as cards, with the page URL as the source.
+- **Clip from the web.** A companion Chrome/Edge extension saves selected text from any
+  website — a judgment on Indian Kanoon, a news report, an order on a court site — as a
+  card, with the page URL as its source.
 - **Think on a board.** All cards on a kanban-style board — group by type, document, tag
-  or date; filter, search, tag cards by issue, and drag to reorder.
+  or date; filter, search, tag by issue, and drag to reorder.
 - **Chronology & List of Dates.** Date cards assemble themselves into a chronology.
   Export it as a court-format Word document (two-column, DD.MM.YYYY, synopsis section,
   Times New Roman 14).
-- **Para-wise traverse.** Designate the plaint and it splits into one editable row per
-  paragraph for drafting the written statement, with a review mode that flags every
-  paragraph still lacking a specific denial (the Order VIII Rule 5 CPC deemed-admission
-  risk). Exports a written-statement skeleton to Word.
-- **AI first drafts, grounded.** Generate a senior counsel brief, written submissions, or
-  a judge's note using Claude — strictly from your cards, never from raw PDFs. Every
-  factual sentence carries a source citation; anything the AI adds as connective text is
-  wrapped in [square brackets] for review. Regenerating creates a new version, never
-  overwrites. AI can be switched off per matter.
+- **Para-wise traverse, with a deemed-admission guard.** Designate the plaint and it splits
+  into one editable row per paragraph for drafting the written statement. Review mode flags
+  every paragraph still lacking a specific denial — the Order VIII Rule 5 CPC risk — so a
+  paragraph cannot go unanswered by accident. Exports a written-statement skeleton to Word.
 - **Convenience compilation.** Pick cards or issues and get a single PDF of exactly the
   pages they cite (plus context pages if you want), with an index page that matches the
   stamped continuous pagination and a bookmark per document.
@@ -33,157 +37,111 @@ documents from them — the chronology, the written statement, briefs, and compi
   R-2…). Drag to reorder and every live `@`-reference in your drafts renumbers instantly.
   Exports an Index of Annexures.
 - **Draft in Word.** A companion Word add-in shows your card base beside the document and
-  plots selected cards into the draft as labelled, source-cited blocks — ready for you (or
-  any AI add-in you use, like Claude or Copilot) to draft from.
+  plots selected cards into the draft as labelled, source-cited blocks — ready for you, or
+  for any AI add-in you already use in Word, to draft from.
+- **AI first drafts, grounded.** Optionally generate a senior counsel brief, written
+  submissions or a judge's note using Claude — strictly from your cards, never from the raw
+  PDFs. Every factual sentence carries a source citation; connective text the model adds is
+  wrapped in [square brackets] for review. Regenerating creates a new version rather than
+  overwriting, and AI can be switched off per matter.
 
-## Get started (the easy way — desktop app)
+## How the pieces fit
 
-Download **May or Shall** from the
-[latest release](https://github.com/daddu-boy/may-or-shall/releases/latest): a `.dmg` for
-macOS (Apple Silicon or Intel) or `May-or-Shall-Windows-Setup.exe` for Windows. Install and
-open it. No terminal, no database, no setup — everything lives in a single file on your own
-computer.
+On upload, the app extracts each PDF's text and detects numbered paragraphs, so a highlight
+knows its page **and** its paragraph. Cards are the atomic unit: the chronology, the
+traverse, the briefs and the compilation are all assembled from the card base, never
+retyped. Chronology rows sync from Date cards automatically, and near-duplicate rows (same
+date, similar text) are flagged for merging.
 
-First launch: because the app isn't code-signed yet, you'll see an "unidentified developer"
-(macOS) or "unknown publisher" (Windows SmartScreen) notice. macOS: **right-click → Open →
-Open**. Windows: **More info → Run anyway**. Once only.
+## Run your own copy
 
-Then install the [Chrome extension](https://chromewebstore.google.com/detail/jcdaggdinfgihjbjgmpieohgehalpfac):
-it finds the running app automatically — nothing to configure.
+May or Shall is free software under the [GNU AGPL v3](LICENSE). You are welcome to run it
+yourself. If you modify it and run it as a network service, you must offer your users the
+modified source (AGPL §13).
 
-(The Windows build is currently cross-compiled and not yet tested on Windows hardware
-end-to-end; please report issues.)
-
-## Run it from source
-
-> May or Shall is free software under the [GNU AGPL v3](LICENSE). You are welcome to
-> run your own copy. If you modify it and run it as a service, publish your changes.
-
-No database server needed — the app stores everything in a single SQLite file.
+Requirements: Node 20+ and a PostgreSQL database.
 
 ```bash
 git clone https://github.com/daddu-boy/may-or-shall.git && cd may-or-shall
 npm install                       # also sets up the PDF engine
-cp .env.example .env
-npx prisma migrate deploy         # creates storage/mayorshall.db
-npm run db:seed                   # a sample matter with two generated PDFs + cards
+cp .env.example .env              # then fill in DATABASE_URL, AUTH_SECRET, RESEND_API_KEY
+npm run db:migrate                # creates the schema
 npm run dev                       # http://localhost:3000
 ```
 
 Or with Docker: `docker compose up --build` (app on :3000, migrations run automatically).
+For a hosted deployment on Railway — database, disk and domain — see [DEPLOY.md](DEPLOY.md).
 
-`.env` options:
+### Configuration
 
-```
-DATABASE_URL="file:../storage/mayorshall.db"
-STORAGE_DIR="./storage"
-# optional — enables the AI drafting features
-ANTHROPIC_API_KEY="sk-ant-..."
-# optional model overrides
-MODEL_DRAFTING="claude-sonnet-5"
-MODEL_BRIEF="claude-opus-4-8"
-```
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (required) |
+| `AUTH_SECRET` | Session secret — `openssl rand -base64 33` (required) |
+| `AUTH_URL` | The app's public URL (required in production) |
+| `RESEND_API_KEY` | [Resend](https://resend.com) key, used to send sign-in links |
+| `EMAIL_FROM` | Sender for those emails, e.g. `May or Shall <hello@example.com>` |
+| `STORAGE_DIR` | Where uploaded PDFs are written (default `./storage`) |
+| `ANTHROPIC_API_KEY` | *Optional* — enables the AI drafting features |
+| `MODEL_DRAFTING`, `MODEL_BRIEF` | *Optional* model overrides |
+| `PROMPTS_DIR` | *Optional* — where the AI prompt templates live |
 
-Without `ANTHROPIC_API_KEY`, the AI buttons show a clear message and everything else
-works normally.
+Without `ANTHROPIC_API_KEY` the AI buttons explain that they're unconfigured and everything
+else works normally.
 
-The AI features also need prompt templates, which are not distributed with this repo.
-To enable them, create a `prompts/` folder in the project root with four markdown files
-(`traverse-response.md`, `senior-brief.md`, `written-submissions.md`, `judge-note.md`).
-Each is a plain prompt with `{{placeholder}}` variables filled in at runtime — see
-`src/lib/ai.ts` and its call sites for the variables each template receives.
+The AI features also need prompt templates, which are **not** distributed with this repo. To
+enable them, create a `prompts/` folder in the project root with four markdown files
+(`traverse-response.md`, `senior-brief.md`, `written-submissions.md`, `judge-note.md`). Each
+is a plain prompt with `{{placeholder}}` variables filled in at runtime — see `src/lib/ai.ts`
+and its call sites for the variables each template receives.
 
-## Install the clients (for users)
+## The clients
 
-**Chrome / Edge extension:**
+**Chrome / Edge extension** — install
+[May or Shall — Web Clipper](https://chromewebstore.google.com/detail/jcdaggdinfgihjbjgmpieohgehalpfac)
+from the Chrome Web Store, then sign in to the web app. That's the entire setup: being
+signed in *is* the connection, so there is no token to copy and nothing to configure. Select
+text on any page and the card-type popover appears. If you run your own server, put its
+address in the extension's **Options**.
 
-1. Install **May or Shall — Web Clipper** from the
-   [Chrome Web Store](https://chromewebstore.google.com/detail/jcdaggdinfgihjbjgmpieohgehalpfac)
-   (or download `may-or-shall-web-clipper.zip` from the latest
-   [GitHub release](https://github.com/daddu-boy/may-or-shall/releases), unzip, and
-   **Load unpacked** on `chrome://extensions` with Developer mode on).
-2. The extension talks to *your* May or Shall app (see Quick start above). In the
-   extension **Options** set the App URL, paste an API token (app → Settings → API
-   tokens) and pick a matter. Select text on any page to clip; the toolbar popup also
-   takes rough free-text notes.
+To work on the extension itself, load the `extension/` folder unpacked on
+`chrome://extensions` with Developer mode on.
 
-**If the popup says "Can't reach https://localhost:3000":**
-
-- Make sure the app is actually running (`npm run dev:addin` in the app folder).
-- If it is, open <https://localhost:3000> in a normal browser tab. A certificate warning
-  there means your computer doesn't trust the local dev certificate yet: run
-  `npx office-addin-dev-certs install` in the app folder (enter your computer password in
-  the dialog that appears — this marks the certificate as trusted), then quit and reopen
-  the browser.
-
-When developing on the extension files, hit ↻ reload on `chrome://extensions` **and
-refresh any pages that were already open** — old tabs keep running the previous version.
-
-**Word add-in** — the easy way (hosted pane, works for everyone):
-
-1. Download `may-or-shall-word-manifest-hosted.xml` from the latest
-   [GitHub release](https://github.com/daddu-boy/may-or-shall/releases). No editing needed —
-   the pane itself is hosted at daddu-boy.github.io; only your matter data stays on your
-   own server.
-2. Sideload it: on Mac, copy the file to
-   `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/` (create `wef` if missing)
-   and restart Word; on Windows/M365, use Insert → Add-ins → Upload My Add-in, or
-   centralized deployment.
-3. In Word: Home ribbon → **Cards**. On first open the pane asks for your app's URL and an
-   API token — **use the same URL and token as your Chrome extension**, and the two stay
-   in sync: clip a page in Chrome, and the card is right there in Word to plot into your
-   draft.
-4. Your app must be running over HTTPS (`npx office-addin-dev-certs install` once, then
-   `npm run dev:addin`).
-
-**Word add-in** — fully local variant (no third-party hosting at all):
-
-Download `may-or-shall-word-manifest.xml` instead; it serves the pane from your own app at
-`https://localhost:3000` (edit the URLs if yours runs elsewhere). Same sideloading steps.
-
-Both clients are thin front-ends: your matter data stays in your own May or Shall server.
+**Word add-in** — download `may-or-shall-word-manifest-hosted.xml` from the latest
+[release](https://github.com/daddu-boy/may-or-shall/releases) and sideload it: on Mac, copy
+it to `~/Library/Containers/com.microsoft.Word/Data/Documents/wef/` (create `wef` if it
+doesn't exist) and restart Word; on Windows/M365, use Insert → Add-ins → Upload My Add-in,
+or centralized deployment. Then Home ribbon → **Cards**. The pane signs in with a code
+emailed to you, because a task pane can't share the browser's session. Details and the
+local-development variant are in [office-addin/README.md](office-addin/README.md).
 
 ## Stack
 
-- Next.js 14 (App Router) · TypeScript · Tailwind · SQLite via Prisma (single-file database)
+- Next.js 14 (App Router) · TypeScript · Tailwind · PostgreSQL via Prisma
+- Auth.js v5 with database sessions; passwordless sign-in links sent through Resend
 - PDF rendering with pdf.js; Word export with `docx`; PDF compilation with `pdf-lib`;
-  rich text with Tiptap; AI via the Anthropic API (server-side only; prompt templates
-  are user-supplied, see Quick start)
-- Tests: Playwright (`npm run test:e2e`, needs the seeded database); the extension has
-  its own end-to-end check (`node scripts/verify-extension.mjs`)
-
-## How the pieces fit
-
-On upload, the app extracts each PDF's text and detects numbered paragraphs, so a
-highlight knows its page **and** paragraph. Cards are the atomic unit; the chronology,
-traverse, briefs and compilation are all assembled from the card base. Chronology rows
-sync from Date cards automatically, and near-duplicate rows (same date, similar text) get
-flagged for merging. API tokens (Settings page) authenticate the extension and any other
-external client; set `API_REQUIRE_TOKEN=1` when the backend is reachable beyond localhost.
+  rich text with Tiptap; AI via the Anthropic API, server-side only
+- Tests: Playwright (`npm run test:e2e`); the extension has its own end-to-end check
+  (`node scripts/verify-extension.mjs`)
 
 ## Current limitations
 
-- Single-user pilot: no login yet (API tokens exist for the companion clients).
-- Scanned PDFs without a text layer can't be highlighted (no OCR yet).
-- Rich text is a pragmatic subset (paragraphs, headings, bold/italic, bullets); Word
-  export converts that subset.
-
-## Upgrading from a Postgres install
-
-Older versions used PostgreSQL. To carry your data across:
-`PG_URL="postgresql://<user>@localhost:5432/<db>" node scripts/migrate-pg-to-sqlite.mjs`
+- Scanned PDFs without a text layer can't be highlighted — there's no OCR yet.
+- Rich text is a pragmatic subset (paragraphs, headings, bold/italic, bullets); Word export
+  converts that subset.
+- The Word add-in is distributed by sideloading, not through AppSource.
 
 ## Licence
 
 **GNU Affero General Public License v3.0 or later.** Copyright (c) 2026 Sidharth Kapoor.
 
-You are free to read, run, modify and share this software. The one condition that
-matters: if you run a modified version as a network service, you must make your
-modified source available to its users (AGPL §13). See [LICENSE](LICENSE).
+You are free to read, run, modify and share this software. The one condition that matters:
+if you run a modified version as a network service, you must make your modified source
+available to its users (AGPL §13). See [LICENSE](LICENSE).
 
-The licence covers the code. It does not cover the name "May or Shall", the brand
-assets, or the hosted service at https://app.mayorshall.com — see [NOTICE](NOTICE).
-If you run your own copy, please give it a different name.
+The licence covers the code. It does not cover the name "May or Shall", the brand assets, or
+the hosted service at https://app.mayorshall.com — see [NOTICE](NOTICE). If you run your own
+copy, please give it a different name.
 
-May or Shall is not a law firm and does not give legal advice. Anything it drafts,
-extracts, or exports must be reviewed by the lawyer responsible for the matter.
+May or Shall is not a law firm and does not give legal advice. Anything it drafts, extracts
+or exports must be reviewed by the lawyer responsible for the matter.

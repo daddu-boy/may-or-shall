@@ -31,6 +31,9 @@ Dockerfile), so the schema is created on first boot.
 
 ## After it's live
 
-- Visit the domain, sign in with your email (magic link), and you have an
-  account. Create an API token under **Settings** for the Chrome extension and
-  the Word add-in — both point at your hosted URL instead of localhost.
+- Visit the domain and sign in with your email address — a one-click link
+  arrives by email and you have an account. A sample matter is created for you
+  on first sign-in.
+- The Chrome extension connects itself the moment you're signed in; point it at
+  your own domain in the extension's **Options** if you're not using
+  app.mayorshall.com. The Word add-in signs in with a code emailed to you.
