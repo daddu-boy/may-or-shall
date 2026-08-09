@@ -89,6 +89,12 @@ Leave blank.
 
     Host access is also required to send the saved passage to the user's May or Shall account (https://app.mayorshall.com by default, or a different server address the user enters in Options), which is why http/https hosts are requested rather than a single fixed origin.
 
+### scripting justification (required from v2.1.6)
+
+    The extension's clipping popover is delivered by a content script. Chrome only runs content scripts in pages that load after the extension is installed or updated, so every tab a user already had open would silently do nothing until they reloaded it. The scripting permission is used solely to inject that same content script (content.js, and on the user's own May or Shall pages connect.js) into tabs that were already open, once, at install or update time.
+
+    It is not used for anything else: no code is generated at runtime, nothing is fetched or evaluated from a remote source, and the injected files are the same ones that ship inside the package. The alternative would be to ask every user to reload every open tab before the extension works, which is exactly the kind of setup step this extension exists to remove.
+
 ### Remote code
 
 Select **"No, I am not using remote code."**
