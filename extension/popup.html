@@ -51,6 +51,18 @@
   </div>
   <div class="offnote">Clipping is off. Selecting text on a page won’t show the popover. Flip the switch to turn it back on.</div>
 
+  <!-- Shown only when a tab open since before the update is still running the
+       old code. Reloading is the only way to replace it there. -->
+  <div id="updated" style="display:none;margin-bottom:10px;font-size:11.5px;color:#334155;background:#eef2ff;border-radius:8px;padding:10px">
+    <b>May or Shall was updated.</b><br>
+    Some pages you already had open are still running the old version. Reloading
+    them finishes the update. Nothing you have saved is affected.
+    <div class="row" style="margin-top:8px">
+      <button id="doreload" class="indigo" type="button">Reload those pages</button>
+      <button id="skipreload" class="ghost" type="button">Not now</button>
+    </div>
+  </div>
+
   <label for="matter">Matter</label>
   <select id="matter"><option>Loading…</option></select>
   <div class="newrow" id="newrow">

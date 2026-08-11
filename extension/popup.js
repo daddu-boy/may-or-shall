@@ -148,6 +148,31 @@ function refresh() {
 }
 refresh();
 
+// After an update, tabs opened before it keep running the old content script
+// until they are reloaded. The toolbar badge brings the user here; this offers
+// the reload rather than performing it behind their back.
+const updatedBox = document.getElementById("updated");
+chrome.runtime.sendMessage({ type: "reloadState" }, (res) => {
+  if (res?.needsReload) updatedBox.style.display = "block";
+});
+document.getElementById("doreload").addEventListener("click", () => {
+  const btn = document.getElementById("doreload");
+  btn.disabled = true;
+  btn.textContent = "Reloading…";
+  chrome.runtime.sendMessage({ type: "reloadTabs" }, (res) => {
+    updatedBox.style.display = "none";
+    setStatus(
+      res?.ok ? `✓ Updated ${res.reloaded} page${res.reloaded === 1 ? "" : "s"}` : "Could not reload",
+      res?.ok ? "ok" : "err"
+    );
+  });
+});
+document.getElementById("skipreload").addEventListener("click", () => {
+  chrome.runtime.sendMessage({ type: "dismissReload" }, () => {
+    updatedBox.style.display = "none";
+  });
+});
+
 document.getElementById("guide").addEventListener("click", () => {
   // opening the app signs the user in; connect.js then auto-connects the clipper
   chrome.tabs.create({ url: appUrl });

@@ -8,10 +8,21 @@
 
 (() => {
   // The background worker injects this file into tabs that were already open
-  // when the extension was installed or updated. Those tabs may already be
-  // running an earlier copy, so bail out rather than binding a second listener.
-  if (window.__mosClipperLoaded) return;
+  // when the extension was installed or updated.
+  //
+  // Copies from 2.1.x and earlier bound their listeners with no way to unbind,
+  // so injecting alongside one would give the page two popovers. Leave that tab
+  // to the old copy, which still works; the toolbar badge asks for the reload
+  // that actually replaces it.
+  if (window.__mosClipperLoaded && !window.__mosClipper) return;
+  // From here on a newer copy can retire an older one in place, so an update
+  // never needs a reload again.
+  try {
+    window.__mosClipper?.teardown();
+  } catch {}
   window.__mosClipperLoaded = true;
+
+  let dead = false; // this copy has been retired by a newer one
 
   const CARD_TYPES = [
     ["FACT", "Fact", "#3b82f6"],
@@ -49,7 +60,47 @@
   let quote = "";
   let hoverTimer = null;
 
-  chrome.runtime.sendMessage({ type: "getConfig" }, (res) => {
+  // Chrome tears the extension down when it updates or is reloaded, which
+  // leaves this script running in a page it can no longer talk to. Every call
+  // goes through here so that when it happens the page says so instead of
+  // failing quietly.
+  function alive() {
+    try {
+      return !!chrome.runtime?.id;
+    } catch {
+      return false;
+    }
+  }
+
+  function send(msg, cb) {
+    if (dead) return;
+    if (!alive()) {
+      renderReload();
+      return;
+    }
+    try {
+      chrome.runtime.sendMessage(msg, (res) => {
+        if (dead) return;
+        if (chrome.runtime.lastError) {
+          renderReload();
+          return;
+        }
+        cb?.(res);
+      });
+    } catch {
+      renderReload();
+    }
+  }
+
+  function iconUrl() {
+    try {
+      return chrome.runtime.getURL("icons/icon-32.png");
+    } catch {
+      return ""; // extension gone; the popover falls back to a plain mark
+    }
+  }
+
+  send({ type: "getConfig" }, (res) => {
     if (res?.ok) {
       enabled = res.config.enabled !== false;
       try {
@@ -59,12 +110,31 @@
   });
 
   // reflect the popup's on/off switch live, without needing a page reload
-  chrome.storage.onChanged.addListener((changes, area) => {
+  function onStorageChanged(changes, area) {
+    if (dead) return;
     if (area === "sync" && changes.enabled) {
       enabled = changes.enabled.newValue !== false;
       if (!enabled) dismiss();
     }
-  });
+  }
+  try {
+    chrome.storage.onChanged.addListener(onStorageChanged);
+  } catch {}
+
+  // storage is unreachable once the extension goes; these are cosmetic reads,
+  // so failing quietly and skipping the hint is the right outcome
+  function getSync(defaults, cb) {
+    try {
+      chrome.storage.sync.get(defaults, (v) => {
+        if (!dead && !chrome.runtime.lastError) cb(v);
+      });
+    } catch {}
+  }
+  function setSync(patch) {
+    try {
+      chrome.storage.sync.set(patch);
+    } catch {}
+  }
 
   function dismiss() {
     clearTimeout(hoverTimer);
@@ -119,6 +189,11 @@
     .chips button:hover{opacity:1;transform:translateY(-1px)}
     .chips button.first{animation:mospulse 1.6s ease-out 2}
     @keyframes mospulse{0%{box-shadow:0 0 0 0 rgba(79,70,229,.45)}70%{box-shadow:0 0 0 7px rgba(79,70,229,0)}100%{box-shadow:0 0 0 0 rgba(79,70,229,0)}}
+    .mark{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+      border-radius:3px;background:#4f46e5;color:#fff;font-size:8.5px;font-weight:700}
+    .notice{font-size:11.5px;line-height:1.45;color:#334155;margin-bottom:8px}
+    .reloadbtn{border:none;border-radius:6px;background:#4f46e5;color:#fff;font-size:11px;
+      font-weight:600;padding:6px 12px;cursor:pointer}
     .status{margin-top:7px;font-size:11px;color:#64748b}
     .status.ok{color:#059669}.status.err{color:#dc2626}
     .icon{margin-left:auto;border:none;background:none;color:#94a3b8;cursor:pointer;
@@ -127,6 +202,32 @@
     .icon:hover{background:#f1f5f9;color:#334155}
     .icon.off:hover{background:#fef2f2;color:#dc2626}
   `;
+
+  // ------------------------------------------------------------------ orphan
+
+  // Chrome updated or reloaded the extension while this page was open. The
+  // script left behind cannot reach the new copy, so say plainly what to do
+  // rather than reporting a connection error the user cannot act on.
+  function renderReload() {
+    if (!host || dead) return;
+    expanded = true;
+    clearTimeout(hoverTimer);
+    for (const n of [...root.children]) if (n.tagName !== "STYLE") n.remove();
+
+    const box = document.createElement("div");
+    box.className = "box";
+    box.innerHTML = `
+      <div class="head"><span class="mark">MS</span><span class="title">May or Shall</span>
+        <button class="icon close" title="Dismiss">✕</button></div>
+      <div class="notice">May or Shall was updated in the background. Reload this page to
+        use the new version here. Your saved cards are unaffected.</div>
+      <div class="chips"><button class="reloadbtn" type="button">Reload this page</button></div>
+    `;
+    root.appendChild(box);
+    place(320, 150);
+    box.querySelector(".close").addEventListener("click", dismiss);
+    box.querySelector(".reloadbtn").addEventListener("click", () => location.reload());
+  }
 
   // ---------------------------------------------------------------- collapsed
 
@@ -149,11 +250,12 @@
     style.textContent = STYLE;
     root.appendChild(style);
 
+    const src = iconUrl();
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex;align-items:center";
     wrap.innerHTML = `
       <button class="pill" type="button" title="Save this passage to a matter">
-        <img src="${chrome.runtime.getURL("icons/icon-32.png")}" alt="">
+        ${src ? `<img src="${src}" alt="">` : `<span class="mark">MS</span>`}
       </button>
       <span class="pilltip" hidden>Hover to save this</span>
     `;
@@ -161,10 +263,10 @@
 
     const pill = wrap.querySelector(".pill");
     // say what the button is for, once ever
-    chrome.storage.sync.get({ hintSeen: false }, (v) => {
+    getSync({ hintSeen: false }, (v) => {
       if (v.hintSeen || !host) return;
       wrap.querySelector(".pilltip").hidden = false;
-      chrome.storage.sync.set({ hintSeen: true });
+      setSync({ hintSeen: true });
     });
 
     // a short delay so merely sweeping the cursor past it does nothing
@@ -183,16 +285,22 @@
   // ----------------------------------------------------------------- expanded
 
   function expand() {
-    if (!host || expanded) return;
+    if (!host || expanded || dead) return;
+    // the extension went away while this page sat open
+    if (!alive()) {
+      renderReload();
+      return;
+    }
     expanded = true;
     clearTimeout(hoverTimer);
 
     root.querySelector("div")?.remove();
 
+    const src = iconUrl();
     const box = document.createElement("div");
     box.className = "box";
     box.innerHTML = `
-      <div class="head"><img class="logo" src="${chrome.runtime.getURL("icons/icon-32.png")}" alt=""><span class="title">May or Shall</span>
+      <div class="head">${src ? `<img class="logo" src="${src}" alt="">` : `<span class="mark">MS</span>`}<span class="title">May or Shall</span>
         <button class="icon off" title="Turn clipping off on every page">⏻</button>
         <button class="icon close" title="Dismiss">✕</button></div>
       <div class="quote">&ldquo;${quote.slice(0, 160).replace(/</g, "&lt;")}&rdquo;</div>
@@ -219,7 +327,7 @@
     box.querySelector(".off").addEventListener("click", () => {
       status.textContent = "Clipping off. Turn it back on from the toolbar icon.";
       status.className = "status";
-      setTimeout(() => chrome.storage.sync.set({ enabled: false }), 1500);
+      setTimeout(() => setSync({ enabled: false }), 1500);
     });
 
     const NEW = "__new__";
@@ -240,7 +348,7 @@
     };
 
     // only now, on opening: a selection the user never expands costs no request
-    chrome.runtime.sendMessage({ type: "getState" }, (res) => {
+    send({ type: "getState" }, (res) => {
       if (!host) return;
       const linkTo = (label, href) => {
         const a = document.createElement("a");
@@ -289,10 +397,10 @@
       if (!title) return;
       status.textContent = "Creating matter…";
       status.className = "status";
-      chrome.runtime.sendMessage({ type: "createMatter", title }, (res) => {
+      send({ type: "createMatter", title }, (res) => {
         if (!host) return;
         if (res?.ok) {
-          chrome.runtime.sendMessage({ type: "getState" }, (st) => {
+          send({ type: "getState" }, (st) => {
             if (!host) return;
             if (st?.ok) fillMatters(st.matters, res.matter.id);
             newRow.classList.remove("show");
@@ -313,10 +421,10 @@
       b.style.background = color;
       if (firstChip) {
         firstChip = false;
-        chrome.storage.sync.get({ chipsSeen: false }, (v) => {
+        getSync({ chipsSeen: false }, (v) => {
           if (v.chipsSeen) return;
           b.classList.add("first");
-          chrome.storage.sync.set({ chipsSeen: true });
+          setSync({ chipsSeen: true });
         });
       }
       b.addEventListener("click", () => {
@@ -327,7 +435,7 @@
         }
         status.textContent = "Saving…";
         status.className = "status";
-        chrome.runtime.sendMessage(
+        send(
           {
             type: "createCard",
             payload: {
@@ -357,12 +465,14 @@
     }
   }
 
-  document.addEventListener("mouseup", (e) => {
+  function onMouseUp(e) {
+    if (dead) return;
     if (host && e.composedPath().includes(host)) return;
     if (!enabled) return; // clipping switched off from the popup
     // don't double up on the May or Shall app's own reader popover
     if (apiOrigin && location.origin === apiOrigin) return;
     setTimeout(() => {
+      if (dead) return;
       const sel = window.getSelection();
       const text = sel ? sel.toString().replace(/\s+/g, " ").trim() : "";
       if (!text || text.length < 3) {
@@ -374,9 +484,26 @@
       const rect = rects[rects.length - 1] || sel.getRangeAt(0).getBoundingClientRect();
       showPill(rect, text);
     }, 10);
-  });
+  }
 
-  document.addEventListener("keydown", (e) => {
+  function onKeyDown(e) {
     if (e.key === "Escape") dismiss();
-  });
+  }
+
+  document.addEventListener("mouseup", onMouseUp);
+  document.addEventListener("keydown", onKeyDown);
+
+  // Let a newer copy of this script retire this one cleanly, so that updating
+  // the extension swaps the code in an open tab instead of needing a reload.
+  function teardown() {
+    dead = true;
+    dismiss();
+    document.removeEventListener("mouseup", onMouseUp);
+    document.removeEventListener("keydown", onKeyDown);
+    try {
+      chrome.storage.onChanged.removeListener(onStorageChanged);
+    } catch {}
+  }
+
+  window.__mosClipper = { version: "2.2.0", teardown };
 })();

@@ -150,12 +150,25 @@ async function connect({ apiBase, token, matters }) {
   return { ok: true };
 }
 
+// Does this tab already carry a copy of the clipper that a newer copy can
+// retire in place? Copies before 2.2.0 cannot be, so those tabs are the only
+// ones that genuinely need a reload.
+async function tabIsCurrent(tabId) {
+  const [probe] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => !!(window.__mosClipper && window.__mosClipper.teardown),
+  });
+  return probe?.result === true;
+}
+
 /**
  * Chrome only runs content scripts in pages loaded *after* the extension is
  * installed, so every tab already open would do nothing until reloaded. Rather
- * than tell people to refresh, inject into those tabs ourselves.
+ * than tell people to refresh, inject into those tabs ourselves. Returns the
+ * number of tabs where that was not enough.
  */
 async function injectIntoOpenTabs() {
+  let stale = 0;
   try {
     const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
     for (const tab of tabs) {
@@ -163,22 +176,67 @@ async function injectIntoOpenTabs() {
       const files = ["content.js"];
       // the app's own pages also carry the silent auto-connect script
       if (APP_ORIGINS.some((o) => (tab.url || "").startsWith(o))) files.push("connect.js");
-      chrome.scripting
-        .executeScript({ target: { tabId: tab.id }, files })
-        .catch(() => {}); // chrome:// pages and the Web Store refuse injection
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files });
+        if (!(await tabIsCurrent(tab.id))) stale++;
+      } catch {
+        /* chrome:// pages and the Web Store refuse injection */
+      }
     }
   } catch {
     /* nothing to do: newly opened tabs work regardless */
   }
+  return stale;
 }
+
+// A badge on the toolbar icon is the whole prompt. It is the one place that is
+// always visible without interrupting anything the user is reading.
+async function setReloadNeeded(on) {
+  await chrome.storage.local.set({ needsReload: on });
+  try {
+    await chrome.action.setBadgeText({ text: on ? "↻" : "" });
+    if (on) await chrome.action.setBadgeBackgroundColor({ color: "#4f46e5" });
+  } catch {}
+}
+
+// Reload only the tabs that actually need it, so nothing else is disturbed.
+async function reloadStaleTabs() {
+  let reloaded = 0;
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+  for (const tab of tabs) {
+    if (!tab.id) continue;
+    try {
+      if (await tabIsCurrent(tab.id)) continue;
+      await chrome.tabs.reload(tab.id);
+      reloaded++;
+    } catch {
+      /* a tab we cannot script is a tab we should not reload */
+    }
+  }
+  await setReloadNeeded(false);
+  return reloaded;
+}
+
+// the worker is torn down when idle, so put the badge back when it wakes
+async function restoreBadge() {
+  const { needsReload } = await chrome.storage.local.get({ needsReload: false });
+  if (needsReload) await setReloadNeeded(true);
+}
+restoreBadge();
+chrome.runtime.onStartup?.addListener(restoreBadge);
 
 // First install: open the welcome page, which walks the user to the hosted app
 // to sign in (that single step auto-connects the clipper).
 chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === "install") {
-    chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
-  }
-  injectIntoOpenTabs();
+  (async () => {
+    if (details.reason === "install") {
+      chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
+      await injectIntoOpenTabs();
+      return;
+    }
+    const stale = await injectIntoOpenTabs();
+    await setReloadNeeded(stale > 0);
+  })();
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -200,6 +258,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       } else if (msg.type === "connectStatus") {
         const cfg = await getConfig();
         sendResponse({ ok: true, connected: !!cfg.token });
+      } else if (msg.type === "reloadState") {
+        const { needsReload } = await chrome.storage.local.get({ needsReload: false });
+        sendResponse({ ok: true, needsReload });
+      } else if (msg.type === "reloadTabs") {
+        sendResponse({ ok: true, reloaded: await reloadStaleTabs() });
+      } else if (msg.type === "dismissReload") {
+        await setReloadNeeded(false);
+        sendResponse({ ok: true });
       } else if (msg.type === "getConfig") {
         sendResponse({ ok: true, config: await getConfig() });
       } else if (msg.type === "setConfig") {
