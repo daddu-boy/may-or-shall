@@ -51,6 +51,16 @@
     "focusin", "focusout",
   ];
 
+  // Drawn rather than typed: the power symbol (U+23FB) is not reliably present
+  // in the Windows system fonts, and a missing glyph renders as a blank box.
+  const ICON_OFF =
+    '<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round"><path d="M8 2.4v4.3"/>' +
+    '<path d="M4.9 4.5a4.3 4.3 0 1 0 6.2 0"/></svg>';
+  const ICON_CLOSE =
+    '<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.7" stroke-linecap="round"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6"/></svg>';
+
   let host = null;
   let root = null;
   let apiOrigin = null;
@@ -199,7 +209,7 @@
       --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
       --surface:rgba(255,255,255,.55);
       --edge:rgba(255,255,255,.75);
-      --hairline:rgba(0,0,0,.10);
+      --hairline:rgba(0,0,0,.07);
       --shadow:0 12px 34px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.06);
       --text:#1d1d1f; --muted:#5c5c60;
       --chip:rgba(255,255,255,.55); --chip-hover:rgba(255,255,255,.78);
@@ -227,7 +237,7 @@
       -webkit-backdrop-filter:var(--blur);
       backdrop-filter:var(--blur);
       border:1px solid var(--edge);
-      box-shadow:var(--shadow),0 0 0 .5px var(--hairline);
+      box-shadow:var(--shadow),0 0 0 1px var(--hairline);
       color:var(--text);
       font:12px/1.45 var(--font);
       letter-spacing:-.01em;
@@ -293,6 +303,7 @@
     .icon{margin-left:auto;border:none;background:none;color:var(--muted);cursor:pointer;
       font-size:12px;padding:3px 5px;border-radius:999px;line-height:1;
       transition:background .14s ease,color .14s ease}
+    .icon svg{display:block}
     .icon + .icon{margin-left:0}
     .icon:hover{background:var(--chip-hover);color:var(--text)}
     .icon.off:hover{color:var(--err)}
@@ -313,7 +324,7 @@
     box.className = "box glass";
     box.innerHTML = `
       <div class="head"><span class="mark">MS</span><span class="title">May or Shall</span>
-        <button class="icon close" title="Dismiss">✕</button></div>
+        <button class="icon close" title="Dismiss">${ICON_CLOSE}</button></div>
       <div class="notice">May or Shall was updated in the background. Reload this page to
         use the new version here. Your saved cards are unaffected.</div>
       <div class="chips"><button class="reloadbtn" type="button">Reload this page</button></div>
@@ -397,8 +408,8 @@
     box.className = "box glass";
     box.innerHTML = `
       <div class="head">${src ? `<img class="logo" src="${src}" alt="">` : `<span class="mark">MS</span>`}<span class="title">May or Shall</span>
-        <button class="icon off" title="Turn clipping off on every page">⏻</button>
-        <button class="icon close" title="Dismiss">✕</button></div>
+        <button class="icon off" title="Turn clipping off on every page">${ICON_OFF}</button>
+        <button class="icon close" title="Dismiss">${ICON_CLOSE}</button></div>
       <div class="quote">&ldquo;${quote.slice(0, 160).replace(/</g, "&lt;")}&rdquo;</div>
       <select class="matter"><option value="">Loading matters…</option></select>
       <div class="newrow"><input type="text" class="newname" placeholder="New matter title…">
