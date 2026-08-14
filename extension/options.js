@@ -2,6 +2,7 @@ const apiBase = document.getElementById("apiBase");
 const token = document.getElementById("token");
 const matter = document.getElementById("matter");
 const status = document.getElementById("status");
+const theme = document.getElementById("theme");
 
 function loadMatters(selectedId) {
   chrome.runtime.sendMessage({ type: "listMatters" }, (res) => {
@@ -28,7 +29,13 @@ chrome.runtime.sendMessage({ type: "getConfig" }, (res) => {
   // don't clobber anything the user has already typed
   if (!apiBase.value) apiBase.value = res.config.apiBase || "https://app.mayorshall.com";
   if (!token.value) token.value = res.config.token || "";
+  theme.value = res.config.theme || "auto";
   if (res.config.apiBase) loadMatters(res.config.matterId);
+});
+
+// appearance applies straight away; the popover is watching for the change
+theme.addEventListener("change", () => {
+  chrome.runtime.sendMessage({ type: "setConfig", config: { theme: theme.value } });
 });
 
 document.getElementById("save").addEventListener("click", () => {

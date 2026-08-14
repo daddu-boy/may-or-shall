@@ -3,45 +3,68 @@
 <head>
 <meta charset="utf-8">
 <style>
-  body{width:300px;margin:0;font:12.5px/1.45 -apple-system,system-ui,sans-serif;color:#0f172a}
+  :root{
+    color-scheme:light dark;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+    --bg:#f7f7f8; --card:#fff;
+    --text:#1d1d1f; --muted:#86868b;
+    --line:rgba(0,0,0,.09); --fill:rgba(0,0,0,.045); --fill-hover:rgba(0,0,0,.08);
+    --accent:#4f46e5; --on-accent:#fff;
+    --ok:#0a7d55; --err:#b3261e;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#131316; --card:#1c1c1f;
+      --text:#f5f5f7; --muted:#9a9aa0;
+      --line:rgba(255,255,255,.12); --fill:rgba(255,255,255,.08); --fill-hover:rgba(255,255,255,.15);
+      --accent:#8b87ff; --on-accent:#15151a;
+      --ok:#3ddc97; --err:#ff6b6b;
+    }
+  }
+  body{width:300px;margin:0;font:12.5px/1.45 var(--font);color:var(--text);
+    background:var(--bg);letter-spacing:-.01em}
   .wrap{padding:12px}
   .head{display:flex;align-items:center;gap:7px;margin-bottom:10px}
   .logo{width:18px;height:18px;border-radius:4px}
   h1{font-size:13px;margin:0}
   .switch{margin-left:auto;position:relative;display:inline-block;width:34px;height:19px;flex:none}
   .switch input{opacity:0;width:0;height:0}
-  .slider{position:absolute;inset:0;cursor:pointer;background:#cbd5e1;border-radius:999px;transition:.15s}
+  .slider{position:absolute;inset:0;cursor:pointer;background:var(--fill-hover);border-radius:999px;transition:.15s}
   .slider::before{content:"";position:absolute;height:15px;width:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
-  .switch input:checked + .slider{background:#4f46e5}
+  .switch input:checked + .slider{background:var(--accent)}
   .switch input:checked + .slider::before{transform:translateX(15px)}
   .off .wrap > *:not(.head):not(.offnote){opacity:.4;pointer-events:none}
-  .offnote{display:none;margin-top:8px;font-size:11px;color:#94a3b8}
+  .offnote{display:none;margin-top:8px;font-size:11px;color:var(--muted)}
   .off .offnote{display:block}
-  label{display:block;font-size:11px;color:#64748b;margin:10px 0 4px}
-  select,textarea,input{width:100%;box-sizing:border-box;padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit}
+  label{display:block;font-size:11px;color:var(--muted);margin:10px 0 4px}
+  select,textarea,input{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--line);border-radius:10px;font-size:12px;font-family:inherit;background:var(--fill);color:var(--text);outline:none}
+  select:focus,textarea:focus,input:focus{border-color:var(--accent)}
+  ::placeholder{color:var(--muted)}
   textarea{resize:vertical;min-height:52px}
   .row{display:flex;gap:5px;margin-top:5px}
   .row select{flex:1}
-  button{border:none;border-radius:6px;background:#0f172a;color:#fff;font-size:11.5px;font-weight:600;padding:6px 12px;cursor:pointer}
-  button.indigo{background:#4f46e5}
-  button.ghost{flex:1;background:#fff;color:#334155;border:1px solid #e2e8f0;font-weight:600}
-  button.ghost:hover{background:#f8fafc;border-color:#cbd5e1}
+  button{border:none;border-radius:999px;background:var(--text);color:var(--bg);font-size:11.5px;font-weight:600;padding:7px 14px;cursor:pointer;font-family:inherit;transition:transform .12s ease}
+  button:active{transform:scale(.97)}
+  button.indigo{background:var(--accent);color:var(--on-accent)}
+  button.ghost{flex:1;background:var(--fill);color:var(--text);border:1px solid var(--line);font-weight:500}
+  button.ghost:hover{background:var(--fill-hover)}
   button:disabled{opacity:.4}
   #applinks{margin-top:9px}
   .newrow{display:none;gap:5px;margin-top:5px}
   .newrow.show{display:flex}
   .newrow input{flex:1}
-  .status{margin-top:8px;font-size:11px;color:#64748b;min-height:14px}
-  .status.ok{color:#059669}.status.err{color:#dc2626}
-  a{color:#4f46e5;text-decoration:none;font-size:11px}
+  .status{margin-top:8px;font-size:11px;color:var(--muted);min-height:14px}
+  .status.ok{color:var(--ok)}.status.err{color:var(--err)}
+  a{color:var(--accent);text-decoration:none;font-size:11px}
   .foot{margin-top:10px;display:flex;justify-content:space-between;align-items:center}
   .rechead{display:flex;align-items:center;justify-content:space-between;margin:12px 0 5px}
-  .rechead span{font-size:11px;color:#64748b;font-weight:600}
-  .clip{border:1px solid #eef2f7;border-radius:7px;padding:6px 7px;margin-bottom:5px}
-  .clip .t{display:inline-block;font-size:9.5px;font-weight:700;color:#fff;border-radius:99px;padding:1px 7px;margin-bottom:3px}
-  .clip .x{font-size:11px;color:#334155;line-height:1.35;max-height:2.8em;overflow:hidden}
-  .clip .s{font-size:10px;color:#94a3b8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .clip.empty{border:none;padding:2px 0;color:#94a3b8;font-size:11px}
+  .rechead span{font-size:11px;color:var(--muted);font-weight:500}
+  .clip{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 9px;margin-bottom:6px}
+  .clip .t{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:500;color:var(--muted);margin-bottom:3px}
+  .clip .t i{width:6px;height:6px;border-radius:50%;display:block}
+  .clip .x{font-size:11px;color:var(--text);line-height:1.4;max-height:2.8em;overflow:hidden}
+  .clip .s{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .clip.empty{border:none;background:none;padding:2px 0;color:var(--muted);font-size:11px}
 </style>
 </head>
 <body>
@@ -53,7 +76,7 @@
 
   <!-- Shown only when a tab open since before the update is still running the
        old code. Reloading is the only way to replace it there. -->
-  <div id="updated" style="display:none;margin-bottom:10px;font-size:11.5px;color:#334155;background:#eef2ff;border-radius:8px;padding:10px">
+  <div id="updated" style="display:none;margin-bottom:10px;font-size:11.5px;color:var(--text);background:var(--fill);border:1px solid var(--line);border-radius:12px;padding:10px">
     <b>May or Shall was updated.</b><br>
     Some pages you already had open are still running the old version. Reloading
     them finishes the update. Nothing you have saved is affected.
@@ -102,7 +125,7 @@
     <div id="recent"></div>
   </div>
 
-  <div id="welcome" style="display:none;margin-top:8px;font-size:11.5px;color:#334155;background:#eef2ff;border-radius:8px;padding:10px">
+  <div id="welcome" style="display:none;margin-top:8px;font-size:11.5px;color:var(--text);background:var(--fill);border:1px solid var(--line);border-radius:12px;padding:10px">
     <b>Sign in to connect.</b><br>
     Open May or Shall and sign in with your email — this clipper connects
     automatically. No tokens, no setup.
@@ -116,7 +139,7 @@
     <button id="retry" type="button">Retry</button>
   </div>
   <div class="foot">
-    <span style="font-size:11px;color:#94a3b8">Or select text on any page</span>
+    <span style="font-size:11px;color:var(--muted)">Or select text on any page</span>
     <a href="#" id="options">Options</a>
   </div>
 </div>

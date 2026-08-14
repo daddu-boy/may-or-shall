@@ -100,9 +100,29 @@
     }
   }
 
+  // Appearance follows the operating system the way a native panel does.
+  // Options can force it either way for anyone who wants the panel to stay put
+  // regardless of what the rest of their machine is doing.
+  let theme = "auto";
+  const darkMedia = window.matchMedia?.("(prefers-color-scheme: dark)");
+
+  function isDark() {
+    if (theme === "dark") return true;
+    if (theme === "light") return false;
+    return !!darkMedia?.matches;
+  }
+
+  function applyTheme() {
+    host?.classList.toggle("dark", isDark());
+  }
+
+  darkMedia?.addEventListener?.("change", applyTheme);
+
   send({ type: "getConfig" }, (res) => {
     if (res?.ok) {
       enabled = res.config.enabled !== false;
+      theme = res.config.theme || "auto";
+      applyTheme();
       try {
         apiOrigin = new URL(res.config.apiBase).origin;
       } catch {}
@@ -112,9 +132,14 @@
   // reflect the popup's on/off switch live, without needing a page reload
   function onStorageChanged(changes, area) {
     if (dead) return;
-    if (area === "sync" && changes.enabled) {
+    if (area !== "sync") return;
+    if (changes.enabled) {
       enabled = changes.enabled.newValue !== false;
       if (!enabled) dismiss();
+    }
+    if (changes.theme) {
+      theme = changes.theme.newValue || "auto";
+      applyTheme();
     }
   }
   try {
@@ -161,46 +186,116 @@
     host.style.top = `${top}px`;
   }
 
+  // Liquid glass: a translucent panel that picks up whatever is behind it,
+  // hairline highlight on the light edge, capsule controls. The card type is
+  // reduced to a dot so colour still ties a card to its highlight in the app
+  // without ten saturated pills doing the shouting.
+  //
+  // The risk with real translucency is a white panel disappearing into a white
+  // page, so every surface carries a faint dark hairline underneath the bright
+  // one. Browsers without backdrop-filter get an opaque fallback further down.
   const STYLE = `
-    .pill{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e8f0;
-      border-radius:99px;box-shadow:0 4px 14px rgba(15,23,42,.14);padding:5px 7px;cursor:pointer;
-      font:12px/1 -apple-system,system-ui,sans-serif;color:#334155}
-    .pill:hover{border-color:#c7d2fe;box-shadow:0 6px 18px rgba(79,70,229,.22)}
-    .pill img{width:18px;height:18px;border-radius:4px;display:block}
-    .pilltip{margin-left:7px;font-size:11px;color:#4f46e5;white-space:nowrap;align-self:center}
-    .box{width:320px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;
-      box-shadow:0 12px 32px rgba(15,23,42,.18);padding:10px;
-      font:12px/1.4 -apple-system,system-ui,sans-serif;color:#0f172a}
-    .head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-    .logo{width:16px;height:16px;border-radius:3px}
-    .title{font-weight:600;font-size:11px}
-    .quote{color:#94a3b8;font-size:11px;max-height:2.6em;overflow:hidden;margin-bottom:6px}
-    input,select{width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:6px;
-      padding:4px 7px;font-size:11px;margin-bottom:7px;outline:none;background:#fff;color:#0f172a}
-    input:focus,select:focus{border-color:#a5b4fc}
-    .newrow{display:none;gap:5px;margin-bottom:7px}
+    :host{
+      --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+      --surface:rgba(255,255,255,.55);
+      --edge:rgba(255,255,255,.75);
+      --hairline:rgba(0,0,0,.10);
+      --shadow:0 12px 34px rgba(0,0,0,.18),0 1px 3px rgba(0,0,0,.06);
+      --text:#1d1d1f; --muted:#5c5c60;
+      --chip:rgba(255,255,255,.55); --chip-hover:rgba(255,255,255,.78);
+      --chip-edge:rgba(255,255,255,.85);
+      --field:rgba(255,255,255,.5); --field-edge:rgba(255,255,255,.8);
+      --accent:#4f46e5; --on-accent:#fff;
+      --ok:#0a7d55; --err:#b3261e;
+      --blur:blur(20px) saturate(180%);
+    }
+    :host(.dark){
+      --surface:rgba(28,28,30,.6);
+      --edge:rgba(255,255,255,.14);
+      --hairline:rgba(0,0,0,.5);
+      --shadow:0 14px 40px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.4);
+      --text:#f5f5f7; --muted:#a1a1a8;
+      --chip:rgba(255,255,255,.1); --chip-hover:rgba(255,255,255,.17);
+      --chip-edge:rgba(255,255,255,.14);
+      --field:rgba(255,255,255,.08); --field-edge:rgba(255,255,255,.14);
+      --accent:#8b87ff; --on-accent:#15151a;
+      --ok:#3ddc97; --err:#ff6b6b;
+    }
+
+    .glass{
+      background:var(--surface);
+      -webkit-backdrop-filter:var(--blur);
+      backdrop-filter:var(--blur);
+      border:1px solid var(--edge);
+      box-shadow:var(--shadow),0 0 0 .5px var(--hairline);
+      color:var(--text);
+      font:12px/1.45 var(--font);
+      letter-spacing:-.01em;
+    }
+    @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+      :host{--surface:rgba(255,255,255,.96)}
+      :host(.dark){--surface:rgba(28,28,30,.97)}
+    }
+
+    .pill{display:flex;align-items:center;justify-content:center;border-radius:999px;
+      padding:7px;cursor:pointer;transition:transform .16s ease}
+    .pill:hover{transform:translateY(-1px)}
+    .pill:active{transform:scale(.95)}
+    .pill img{width:18px;height:18px;border-radius:5px;display:block}
+    .pilltip{margin-left:9px;font:11px var(--font);color:var(--muted);white-space:nowrap;
+      align-self:center;text-shadow:0 1px 2px rgba(255,255,255,.6)}
+    :host(.dark) .pilltip{text-shadow:0 1px 2px rgba(0,0,0,.6)}
+
+    .box{width:320px;border-radius:18px;padding:13px}
+    .head{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+    .logo{width:16px;height:16px;border-radius:5px}
+    .title{font-weight:600;font-size:11.5px}
+    .quote{color:var(--muted);font-size:11px;line-height:1.45;max-height:2.9em;
+      overflow:hidden;margin-bottom:10px}
+
+    input,select{width:100%;box-sizing:border-box;border:1px solid var(--field-edge);
+      border-radius:10px;padding:7px 10px;font:12px var(--font);margin-bottom:8px;outline:none;
+      background:var(--field);color:var(--text);transition:border-color .14s ease}
+    select{appearance:none;-webkit-appearance:none;padding-right:26px;
+      background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),
+        linear-gradient(135deg,currentColor 50%,transparent 50%);
+      background-position:calc(100% - 14px) 13px,calc(100% - 10px) 13px;
+      background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+    input::placeholder{color:var(--muted)}
+    input:focus,select:focus{border-color:var(--accent)}
+
+    .newrow{display:none;gap:6px;margin-bottom:8px}
     .newrow.show{display:flex}
     .newrow input{flex:1;margin-bottom:0}
-    .newrow button{border:none;border-radius:6px;background:#4f46e5;color:#fff;
-      font-size:10.5px;font-weight:600;padding:4px 10px;cursor:pointer}
-    .chips{display:flex;flex-wrap:wrap;gap:5px}
-    .chips button{border:none;border-radius:99px;color:#fff;font-size:10.5px;font-weight:600;
-      padding:4px 9px;cursor:pointer;opacity:.95}
-    .chips button:hover{opacity:1;transform:translateY(-1px)}
-    .chips button.first{animation:mospulse 1.6s ease-out 2}
-    @keyframes mospulse{0%{box-shadow:0 0 0 0 rgba(79,70,229,.45)}70%{box-shadow:0 0 0 7px rgba(79,70,229,0)}100%{box-shadow:0 0 0 0 rgba(79,70,229,0)}}
+    .newrow button{border:none;border-radius:999px;background:var(--accent);
+      color:var(--on-accent);font:600 11px var(--font);padding:0 14px;cursor:pointer}
+
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--chip-edge);
+      background:var(--chip);color:var(--text);font:500 11.5px var(--font);
+      letter-spacing:-.01em;padding:5px 11px;border-radius:999px;cursor:pointer;
+      transition:background .14s ease,transform .14s ease}
+    .chip:hover{background:var(--chip-hover)}
+    .chip:active{transform:scale(.97)}
+    .dot{width:6px;height:6px;border-radius:50%;flex:none;
+      box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+    :host(.dark) .dot{box-shadow:0 0 0 2px rgba(255,255,255,.08)}
+    .chip.first{animation:mospulse 1.8s ease-out 2}
+    @keyframes mospulse{0%{box-shadow:0 0 0 0 rgba(120,110,255,.45)}70%{box-shadow:0 0 0 8px rgba(120,110,255,0)}100%{box-shadow:0 0 0 0 rgba(120,110,255,0)}}
+
     .mark{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
-      border-radius:3px;background:#4f46e5;color:#fff;font-size:8.5px;font-weight:700}
-    .notice{font-size:11.5px;line-height:1.45;color:#334155;margin-bottom:8px}
-    .reloadbtn{border:none;border-radius:6px;background:#4f46e5;color:#fff;font-size:11px;
-      font-weight:600;padding:6px 12px;cursor:pointer}
-    .status{margin-top:7px;font-size:11px;color:#64748b}
-    .status.ok{color:#059669}.status.err{color:#dc2626}
-    .icon{margin-left:auto;border:none;background:none;color:#94a3b8;cursor:pointer;
-      font-size:12px;padding:2px 3px;border-radius:4px;line-height:1}
+      border-radius:5px;background:var(--accent);color:var(--on-accent);font:700 8px var(--font)}
+    .notice{font-size:11.5px;line-height:1.5;color:var(--text);margin-bottom:11px}
+    .reloadbtn{border:none;border-radius:999px;background:var(--accent);color:var(--on-accent);
+      font:600 11.5px var(--font);padding:8px 15px;cursor:pointer}
+    .status{margin-top:9px;font-size:11px;color:var(--muted)}
+    .status.ok{color:var(--ok)}.status.err{color:var(--err)}
+    .icon{margin-left:auto;border:none;background:none;color:var(--muted);cursor:pointer;
+      font-size:12px;padding:3px 5px;border-radius:999px;line-height:1;
+      transition:background .14s ease,color .14s ease}
     .icon + .icon{margin-left:0}
-    .icon:hover{background:#f1f5f9;color:#334155}
-    .icon.off:hover{background:#fef2f2;color:#dc2626}
+    .icon:hover{background:var(--chip-hover);color:var(--text)}
+    .icon.off:hover{color:var(--err)}
   `;
 
   // ------------------------------------------------------------------ orphan
@@ -215,7 +310,7 @@
     for (const n of [...root.children]) if (n.tagName !== "STYLE") n.remove();
 
     const box = document.createElement("div");
-    box.className = "box";
+    box.className = "box glass";
     box.innerHTML = `
       <div class="head"><span class="mark">MS</span><span class="title">May or Shall</span>
         <button class="icon close" title="Dismiss">✕</button></div>
@@ -239,6 +334,7 @@
     host = document.createElement("div");
     host.style.cssText = "position:fixed;z-index:2147483647;left:-9999px;top:-9999px";
     root = host.attachShadow({ mode: "open" });
+    applyTheme();
     for (const type of SWALLOWED) {
       host.addEventListener(type, (e) => {
         if (e.type === "keydown" && e.key === "Escape") dismiss();
@@ -254,7 +350,7 @@
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex;align-items:center";
     wrap.innerHTML = `
-      <button class="pill" type="button" title="Save this passage to a matter">
+      <button class="pill glass" type="button" title="Save this passage to a matter">
         ${src ? `<img src="${src}" alt="">` : `<span class="mark">MS</span>`}
       </button>
       <span class="pilltip" hidden>Hover to save this</span>
@@ -298,7 +394,7 @@
 
     const src = iconUrl();
     const box = document.createElement("div");
-    box.className = "box";
+    box.className = "box glass";
     box.innerHTML = `
       <div class="head">${src ? `<img class="logo" src="${src}" alt="">` : `<span class="mark">MS</span>`}<span class="title">May or Shall</span>
         <button class="icon off" title="Turn clipping off on every page">⏻</button>
@@ -417,8 +513,14 @@
     let firstChip = true;
     for (const [value, label, color] of CARD_TYPES) {
       const b = document.createElement("button");
-      b.textContent = label;
-      b.style.background = color;
+      b.className = "chip";
+      b.type = "button";
+      // colour survives as a dot, so the chip still maps to the highlight
+      // colour this card gets in the app without shouting
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.background = color;
+      b.append(dot, document.createTextNode(label));
       if (firstChip) {
         firstChip = false;
         getSync({ chipsSeen: false }, (v) => {
@@ -500,10 +602,11 @@
     dismiss();
     document.removeEventListener("mouseup", onMouseUp);
     document.removeEventListener("keydown", onKeyDown);
+    darkMedia?.removeEventListener?.("change", applyTheme);
     try {
       chrome.storage.onChanged.removeListener(onStorageChanged);
     } catch {}
   }
 
-  window.__mosClipper = { version: "2.2.0", teardown };
+  window.__mosClipper = { version: "2.3.0", teardown };
 })();

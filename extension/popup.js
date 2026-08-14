@@ -47,8 +47,9 @@ function loadRecent(matterId) {
       el.className = "clip";
       const t = document.createElement("span");
       t.className = "t";
-      t.textContent = label;
-      t.style.background = color;
+      const dot = document.createElement("i");
+      dot.style.background = color;
+      t.append(dot, document.createTextNode(label));
       const x = document.createElement("div");
       x.className = "x";
       x.textContent = c.text || "(no text)";

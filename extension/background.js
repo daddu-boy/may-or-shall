@@ -12,7 +12,13 @@ const APP_ORIGINS = [
   "http://localhost:3000",
   "https://localhost:3000",
 ];
-const DEFAULTS = { apiBase: HOSTED_URL, token: "", matterId: "", enabled: true };
+const DEFAULTS = {
+  apiBase: HOSTED_URL,
+  token: "",
+  matterId: "",
+  enabled: true,
+  theme: "auto", // auto | light | dark
+};
 
 async function getConfig() {
   const stored = await chrome.storage.sync.get(DEFAULTS);
