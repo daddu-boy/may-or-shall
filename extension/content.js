@@ -217,6 +217,7 @@
       --field:rgba(255,255,255,.5); --field-edge:rgba(255,255,255,.8);
       --accent:#4f46e5; --on-accent:#fff;
       --ok:#0a7d55; --err:#b3261e;
+      --under:rgba(0,0,0,.07); /* keeps white-on-white edges visible */
       --blur:blur(20px) saturate(180%);
     }
     :host(.dark){
@@ -230,6 +231,7 @@
       --field:rgba(255,255,255,.08); --field-edge:rgba(255,255,255,.14);
       --accent:#8b87ff; --on-accent:#15151a;
       --ok:#3ddc97; --err:#ff6b6b;
+      --under:rgba(0,0,0,.35);
     }
 
     .glass{
@@ -265,7 +267,8 @@
 
     input,select{width:100%;box-sizing:border-box;border:1px solid var(--field-edge);
       border-radius:10px;padding:7px 10px;font:12px var(--font);margin-bottom:8px;outline:none;
-      background:var(--field);color:var(--text);transition:border-color .14s ease}
+      background:var(--field);color:var(--text);transition:border-color .14s ease;
+      box-shadow:0 0 0 1px var(--under)}
     select{appearance:none;-webkit-appearance:none;padding-right:26px;
       background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),
         linear-gradient(135deg,currentColor 50%,transparent 50%);
@@ -284,6 +287,7 @@
     .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--chip-edge);
       background:var(--chip);color:var(--text);font:500 11.5px var(--font);
       letter-spacing:-.01em;padding:5px 11px;border-radius:999px;cursor:pointer;
+      box-shadow:0 0 0 1px var(--under);
       transition:background .14s ease,transform .14s ease}
     .chip:hover{background:var(--chip-hover)}
     .chip:active{transform:scale(.97)}
