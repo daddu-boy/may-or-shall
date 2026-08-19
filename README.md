@@ -128,7 +128,13 @@ nothing to install: the server is part of the app.
 https://app.mayorshall.com/api/mcp
 ```
 
-Authenticate with an API token from **Settings** in the web app, sent as a Bearer header.
+**In Claude, ChatGPT or any client with a connector UI**, add the URL above as a custom
+connector. You will be asked to sign in to May or Shall and to allow the connection, and
+that is the whole setup. The server implements OAuth 2.1 with PKCE and dynamic client
+registration, so there is nothing to paste. Connected clients are listed under **Settings**,
+where you can disconnect any of them.
+
+**In a client that takes a header instead**, use an API token from Settings.
 For Claude Code:
 
 ```bash
