@@ -118,6 +118,39 @@ The pane signs in with a code emailed to you, because a task pane cannot share t
 session. Details and the local development variant are in
 [office-addin/README.md](office-addin/README.md).
 
+## Connect it to your AI tools
+
+May or Shall speaks the [Model Context Protocol](https://modelcontextprotocol.io), so Claude,
+Codex, Cursor and any other MCP client can read a matter and draft against it. There is
+nothing to install: the server is part of the app.
+
+```
+https://app.mayorshall.com/api/mcp
+```
+
+Authenticate with an API token from **Settings** in the web app, sent as a Bearer header.
+For Claude Code:
+
+```bash
+claude mcp add --transport http mayorshall https://app.mayorshall.com/api/mcp --header "Authorization: Bearer mos_..."
+```
+
+For Cursor or Codex, add the same URL and header to the client's MCP config file.
+
+Six tools are exposed. `list_matters`, `search_cards`, `list_documents` and `list_of_dates`
+read; `save_card` writes a passage back into a matter; and `traverse_gaps` returns the
+paragraphs of the plaint that still lack a specific denial, which is the question a general
+retrieval connector cannot answer because it needs a paragraph by paragraph model of a
+pleading rather than a similarity search.
+
+Cards are passages a lawyer selected and typed, each carrying its exact quote and citation,
+so what the model receives is already grounded and already filtered by a human.
+
+**What this means for confidentiality.** Connecting an agent sends the matter material you
+ask for to whichever model vendor you have chosen, under your own account and their terms.
+That is your decision to make rather than the app's. Tokens are revocable at any time from
+Settings, and the connection reads nothing until a tool is called.
+
 ## Stack
 
 - Next.js 14 (App Router), TypeScript, Tailwind, PostgreSQL via Prisma
