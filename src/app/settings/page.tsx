@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/clientTypes";
 
+interface ConnectionDto {
+  id: string;
+  name: string;
+  connectedAt: string;
+  lastUsedAt: string | null;
+}
+
 interface TokenDto {
   id: string;
   name: string;
@@ -14,13 +21,23 @@ interface TokenDto {
 
 export default function SettingsPage() {
   const [tokens, setTokens] = useState<TokenDto[]>([]);
+  const [connections, setConnections] = useState<ConnectionDto[]>([]);
   const [name, setName] = useState("");
   const [freshToken, setFreshToken] = useState<{ name: string; token: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setTokens(await api<TokenDto[]>("/api/tokens"));
+    setConnections(await api<ConnectionDto[]>("/api/oauth/connections").catch(() => []));
   }, []);
+
+  // Disconnecting an AI client is the promise made on the consent screen, so it
+  // has to be one click from here.
+  const disconnect = async (id: string, name: string) => {
+    if (!confirm(`Disconnect ${name}? It will lose access to your matters immediately.`)) return;
+    await api(`/api/oauth/connections/${id}`, { method: "DELETE" });
+    load();
+  };
 
   useEffect(() => {
     load();
@@ -54,6 +71,40 @@ export default function SettingsPage() {
       <p className="text-sm text-slate-500 mb-8">
         API tokens for the browser extension and other clients.
       </p>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-5 mb-6">
+        <h2 className="text-sm font-semibold mb-1">Connected AI tools</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Applications you have allowed to read your matters over the Model Context Protocol.
+          Whatever they read leaves May or Shall and goes to whoever operates them.
+        </p>
+        <ul className="divide-y divide-slate-100">
+          {connections.map((c) => (
+            <li key={c.id} className="flex items-center justify-between py-2.5">
+              <div>
+                <p className="text-sm text-slate-800">{c.name}</p>
+                <p className="text-xs text-slate-400">
+                  Connected {new Date(c.connectedAt).toLocaleDateString()}
+                  {c.lastUsedAt
+                    ? ` · last used ${new Date(c.lastUsedAt).toLocaleDateString()}`
+                    : " · not used yet"}
+                </p>
+              </div>
+              <button
+                onClick={() => disconnect(c.id, c.name)}
+                className="text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                Disconnect
+              </button>
+            </li>
+          ))}
+          {connections.length === 0 && (
+            <p className="text-xs text-slate-400 py-2">
+              Nothing connected. See the README for how to connect Claude, Codex or Cursor.
+            </p>
+          )}
+        </ul>
+      </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="text-sm font-semibold mb-1">API tokens</h2>

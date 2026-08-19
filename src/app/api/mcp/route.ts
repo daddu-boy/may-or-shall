@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getRequestUserId } from "@/lib/requestUser";
 import { CARD_TYPES, CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
+import { origin, resourceUrl, userFromAccessToken } from "@/lib/oauth";
 
 /**
  * Model Context Protocol server (Streamable HTTP, stateless).
@@ -313,6 +314,48 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
   return text(`Unknown tool: ${name}`, true);
 }
 
+/**
+ * Two kinds of credential reach this endpoint. An OAuth access token, which is
+ * how a connected client (Claude, ChatGPT) authenticates after the user has
+ * clicked Allow, and a personal API token, which is how someone wiring up a
+ * CLI by hand does it. OAuth is tried first because its tokens are audience
+ * bound to this endpoint.
+ */
+async function resolveUser(req: NextRequest): Promise<string | null> {
+  const header = req.headers.get("authorization");
+  if (header?.startsWith("Bearer ")) {
+    const viaOauth = await userFromAccessToken(header.slice(7).trim(), resourceUrl());
+    if (viaOauth) return viaOauth;
+  }
+  return getRequestUserId(req);
+}
+
+/**
+ * RFC 9728 requires a 401 carrying the location of the resource metadata, which
+ * is how a client discovers where to send the user to authorize. Without this
+ * header a client has no way to start the flow on its own.
+ */
+function unauthenticated() {
+  return NextResponse.json(
+    {
+      jsonrpc: "2.0",
+      id: null,
+      error: {
+        code: -32001,
+        message:
+          "Authorization required. Connect this server from your client to sign in, or send a May or Shall API token as a Bearer header.",
+      },
+    },
+    {
+      status: 401,
+      headers: {
+        ...CORS,
+        "WWW-Authenticate": `Bearer resource_metadata="${origin()}/.well-known/oauth-protected-resource/api/mcp"`,
+      },
+    }
+  );
+}
+
 export async function POST(req: NextRequest) {
   let body: Json;
   try {
@@ -344,14 +387,8 @@ export async function POST(req: NextRequest) {
   if (method === "tools/list") return result(id, { tools: TOOLS });
 
   if (method === "tools/call") {
-    const userId = await getRequestUserId(req);
-    if (!userId) {
-      return failure(
-        id,
-        -32001,
-        "Not authenticated. Create an API token in May or Shall under Settings, and send it as an Authorization: Bearer header."
-      );
-    }
+    const userId = await resolveUser(req);
+    if (!userId) return unauthenticated();
     const params = (body.params ?? {}) as { name?: string; arguments?: Json };
     if (!params.name) return failure(id, -32602, "Missing tool name");
     try {

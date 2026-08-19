@@ -23,10 +23,12 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
 
-  accounts  Account[]
-  sessions  Session[]
-  matters   Matter[]
-  apiTokens ApiToken[]
+  accounts    Account[]
+  sessions    Session[]
+  matters     Matter[]
+  apiTokens   ApiToken[]
+  oauthCodes  OAuthCode[]
+  oauthTokens OAuthToken[]
 }
 
 model Account {
@@ -64,25 +66,25 @@ model VerificationToken {
 }
 
 model Matter {
-  id         String @id @default(cuid())
+  id             String   @id @default(cuid())
   /// owner — every matter is private to the user who created it
-  userId     String
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title      String
-  court      String @default("")
-  caseNumber String @default("")
-  parties    String @default("")
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  court          String   @default("")
+  caseNumber     String   @default("")
+  parties        String   @default("")
   /// OurSide: PETITIONER_PLAINTIFF | RESPONDENT_DEFENDANT | OTHER
-  ourSide    String @default("OTHER")
+  ourSide        String   @default("OTHER")
   /// MatterStatus: ACTIVE | ARCHIVED
-  status     String @default("ACTIVE")
+  status         String   @default("ACTIVE")
   /// per-matter switch to disable AI features (confidentiality restrictions)
-  aiEnabled  Boolean @default(true)
+  aiEnabled      Boolean  @default(true)
   /// annexure label prefix, e.g. "P" or "R"; empty = derive from ourSide
-  annexurePrefix String @default("")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  createdBy  String   @default("local")
+  annexurePrefix String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String   @default("local")
 
   documents         Document[]
   cards             Card[]
@@ -129,17 +131,17 @@ model DocumentPage {
 }
 
 model Card {
-  id         String    @id @default(cuid())
-  matterId   String
-  matter     Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
-  documentId String?
-  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  page       Int?
-  para       String?
+  id          String    @id @default(cuid())
+  matterId    String
+  matter      Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documentId  String?
+  document    Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  page        Int?
+  para        String?
   /// exact highlighted source text
-  quote      String    @default("")
+  quote       String    @default("")
   /// JSON text: normalized highlight rects [{ page, x, y, w, h }] with 0..1 coords
-  rects      String    @default("[]")
+  rects       String    @default("[]")
   /// web captures (browser extension): source page URL + title
   sourceUrl   String?
   sourceTitle String?
@@ -181,20 +183,20 @@ model TraverseSheet {
 }
 
 model TraverseRow {
-  id           String        @id @default(cuid())
-  sheetId      String
-  sheet        TraverseSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
-  order        Int
-  paraNo       String
-  paraText     String
+  id            String        @id @default(cuid())
+  sheetId       String
+  sheet         TraverseSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  order         Int
+  paraNo        String
+  paraText      String
   /// rich text (HTML) reply
-  responseText String        @default("")
+  responseText  String        @default("")
   /// TraverseStatus: NOT_STARTED | DENIED_BARE | DENIED_SPECIFIC | ADMITTED | ADMITTED_PARTLY | LEGAL_OBJECTION
-  status       String        @default("NOT_STARTED")
+  status        String        @default("NOT_STARTED")
   /// JSON text: ids of Fact/Evidence cards attached to this row
-  linkedCardIds String       @default("[]")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  linkedCardIds String        @default("[]")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@unique([sheetId, order])
 }
@@ -262,4 +264,61 @@ model ChronologyEntry {
   createdBy       String   @default("local")
 
   @@index([matterId, eventDate])
+}
+
+/// OAuth 2.1 authorization server, so an MCP client (Claude, ChatGPT) can
+/// connect by consent rather than by the user pasting an API token. Clients
+/// register themselves (RFC 7591); every code and token is bound to one user,
+/// one client and one resource (RFC 8707 audience binding).
+model OAuthClient {
+  id           String   @id @default(cuid())
+  clientId     String   @unique
+  clientName   String   @default("An MCP client")
+  /// JSON text: string[] of registered redirect URIs
+  redirectUris String   @default("[]")
+  createdAt    DateTime @default(now())
+
+  codes  OAuthCode[]
+  tokens OAuthToken[]
+}
+
+model OAuthCode {
+  id            String      @id @default(cuid())
+  /// sha256 of the authorization code; the code itself is never stored
+  codeHash      String      @unique
+  clientId      String
+  client        OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redirectUri   String
+  /// PKCE S256 challenge
+  codeChallenge String
+  resource      String
+  scope         String      @default("mcp")
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([userId])
+  @@index([clientId])
+}
+
+model OAuthToken {
+  id          String      @id @default(cuid())
+  tokenHash   String      @unique
+  refreshHash String?     @unique
+  clientId    String
+  client      OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// the MCP endpoint this token is valid for; validated on every call
+  resource    String
+  scope       String      @default("mcp")
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([clientId])
 }

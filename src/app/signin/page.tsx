@@ -21,7 +21,9 @@ function SignIn() {
     setBusy(true);
     setError("");
     try {
-      const res = await signIn("resend", { email: address, redirect: false, callbackUrl: "/" });
+      // come back to whatever sent us here (the OAuth consent screen, usually)
+      const back = params.get("callbackUrl") || "/";
+      const res = await signIn("resend", { email: address, redirect: false, callbackUrl: back });
       if (res?.error) setError("We couldn't send the link. Check the address and try again.");
       else setJustSent(true);
     } catch {
