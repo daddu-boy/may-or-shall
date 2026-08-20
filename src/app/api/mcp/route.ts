@@ -48,15 +48,55 @@ function text(body: string, isError = false): Json {
   return { content: [{ type: "text", text: body }], isError };
 }
 
+/**
+ * search and fetch must return the payload twice: once as structuredContent
+ * and once as JSON encoded text. That is ChatGPT's contract for a connector,
+ * not a preference of ours.
+ */
+function structured(payload: Json): Json {
+  return { content: [{ type: "text", text: JSON.stringify(payload) }], structuredContent: payload };
+}
+
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
+
 const TOOLS = [
   {
+    // Required, by name and shape, for ChatGPT connectors and deep research.
+    name: "search",
+    title: "Search the matter file",
+    description:
+      "Search everything in this May or Shall account: saved cards (passages the lawyer chose, each with its exact quote and citation), matters, and uploaded documents. Returns results to be read with fetch.",
+    annotations: READ_ONLY,
+    inputSchema: {
+      type: "object",
+      properties: { query: { type: "string", description: "What to look for." } },
+      required: ["query"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "fetch",
+    title: "Read one result in full",
+    description:
+      "Retrieve the full text of a result returned by search, by its id. Also accepts traverse:<matterId> for the unanswered paragraphs of a plaint, and chronology:<matterId> for the list of dates.",
+    annotations: READ_ONLY,
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string", description: "An id from search." } },
+      required: ["id"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "list_matters",
+    annotations: READ_ONLY,
     description:
       "List the litigation matters in this May or Shall account, with how many documents and cards each holds. Call this first to find a matterId.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "search_cards",
+    annotations: READ_ONLY,
     description:
       "Search the saved cards in a matter. A card is a passage the lawyer chose and typed (fact, date, admission, case law and so on) that carries its exact quote and its source citation. This is grounded material: prefer it over your own recollection when drafting.",
     inputSchema: {
@@ -73,6 +113,7 @@ const TOOLS = [
   },
   {
     name: "traverse_gaps",
+    annotations: READ_ONLY,
     description:
       "The deemed-admission guard. Returns the paragraphs of the plaint that still lack a specific denial, which under Order VIII Rule 5 CPC risk being treated as admitted. Use this before drafting or reviewing a written statement.",
     inputSchema: {
@@ -84,6 +125,7 @@ const TOOLS = [
   },
   {
     name: "list_of_dates",
+    annotations: READ_ONLY,
     description:
       "The matter's chronology, in date order, as assembled from its Date cards. Use for a list of dates, a synopsis, or any narrative that has to be chronologically accurate.",
     inputSchema: {
@@ -95,6 +137,7 @@ const TOOLS = [
   },
   {
     name: "list_documents",
+    annotations: READ_ONLY,
     description:
       "List the documents uploaded to a matter, with their type, page count and annexure label.",
     inputSchema: {
@@ -106,6 +149,7 @@ const TOOLS = [
   },
   {
     name: "save_card",
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
     description:
       "Save a passage into a matter as a new card, keeping its citation. Use when the user asks to keep, note or file something for a matter. Quote the source text exactly in `quote`; put your own summary in `note`.",
     inputSchema: {
@@ -155,6 +199,164 @@ function cite(c: {
 }
 
 async function runTool(userId: string, name: string, args: Json): Promise<Json> {
+  // ---- the two tools ChatGPT requires, in the shape it requires ----------
+
+  if (name === "search") {
+    const q = typeof args.query === "string" ? args.query.trim() : "";
+    const base = origin();
+    const results: { id: string; title: string; url: string }[] = [];
+
+    const matters = await prisma.matter.findMany({
+      where: { userId, status: "ACTIVE" },
+      select: { id: true, title: true },
+    });
+    const mine = matters.map((m) => m.id);
+    const titleOf = new Map(matters.map((m) => [m.id, m.title]));
+
+    if (q) {
+      for (const m of matters) {
+        if (m.title.toLowerCase().includes(q.toLowerCase())) {
+          results.push({ id: `matter:${m.id}`, title: `Matter: ${m.title}`, url: `${base}/matters/${m.id}/cards` });
+        }
+      }
+    }
+
+    const cards = await prisma.card.findMany({
+      where: {
+        matterId: { in: mine },
+        ...(q
+          ? {
+              OR: [
+                { quote: { contains: q, mode: "insensitive" as const } },
+                { body: { contains: q, mode: "insensitive" as const } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+      take: 20,
+      select: { id: true, matterId: true, cardType: true, quote: true, body: true },
+    });
+    for (const c of cards) {
+      const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
+      const snippet = (c.quote || c.body).replace(/\s+/g, " ").slice(0, 90);
+      results.push({
+        id: `card:${c.id}`,
+        title: `[${label}] ${snippet}${snippet.length === 90 ? "…" : ""} (${titleOf.get(c.matterId) ?? "matter"})`,
+        url: `${base}/matters/${c.matterId}/cards`,
+      });
+    }
+
+    if (q) {
+      const docs = await prisma.document.findMany({
+        where: { matterId: { in: mine }, filename: { contains: q, mode: "insensitive" } },
+        take: 10,
+        select: { id: true, matterId: true, filename: true },
+      });
+      for (const d of docs) {
+        results.push({
+          id: `document:${d.id}`,
+          title: `Document: ${d.filename}`,
+          url: `${base}/matters/${d.matterId}/documents`,
+        });
+      }
+    }
+
+    return structured({ results });
+  }
+
+  if (name === "fetch") {
+    const raw = typeof args.id === "string" ? args.id : "";
+    const [kind, refId] = raw.includes(":") ? [raw.slice(0, raw.indexOf(":")), raw.slice(raw.indexOf(":") + 1)] : ["card", raw];
+    const base = origin();
+
+    if (kind === "card") {
+      const c = await prisma.card.findUnique({
+        where: { id: refId },
+        select: {
+          id: true, matterId: true, cardType: true, quote: true, body: true, page: true,
+          para: true, citation: true, eventDate: true, sourceUrl: true, sourceTitle: true,
+          matter: { select: { userId: true, title: true } },
+          document: { select: { filename: true } },
+        },
+      });
+      if (!c || c.matter.userId !== userId) return text("Not found in this account.", true);
+      const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
+      const lines = [
+        `Type: ${label}`,
+        `Matter: ${c.matter.title}`,
+        c.eventDate ? `Date: ${c.eventDate.toISOString().slice(0, 10)}` : "",
+        `Source: ${cite(c)}`,
+        "",
+        `Quote: "${c.quote}"`,
+        c.body && c.body !== c.quote ? `Note: ${c.body}` : "",
+      ].filter(Boolean);
+      return structured({
+        id: raw,
+        title: `[${label}] ${c.matter.title}`,
+        text: lines.join("\n"),
+        url: `${base}/matters/${c.matterId}/cards`,
+        metadata: { cardType: c.cardType, matterId: c.matterId },
+      });
+    }
+
+    const matterId = kind === "document" ? null : refId;
+    if (matterId) {
+      const m = await ownedMatter(userId, matterId);
+      if (!m) return text("Not found in this account.", true);
+
+      if (kind === "traverse") {
+        const inner = await runTool(userId, "traverse_gaps", { matterId });
+        const body = (inner.content as { text: string }[])[0].text;
+        return structured({
+          id: raw,
+          title: `Unanswered paragraphs — ${m.title}`,
+          text: body,
+          url: `${base}/matters/${matterId}/traverse`,
+        });
+      }
+      if (kind === "chronology") {
+        const inner = await runTool(userId, "list_of_dates", { matterId });
+        const body = (inner.content as { text: string }[])[0].text;
+        return structured({
+          id: raw,
+          title: `List of dates — ${m.title}`,
+          text: body,
+          url: `${base}/matters/${matterId}/chronology`,
+        });
+      }
+      if (kind === "matter") {
+        const docs = (await runTool(userId, "list_documents", { matterId })).content as { text: string }[];
+        const cards = (await runTool(userId, "search_cards", { matterId, limit: 60 })).content as { text: string }[];
+        return structured({
+          id: raw,
+          title: `Matter: ${m.title}`,
+          text: `Documents:\n${docs[0].text}\n\n${cards[0].text}`,
+          url: `${base}/matters/${matterId}/cards`,
+        });
+      }
+    }
+
+    if (kind === "document") {
+      const d = await prisma.document.findUnique({
+        where: { id: refId },
+        select: {
+          id: true, filename: true, docType: true, pageCount: true, annexureLabel: true,
+          matterId: true, matter: { select: { userId: true, title: true } },
+        },
+      });
+      if (!d || d.matter.userId !== userId) return text("Not found in this account.", true);
+      return structured({
+        id: raw,
+        title: d.filename,
+        text: `${d.filename}\nType: ${d.docType}\nPages: ${d.pageCount}${d.annexureLabel ? `\nAnnexure: ${d.annexureLabel}` : ""}\nMatter: ${d.matter.title}\n\nOpen the document in May or Shall to read it; the cards saved from it carry the passages that were selected.`,
+        url: `${base}/matters/${d.matterId}/documents`,
+      });
+    }
+
+    return text(`Unrecognised id: ${raw}`, true);
+  }
+
   if (name === "list_matters") {
     const matters = await prisma.matter.findMany({
       where: { userId, status: "ACTIVE" },
