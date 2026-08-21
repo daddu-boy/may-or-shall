@@ -92,6 +92,7 @@ model Matter {
   traverseSheet     TraverseSheet?
   artefacts         GeneratedArtefact[]
   annexureItems     AnnexureItem[]
+  cardLinks         CardLink[]
 
   @@index([userId])
 }
@@ -155,6 +156,8 @@ model Card {
   pinned    Boolean   @default(false)
 
   citation    String?
+  linksFrom   CardLink[] @relation("LinkFrom")
+  linksTo     CardLink[] @relation("LinkTo")
   proposition String?
   /// Treatment: RELIED_ON | DISTINGUISHED | OVERRULED_RISK (nullable)
   treatment   String?
@@ -321,4 +324,27 @@ model OAuthToken {
 
   @@index([userId])
   @@index([clientId])
+}
+
+/// A link between two cards: the plaint paragraph and the annexure it refers
+/// to, an admission and the document that contradicts it. Cards rather than raw
+/// selections, so both ends carry their citation and survive into exports.
+model CardLink {
+  id         String   @id @default(cuid())
+  matterId   String
+  matter     Matter   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  fromCardId String
+  fromCard   Card     @relation("LinkFrom", fields: [fromCardId], references: [id], onDelete: Cascade)
+  toCardId   String
+  toCard     Card     @relation("LinkTo", fields: [toCardId], references: [id], onDelete: Cascade)
+  /// LinkKind: REFERS_TO | SUPPORTS | CONTRADICTS | RELATES_TO
+  kind       String   @default("RELATES_TO")
+  note       String   @default("")
+  /// set when the link was proposed by the annexure reference detector rather
+  /// than drawn by the user, so suggestions can be shown differently
+  suggested  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([fromCardId, toCardId])
+  @@index([matterId])
 }

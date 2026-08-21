@@ -28,11 +28,20 @@ export default function Reader({
   docId,
   initialPage,
   initialCardId,
+  compact = false,
+  onLinkDrop,
+  linkedCardIds,
+  onCardsChanged,
 }: {
   matterId: string;
   docId: string;
   initialPage?: number;
   initialCardId?: string;
+  /** in a side by side pane: no card panel of its own, the desk owns that */
+  compact?: boolean;
+  onLinkDrop?: (fromCardId: string, toCardId: string) => void;
+  linkedCardIds?: Set<string>;
+  onCardsChanged?: () => void;
 }) {
   const [doc, setDoc] = useState<DocumentDto | null>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
@@ -84,7 +93,8 @@ export default function Reader({
 
   const refreshCards = useCallback(async () => {
     setCards(await api<CardDto[]>(`/api/matters/${matterId}/cards?documentId=${docId}`));
-  }, [matterId, docId]);
+    onCardsChanged?.(); // the desk keeps its own list of cards and links
+  }, [matterId, docId, onCardsChanged]);
 
   const reportPageSize = useCallback((page: number, w: number, h: number) => {
     setPageSizes((sizes) => {
@@ -304,6 +314,8 @@ export default function Reader({
                 selectedCardId={selectedCardId}
                 onSelectCard={setSelectedCardId}
                 onSize={reportPageSize}
+                onLinkDrop={onLinkDrop}
+                linkedCardIds={linkedCardIds}
                 registerRef={(page, el) => {
                   if (el) pageRefs.current.set(page, el);
                   else pageRefs.current.delete(page);
@@ -323,13 +335,15 @@ export default function Reader({
         />
       )}
 
-      {/* right card panel */}
+      {/* right card panel; the desk owns this when panes are side by side */}
+      {!compact && (
       <CardPanel
         cards={cards}
         selectedCardId={selectedCardId}
         onSelect={jumpToCard}
         onChanged={refreshCards}
       />
+      )}
     </div>
   );
 }

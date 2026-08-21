@@ -22,6 +22,8 @@ function PdfPage({
   onSelectCard,
   onSize,
   registerRef,
+  onLinkDrop,
+  linkedCardIds,
 }: {
   pdf: PDFDocumentProxy;
   pageNumber: number;
@@ -33,6 +35,10 @@ function PdfPage({
   onSelectCard: (id: string) => void;
   onSize: (page: number, w: number, h: number) => void;
   registerRef: (page: number, el: HTMLDivElement | null) => void;
+  /** drag one highlight onto another to link the two cards */
+  onLinkDrop?: (fromCardId: string, toCardId: string) => void;
+  /** cards that already carry at least one link, drawn with a visible edge */
+  linkedCardIds?: Set<string>;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -142,6 +148,29 @@ function PdfPage({
                   e.stopPropagation();
                   onSelectCard(card.id);
                 }}
+                // Drag one highlight onto another to link the two cards. The
+                // payload is the card id, which is why links join cards rather
+                // than selections: both ends keep their citation.
+                draggable={!!onLinkDrop}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("application/x-mos-card", card.id);
+                  e.dataTransfer.effectAllowed = "link";
+                }}
+                onDragOver={(e) => {
+                  if (!onLinkDrop) return;
+                  const from = e.dataTransfer.types.includes("application/x-mos-card");
+                  if (from) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "link";
+                  }
+                }}
+                onDrop={(e) => {
+                  if (!onLinkDrop) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const fromCardId = e.dataTransfer.getData("application/x-mos-card");
+                  if (fromCardId && fromCardId !== card.id) onLinkDrop(fromCardId, card.id);
+                }}
                 className="absolute pointer-events-auto cursor-pointer"
                 style={{
                   left: `${r.x * 100}%`,
@@ -151,6 +180,8 @@ function PdfPage({
                   background: CARD_TYPE_COLOR[card.cardType],
                   opacity: card.id === selectedCardId ? 0.5 : 0.3,
                   mixBlendMode: "multiply",
+                  outline: linkedCardIds?.has(card.id) ? "2px solid #0f172a" : undefined,
+                  outlineOffset: linkedCardIds?.has(card.id) ? "1px" : undefined,
                 }}
               />
             ))

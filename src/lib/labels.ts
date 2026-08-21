@@ -75,3 +75,27 @@ export const OUR_SIDE_LABEL: Record<(typeof OUR_SIDES)[number], string> = {
   RESPONDENT_DEFENDANT: "Respondent / Defendant",
   OTHER: "Other",
 };
+
+/**
+ * How one card relates to another. Links join two cards rather than two raw
+ * selections, so both ends already carry their citation (document, page,
+ * paragraph) and survive into exports.
+ */
+export const LINK_KINDS = ["REFERS_TO", "SUPPORTS", "CONTRADICTS", "RELATES_TO"] as const;
+
+export type LinkKindValue = (typeof LINK_KINDS)[number];
+
+export const LINK_KIND_LABEL: Record<LinkKindValue, string> = {
+  REFERS_TO: "Refers to",
+  SUPPORTS: "Supports",
+  CONTRADICTS: "Contradicts",
+  RELATES_TO: "Relates to",
+};
+
+/** Wording for the reverse direction, so a link reads correctly from either end. */
+export const LINK_KIND_INVERSE_LABEL: Record<LinkKindValue, string> = {
+  REFERS_TO: "Referred to by",
+  SUPPORTS: "Supported by",
+  CONTRADICTS: "Contradicted by",
+  RELATES_TO: "Relates to",
+};
