@@ -25,6 +25,7 @@ const PUBLIC_PREFIXES = [
   "/_next",
   "/favicon",
   "/privacy",
+  "/terms",
   "/.well-known",
   "/oauth",
 ];
