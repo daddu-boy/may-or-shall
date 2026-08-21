@@ -22,7 +22,7 @@ interface SearchResults {
 
 const NAV = [
   { label: "Documents", slug: "documents" },
-  { label: "Compare", slug: "compare" },
+  { label: "Open two PDFs", slug: "compare" },
   { label: "Cards", slug: "cards" },
   { label: "Chronology", slug: "chronology" },
   { label: "Traverse", slug: "traverse" },

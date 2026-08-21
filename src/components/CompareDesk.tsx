@@ -193,49 +193,81 @@ export default function CompareDesk({
     );
   };
 
-  /** The passages saved from one document, as a list you can actually click. */
-  const rail = (docId: string, heading: string) => {
+  /**
+   * The passages saved from one document. Clicking one goes to it in the
+   * document, which is what you want nine times out of ten; picking it for a
+   * link is the separate control on the right, so the two never fight.
+   */
+  const rail = (docId: string) => {
+    const doc = docById.get(docId);
     const mine = cards.filter((c) => c.documentId === docId);
     return (
       <div className="flex flex-col min-h-0">
-        <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100 bg-slate-50 sticky top-0">
-          {heading} ({mine.length})
+        <div
+          className="px-3 py-1.5 text-[11px] font-medium border-b sticky top-0 truncate"
+          style={{
+            color: "var(--text-secondary)",
+            borderColor: "var(--hairline)",
+            background: "var(--surface-sunken)",
+          }}
+          title={doc?.filename}
+        >
+          {doc ? doc.annexureLabel || doc.filename : "Document"} ({mine.length})
         </div>
         <div className="overflow-auto p-2 space-y-1.5 max-h-64">
           {mine.length === 0 && (
-            <p className="text-[11px] text-slate-400 px-1">
+            <p className="text-[11px] px-1" style={{ color: "var(--text-tertiary)" }}>
               Highlight a passage in this document to create a card.
             </p>
           )}
           {mine.map((c) => {
             const chosen = c.id === slotA || c.id === slotB;
             return (
-              <button
+              <div
                 key={c.id}
-                onClick={() => pick(c.id)}
-                className={`w-full text-left rounded-lg border px-2 py-1.5 text-[11px] leading-snug transition ${
-                  chosen
-                    ? "border-indigo-400 bg-indigo-50"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
+                className="w-full rounded-[10px] border flex items-start gap-1.5 pr-1.5 transition-colors"
+                style={{
+                  borderColor: chosen ? "var(--accent)" : "var(--hairline)",
+                  background: chosen ? "var(--accent-soft)" : "var(--surface)",
+                }}
               >
-                <span className="flex items-center gap-1.5 mb-0.5">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: CARD_TYPE_COLOR[c.cardType as CardTypeValue] }}
-                  />
-                  <span className="text-slate-400">
-                    {c.page ? `p.${c.page}` : ""}
-                    {c.para ? ` ¶${c.para}` : ""}
-                  </span>
-                  {linkedCardIds.has(c.id) && (
-                    <span className="ml-auto text-slate-400" title="already linked">
-                      &#9679;
+                <button
+                  onClick={() => reveal(c.id)}
+                  title="Go to this passage in the document"
+                  className="flex-1 min-w-0 text-left px-2 py-1.5 text-[11px] leading-snug"
+                >
+                  <span className="flex items-center gap-1.5 mb-0.5">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ background: CARD_TYPE_COLOR[c.cardType as CardTypeValue] }}
+                    />
+                    <span style={{ color: "var(--text-tertiary)" }}>
+                      {c.page ? `p.${c.page}` : ""}
+                      {c.para ? ` \u00b6${c.para}` : ""}
                     </span>
-                  )}
-                </span>
-                <span className="text-slate-700 line-clamp-3">{c.quote || c.body}</span>
-              </button>
+                    {linkedCardIds.has(c.id) && (
+                      <span style={{ color: "var(--text-tertiary)" }} title="already linked">
+                        &#9679;
+                      </span>
+                    )}
+                  </span>
+                  <span className="line-clamp-3" style={{ color: "var(--text)" }}>
+                    {c.quote || c.body}
+                  </span>
+                </button>
+                <button
+                  onClick={() => pick(c.id)}
+                  title={chosen ? "Picked for linking" : "Pick this for a link"}
+                  className="mt-1.5 w-5 h-5 shrink-0 rounded-full border text-[10px] leading-none flex items-center justify-center"
+                  style={{
+                    borderColor: chosen ? "var(--accent)" : "var(--hairline-strong)",
+                    background: chosen ? "var(--accent)" : "transparent",
+                    color: chosen ? "#fff" : "var(--text-tertiary)",
+                  }}
+                >
+                  {chosen ? "\u2713" : "+"}
+                </button>
+              </div>
             );
           })}
         </div>
@@ -250,10 +282,10 @@ export default function CompareDesk({
     focusCardId: string | null
   ) => (
     <div className={`flex-1 min-w-0 flex flex-col ${side === "left" ? "border-r border-slate-200" : ""}`}>
-      <div className="h-11 shrink-0 border-b border-slate-200 bg-white flex items-center gap-2 px-3">
-        <span className="text-[11px] uppercase tracking-wide text-slate-400 shrink-0">
-          {side === "left" ? "Left" : "Right"}
-        </span>
+      <div
+        className="h-12 shrink-0 flex items-center px-3"
+        style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface)" }}
+      >
         {picker(docId, setDocId)}
       </div>
       <div className="flex-1 min-h-0">
@@ -289,7 +321,7 @@ export default function CompareDesk({
             </button>
           </span>
         ) : (
-          <span className="block text-slate-400">Click a card in either list</span>
+          <span className="block" style={{ color: "var(--text-tertiary)" }}>Press + on a card below</span>
         )}
       </div>
     );
@@ -323,8 +355,8 @@ export default function CompareDesk({
         {/* one sidebar rather than a rail beside each pane: three columns of
             chrome left the documents themselves too narrow to read */}
         <div className="shrink-0 border-b border-slate-200">
-          {rail(leftId, "Cards in the left document")}
-          {rail(rightId, "Cards in the right document")}
+          {rail(leftId)}
+          {rail(rightId)}
         </div>
         <div className="h-10 shrink-0 border-b border-slate-200 flex items-center px-4">
           <h2 className="text-sm font-medium">Links</h2>
