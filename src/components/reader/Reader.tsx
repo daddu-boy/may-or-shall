@@ -189,7 +189,9 @@ export default function Reader({
 
   const commitZoomText = () => {
     const n = parseInt(zoomText.replace(/[^0-9]/g, ""), 10);
-    if (!Number.isNaN(n) && n >= 35 && n <= 300) setManualScale(n / 100);
+    // clamp rather than ignore: typing 500 should give you the maximum, not
+    // silently nothing
+    if (!Number.isNaN(n)) setManualScale(Math.min(300, Math.max(35, n)) / 100);
     setZoomText("");
   };
 
@@ -313,7 +315,11 @@ export default function Reader({
               <input
                 value={zoomText || `${Math.round(scale * 100)}%`}
                 onChange={(e) => setZoomText(e.target.value)}
-                onFocus={() => setZoomText(String(Math.round(scale * 100)))}
+                onFocus={(e) => {
+                  // select what is there, so typing replaces rather than appends
+                  setZoomText(String(Math.round(scale * 100)));
+                  requestAnimationFrame(() => e.target.select());
+                }}
                 onBlur={commitZoomText}
                 title="Type a zoom level, for example 140"
                 className="w-12 text-center text-xs rounded px-1 py-0.5 bg-transparent hover:bg-slate-100 focus:bg-white focus:outline-none"
