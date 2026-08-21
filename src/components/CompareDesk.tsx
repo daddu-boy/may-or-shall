@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type CardDto, type DocumentDto } from "@/lib/clientTypes";
 import {
   CARD_TYPE_COLOR,
@@ -61,9 +61,17 @@ export default function CompareDesk({
    */
   const [slotA, setSlotA] = useState<string | null>(null);
   const [slotB, setSlotB] = useState<string | null>(null);
-  /** card each pane should scroll to and select, set by clicking a link */
-  const [focusLeft, setFocusLeft] = useState<string | null>(null);
-  const [focusRight, setFocusRight] = useState<string | null>(null);
+  /** card each pane should scroll to; the nonce allows repeat requests */
+  const [focusLeft, setFocusLeft] = useState<{ cardId: string; nonce: number } | null>(null);
+  const [focusRight, setFocusRight] = useState<{ cardId: string; nonce: number } | null>(null);
+  const nonce = useRef(0);
+  /** how the width is split between the two documents, dragged by the divider */
+  const [split, setSplit] = useState(50);
+  const dragging = useRef(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+  /** the floating panel: translucent while you read, solid once you engage */
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelSolid, setPanelSolid] = useState(false);
 
   /**
    * Open a linked passage. A link is only worth drawing if you can follow it,
@@ -74,13 +82,35 @@ export default function CompareDesk({
   const reveal = (cardId: string) => {
     const card = cardById.get(cardId);
     if (!card?.documentId) return;
-    if (leftId === card.documentId) setFocusLeft(cardId);
-    else if (rightId === card.documentId) setFocusRight(cardId);
+    const req = { cardId, nonce: ++nonce.current };
+    if (leftId === card.documentId) setFocusLeft(req);
+    else if (rightId === card.documentId) setFocusRight(req);
     else {
       setRightId(card.documentId);
-      setFocusRight(cardId);
+      setFocusRight(req);
     }
   };
+
+  // Drag the divider to give whichever document needs it more room.
+  useEffect(() => {
+    const move = (e: MouseEvent) => {
+      if (!dragging.current || !rowRef.current) return;
+      const r = rowRef.current.getBoundingClientRect();
+      const pct = ((e.clientX - r.left) / r.width) * 100;
+      setSplit(Math.min(78, Math.max(22, pct)));
+    };
+    const up = () => {
+      dragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+  }, []);
 
   const pick = (cardId: string) => {
     if (slotA === cardId || slotB === cardId) return;
@@ -279,9 +309,9 @@ export default function CompareDesk({
     docId: string,
     setDocId: (v: string) => void,
     side: "left" | "right",
-    focusCardId: string | null
+    focusReq: { cardId: string; nonce: number } | null
   ) => (
-    <div className={`flex-1 min-w-0 flex flex-col ${side === "left" ? "border-r border-slate-200" : ""}`}>
+    <div className="min-w-0 flex flex-col h-full">
       <div
         className="h-12 shrink-0 flex items-center px-3"
         style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface)" }}
@@ -291,11 +321,11 @@ export default function CompareDesk({
       <div className="flex-1 min-h-0">
         {docId && (
           <Reader
-            key={`${docId}:${focusCardId ?? ""}`}
+            key={docId}
             matterId={matterId}
             docId={docId}
-            initialCardId={focusCardId ?? undefined}
             compact
+            focus={focusReq}
             linkedCardIds={linkedCardIds}
             onCardsChanged={load}
           />
@@ -347,22 +377,99 @@ export default function CompareDesk({
           </span>
         )}
       </div>
-      <div className="flex-1 min-h-0 flex">
-        {pane(leftId, setLeftId, "left", focusLeft)}
-        {pane(rightId, setRightId, "right", focusRight)}
+      <div ref={rowRef} className="flex-1 min-h-0 flex relative">
+        <div style={{ width: `${split}%` }} className="min-w-0">
+          {pane(leftId, setLeftId, "left", focusLeft)}
+        </div>
 
-        <aside className="w-80 shrink-0 border-l border-slate-200 bg-white flex flex-col">
-        {/* one sidebar rather than a rail beside each pane: three columns of
-            chrome left the documents themselves too narrow to read */}
-        <div className="shrink-0 border-b border-slate-200">
-          {rail(leftId)}
-          {rail(rightId)}
+        {/* drag to give whichever document needs the room */}
+        <div
+          onMouseDown={() => {
+            dragging.current = true;
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+          }}
+          onDoubleClick={() => setSplit(50)}
+          title="Drag to resize. Double click to even them up."
+          className="w-1 shrink-0 cursor-col-resize relative group"
+          style={{ background: "var(--hairline)" }}
+        >
+          <span
+            className="absolute inset-y-0 -left-1 -right-1"
+            aria-hidden
+          />
+          <span
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: "var(--text-tertiary)" }}
+          />
         </div>
-        <div className="h-10 shrink-0 border-b border-slate-200 flex items-center px-4">
-          <h2 className="text-sm font-medium">Links</h2>
-          <span className="ml-auto text-xs text-slate-400">{links.length}</span>
+
+        <div style={{ width: `${100 - split}%` }} className="min-w-0">
+          {pane(rightId, setRightId, "right", focusRight)}
         </div>
-        <div className="flex-1 overflow-auto p-3 space-y-3">
+
+        {/*
+          The cards and links float above the documents rather than taking a
+          third column: two PDFs need the width more than a panel does. It sits
+          translucent while you read and turns solid the moment you touch it.
+        */}
+        {!panelOpen && (
+          <button
+            onClick={() => setPanelOpen(true)}
+            className="absolute right-4 top-4 z-20 rounded-full px-3.5 py-2 text-xs font-medium"
+            style={{
+              background: "rgba(255,255,255,.8)",
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
+              border: "1px solid var(--hairline)",
+              boxShadow: "0 8px 28px rgba(0,0,0,.10)",
+            }}
+          >
+            Cards and links
+          </button>
+        )}
+
+        {panelOpen && (
+          <aside
+            onMouseEnter={() => setPanelSolid(true)}
+            onMouseLeave={() => setPanelSolid(false)}
+            className="absolute right-4 top-4 bottom-4 w-[21rem] z-20 flex flex-col rounded-2xl overflow-hidden transition-all"
+            style={{
+              background: panelSolid ? "rgba(255,255,255,.985)" : "rgba(255,255,255,.72)",
+              backdropFilter: "blur(24px) saturate(180%)",
+              WebkitBackdropFilter: "blur(24px) saturate(180%)",
+              border: "1px solid var(--hairline)",
+              boxShadow: panelSolid
+                ? "0 16px 48px rgba(0,0,0,.16)"
+                : "0 10px 30px rgba(0,0,0,.08)",
+            }}
+          >
+            <div
+              className="h-11 shrink-0 flex items-center px-4"
+              style={{ borderBottom: "1px solid var(--hairline)" }}
+            >
+              <h2 className="text-[13px] font-medium">Cards and links</h2>
+              <button
+                onClick={() => setPanelOpen(false)}
+                title="Hide, so both documents get the full width"
+                className="ml-auto text-sm"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-auto">
+              <div style={{ borderBottom: "1px solid var(--hairline)" }}>
+                {rail(leftId)}
+                {rail(rightId)}
+              </div>
+              <div className="px-4 py-2 flex items-center">
+                <h3 className="text-[13px] font-medium">Links</h3>
+                <span className="ml-auto text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  {links.length}
+                </span>
+              </div>
+              <div className="px-3 pb-3 space-y-3">
           {links.length === 0 && (
             <p className="text-xs text-slate-400">
               No links yet. Highlight a passage in each document to make a card, then pick one
@@ -401,8 +508,10 @@ export default function CompareDesk({
               </button>
             </div>
           ))}
-          </div>
-        </aside>
+              </div>
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );

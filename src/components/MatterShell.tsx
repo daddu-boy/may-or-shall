@@ -47,6 +47,17 @@ export default function MatterShell({
   const pathname = usePathname();
   const router = useRouter();
   const [q, setQ] = useState("");
+  /** the navigation folds away, because two documents side by side need the width */
+  const [navOpen, setNavOpen] = useState(true);
+  useEffect(() => {
+    setNavOpen(localStorage.getItem("mos.nav.collapsed") !== "1");
+  }, []);
+  const toggleNav = () => {
+    setNavOpen((v) => {
+      localStorage.setItem("mos.nav.collapsed", v ? "1" : "0");
+      return !v;
+    });
+  };
   const [results, setResults] = useState<SearchResults | null>(null);
   const [open, setOpen] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
@@ -73,7 +84,9 @@ export default function MatterShell({
   return (
     <div className="flex h-screen" style={{ background: "var(--bg)" }}>
       <aside
-        className="w-60 shrink-0 flex flex-col"
+        className={`shrink-0 flex flex-col overflow-hidden transition-[width] duration-200 ${
+          navOpen ? "w-60" : "w-0"
+        }`}
         style={{ borderRight: "1px solid var(--hairline)", background: "var(--surface)" }}
       >
         <div className="px-5 pt-5 pb-4">
@@ -149,6 +162,14 @@ export default function MatterShell({
           className="h-14 shrink-0 flex items-center px-5 relative"
           style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface)" }}
         >
+          <button
+            onClick={toggleNav}
+            title={navOpen ? "Hide the sidebar" : "Show the sidebar"}
+            className="mr-3 shrink-0 rounded-md px-2 py-1.5 text-sm"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {navOpen ? "\u00ab" : "\u00bb"}
+          </button>
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}

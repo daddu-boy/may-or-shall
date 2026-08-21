@@ -30,6 +30,7 @@ export default function Reader({
   initialCardId,
   compact = false,
   linkedCardIds,
+  focus,
   onCardsChanged,
 }: {
   matterId: string;
@@ -39,6 +40,11 @@ export default function Reader({
   /** in a side by side pane: no card panel of its own, the desk owns that */
   compact?: boolean;
   linkedCardIds?: Set<string>;
+  /**
+   * Scroll to and select a card. The nonce lets the same card be requested
+   * twice in a row (clicking it again should still bring you back to it).
+   */
+  focus?: { cardId: string; nonce: number } | null;
   onCardsChanged?: () => void;
 }) {
   const [doc, setDoc] = useState<DocumentDto | null>(null);
@@ -121,6 +127,20 @@ export default function Reader({
     },
     [scrollToPage]
   );
+
+  /**
+   * Follow a focus request. This waits for the cards as well as the pdf: the
+   * two load independently, and scrolling used to be attempted on a fixed
+   * timer after the pdf arrived, which usually lost the race and silently did
+   * nothing. Depending on `cards` means it simply runs again when they land.
+   */
+  useEffect(() => {
+    if (!pdf || !focus?.cardId) return;
+    const card = cards.find((c) => c.id === focus.cardId);
+    if (!card) return;
+    const t = setTimeout(() => jumpToCard(card), 120);
+    return () => clearTimeout(t);
+  }, [pdf, cards, focus?.cardId, focus?.nonce, jumpToCard]);
 
   // Deep-link: scroll to ?page= or ?card= once the pdf is ready.
   useEffect(() => {
