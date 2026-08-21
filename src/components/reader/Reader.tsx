@@ -51,6 +51,14 @@ export default function Reader({
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [cards, setCards] = useState<CardDto[]>([]);
   const [scale, setScale] = useState(1.2);
+  /**
+   * Fit to width is the default and it is not a one off: with a draggable
+   * divider the pane changes size constantly, and the document should follow
+   * rather than needing to be re-zoomed by hand every time. Typing a number
+   * switches to that number and stays there until Fit is pressed again.
+   */
+  const [fitWidth, setFitWidth] = useState(true);
+  const [zoomText, setZoomText] = useState("");
   const [pending, setPending] = useState<PendingHighlight | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(initialCardId ?? null);
   const [pageSizes, setPageSizes] = useState<{ w: number; h: number }[]>([]);
@@ -157,6 +165,34 @@ export default function Reader({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdf]);
 
+  /** Recompute the fit whenever the pane resizes or the document changes. */
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const baseW = pageSizes[0]?.w;
+    if (!scroller || !baseW) return;
+    const apply = () => {
+      if (!fitWidth) return;
+      const avail = scroller.clientWidth - 48; // page margins either side
+      if (avail <= 0) return;
+      setScale(Math.min(3, Math.max(0.35, avail / baseW)));
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+  }, [fitWidth, pageSizes]);
+
+  const setManualScale = (next: number) => {
+    setFitWidth(false);
+    setScale(Math.min(3, Math.max(0.35, next)));
+  };
+
+  const commitZoomText = () => {
+    const n = parseInt(zoomText.replace(/[^0-9]/g, ""), 10);
+    if (!Number.isNaN(n) && n >= 35 && n <= 300) setManualScale(n / 100);
+    setZoomText("");
+  };
+
   // ---- selection → pending highlight ----------------------------------------
   const onMouseUp = useCallback(() => {
     const sel = window.getSelection();
@@ -261,9 +297,50 @@ export default function Reader({
           <span className="font-medium truncate max-w-xs">{doc.filename}</span>
           <span className="text-slate-300">|</span>
           <div className="flex items-center gap-1">
-            <button onClick={() => setScale((s) => Math.max(0.6, +(s - 0.2).toFixed(1)))} className="px-2 py-0.5 rounded hover:bg-slate-100">−</button>
-            <span className="text-xs text-slate-500 w-10 text-center">{Math.round(scale * 100)}%</span>
-            <button onClick={() => setScale((s) => Math.min(2.4, +(s + 0.2).toFixed(1)))} className="px-2 py-0.5 rounded hover:bg-slate-100">+</button>
+            <button
+              onClick={() => setManualScale(+(scale - 0.1).toFixed(2))}
+              className="px-2 py-0.5 rounded hover:bg-slate-100"
+              title="Zoom out"
+            >
+              −
+            </button>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                commitZoomText();
+              }}
+            >
+              <input
+                value={zoomText || `${Math.round(scale * 100)}%`}
+                onChange={(e) => setZoomText(e.target.value)}
+                onFocus={() => setZoomText(String(Math.round(scale * 100)))}
+                onBlur={commitZoomText}
+                title="Type a zoom level, for example 140"
+                className="w-12 text-center text-xs rounded px-1 py-0.5 bg-transparent hover:bg-slate-100 focus:bg-white focus:outline-none"
+                style={{ color: "var(--text-secondary)" }}
+                data-testid="zoom-input"
+              />
+            </form>
+            <button
+              onClick={() => setManualScale(+(scale + 0.1).toFixed(2))}
+              className="px-2 py-0.5 rounded hover:bg-slate-100"
+              title="Zoom in"
+            >
+              +
+            </button>
+            <button
+              onClick={() => setFitWidth(true)}
+              title="Fit the page to the width of this pane, and keep it fitted as the pane resizes"
+              className="ml-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+              style={
+                fitWidth
+                  ? { background: "var(--text)", color: "var(--bg)" }
+                  : { color: "var(--text-secondary)", border: "1px solid var(--hairline)" }
+              }
+              data-testid="zoom-fit"
+            >
+              Fit
+            </button>
           </div>
           <form
             onSubmit={(e) => {
