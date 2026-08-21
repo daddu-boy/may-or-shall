@@ -25,6 +25,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PROTOCOL_VERSION = "2025-06-18";
+// Versions this server will speak. It only does tools over plain JSON-RPC, so
+// it is compatible across all of these; echoing back anything a client asks for
+// would be claiming support for revisions that do not exist yet.
+const SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 const AT_RISK = ["NOT_STARTED", "DENIED_BARE"]; // Order VIII Rule 5 CPC exposure
 
 type Json = Record<string, unknown>;
@@ -575,8 +579,10 @@ export async function POST(req: NextRequest) {
 
   if (method === "initialize") {
     const asked = (body.params as Json | undefined)?.protocolVersion;
+    const agreed =
+      typeof asked === "string" && SUPPORTED_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSION;
     return result(id, {
-      protocolVersion: typeof asked === "string" ? asked : PROTOCOL_VERSION,
+      protocolVersion: agreed,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: "may-or-shall", version: "1.0.0" },
       instructions:
