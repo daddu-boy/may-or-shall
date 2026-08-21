@@ -169,14 +169,14 @@ export default function CompareDesk({
   };
 
   /** The passages saved from one document, as a list you can actually click. */
-  const rail = (docId: string) => {
+  const rail = (docId: string, heading: string) => {
     const mine = cards.filter((c) => c.documentId === docId);
     return (
-      <div className="w-52 shrink-0 border-l border-slate-200 bg-slate-50 flex flex-col">
-        <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-200">
-          Cards here ({mine.length})
+      <div className="flex flex-col min-h-0">
+        <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-100 bg-slate-50 sticky top-0">
+          {heading} ({mine.length})
         </div>
-        <div className="flex-1 overflow-auto p-2 space-y-1.5">
+        <div className="overflow-auto p-2 space-y-1.5 max-h-64">
           {mine.length === 0 && (
             <p className="text-[11px] text-slate-400 px-1">
               Highlight a passage in this document to create a card.
@@ -230,20 +230,17 @@ export default function CompareDesk({
         </span>
         {picker(docId, setDocId)}
       </div>
-      <div className="flex-1 min-h-0 flex">
-        <div className="flex-1 min-w-0">
-          {docId && (
-            <Reader
-              key={docId}
-              matterId={matterId}
-              docId={docId}
-              compact
-              linkedCardIds={linkedCardIds}
-              onCardsChanged={load}
-            />
-          )}
-        </div>
-        {rail(docId)}
+      <div className="flex-1 min-h-0">
+        {docId && (
+          <Reader
+            key={docId}
+            matterId={matterId}
+            docId={docId}
+            compact
+            linkedCardIds={linkedCardIds}
+            onCardsChanged={load}
+          />
+        )}
       </div>
     </div>
   );
@@ -296,6 +293,12 @@ export default function CompareDesk({
         {pane(rightId, setRightId, "right")}
 
         <aside className="w-80 shrink-0 border-l border-slate-200 bg-white flex flex-col">
+        {/* one sidebar rather than a rail beside each pane: three columns of
+            chrome left the documents themselves too narrow to read */}
+        <div className="shrink-0 border-b border-slate-200">
+          {rail(leftId, "Cards in the left document")}
+          {rail(rightId, "Cards in the right document")}
+        </div>
         <div className="h-10 shrink-0 border-b border-slate-200 flex items-center px-4">
           <h2 className="text-sm font-medium">Links</h2>
           <span className="ml-auto text-xs text-slate-400">{links.length}</span>

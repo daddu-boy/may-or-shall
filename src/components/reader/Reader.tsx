@@ -261,7 +261,7 @@ export default function Reader({
             />
             / {doc.pageCount}
           </form>
-          <div className="relative ml-auto">
+          <div className={`relative ml-auto ${compact ? "hidden" : ""}`}>
             <input
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
