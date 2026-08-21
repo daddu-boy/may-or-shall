@@ -27,19 +27,25 @@ export default function Dashboard() {
   const visible = matters.filter((m) => (showArchived ? true : m.status === "ACTIVE"));
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
-      <div className="flex items-center justify-between mb-8">
+    <main className="max-w-4xl mx-auto px-6 py-16">
+      <div className="flex items-end justify-between mb-10">
         <div>
-          <h1 className="text-2xl font-semibold">May or Shall</h1>
-          <p className="text-sm text-slate-500 mt-1">Read once, use everywhere.</p>
+          <h1 className="text-[34px] font-semibold leading-tight">Matters</h1>
+          <p className="mt-2 text-[15px]" style={{ color: "var(--text-secondary)" }}>
+            Everything you are working on, in one place.
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/settings" className="text-sm text-slate-400 hover:text-slate-700">
+          <Link
+            href="/settings"
+            className="text-[13.5px] transition-colors"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Settings
           </Link>
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-700"
+            className="btn-primary px-5 py-2.5 text-[13.5px]"
             data-testid="new-matter"
             data-tour="new-matter"
           >
@@ -177,7 +183,7 @@ function MatterRow({
   return (
     <li
       data-tour={first ? "matter-row" : undefined}
-      className="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-between gap-4"
+      className="surface px-5 py-4 flex items-center justify-between gap-4 transition-shadow hover:shadow-md"
     >
       <div className="min-w-0">
         {renaming ? (
@@ -254,7 +260,7 @@ function NewMatterForm({ onCreated }: { onCreated: (matterId: string) => void })
   return (
     <form
       onSubmit={submit}
-      className="rounded-lg border border-slate-200 bg-white p-4 mb-6 grid grid-cols-2 gap-3"
+      className="surface p-5 mb-6 grid grid-cols-2 gap-3"
     >
       <input
         className={`${input} col-span-2`}

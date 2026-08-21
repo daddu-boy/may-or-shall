@@ -71,16 +71,27 @@ export default function MatterShell({
   };
 
   return (
-    <div className="flex h-screen">
-      <aside className="w-56 shrink-0 border-r border-slate-200 bg-white flex flex-col">
-        <div className="p-4 border-b border-slate-100">
-          <Link href="/" className="text-xs text-slate-400 hover:text-slate-600">
+    <div className="flex h-screen" style={{ background: "var(--bg)" }}>
+      <aside
+        className="w-60 shrink-0 flex flex-col"
+        style={{ borderRight: "1px solid var(--hairline)", background: "var(--surface)" }}
+      >
+        <div className="px-5 pt-5 pb-4">
+          <Link
+            href="/"
+            className="text-xs transition-colors"
+            style={{ color: "var(--text-tertiary)" }}
+          >
             ← All matters
           </Link>
-          <h2 className="font-semibold text-sm mt-2 leading-snug">{title}</h2>
-          {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+          <h2 className="mt-3 text-[15px] font-semibold leading-snug">{title}</h2>
+          {subtitle && (
+            <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              {subtitle}
+            </p>
+          )}
         </div>
-        <nav className="p-2 space-y-0.5">
+        <nav className="px-3 space-y-0.5">
           {NAV.map((item) => {
             const href = `/matters/${matterId}/${item.slug}`;
             const active = pathname.startsWith(href);
@@ -89,9 +100,12 @@ export default function MatterShell({
                 key={item.slug}
                 href={href}
                 data-tour={`nav-${item.slug}`}
-                className={`block rounded-md px-3 py-1.5 text-sm ${
-                  active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                }`}
+                className="block rounded-[10px] px-3 py-2 text-[13.5px] font-medium transition-colors"
+                style={
+                  active
+                    ? { background: "var(--text)", color: "var(--bg)" }
+                    : { color: "var(--text-secondary)" }
+                }
               >
                 {item.label}
               </Link>
@@ -100,7 +114,8 @@ export default function MatterShell({
           {UPCOMING.map((label) => (
             <span
               key={label}
-              className="block px-3 py-1.5 text-sm text-slate-300 cursor-not-allowed"
+              className="block px-3 py-2 text-[13.5px] cursor-not-allowed"
+              style={{ color: "var(--text-tertiary)", opacity: 0.5 }}
               title="Coming in a later phase"
             >
               {label}
@@ -130,18 +145,22 @@ export default function MatterShell({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-12 shrink-0 border-b border-slate-200 bg-white flex items-center px-4 relative">
+        <header
+          className="h-14 shrink-0 flex items-center px-5 relative"
+          style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface)" }}
+        >
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onFocus={() => results && setOpen(true)}
             placeholder="Search documents and cards in this matter…"
-            className="w-96 border border-slate-200 rounded-md px-3 py-1.5 text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-400"
+            className="field w-[26rem] px-3.5 py-2 text-[13.5px]"
+            style={{ background: "var(--surface-sunken)" }}
             data-testid="matter-search"
           />
           {open && results && (
             <div
-              className="absolute top-11 left-4 w-[32rem] max-h-96 overflow-auto rounded-lg border border-slate-200 bg-white shadow-xl z-50 text-sm"
+              className="surface absolute top-[3.25rem] left-5 w-[32rem] max-h-96 overflow-auto z-50 text-sm"
               onMouseLeave={() => setOpen(false)}
             >
               {results.documents.length === 0 && results.cards.length === 0 && (
