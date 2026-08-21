@@ -58,6 +58,13 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Files served straight out of /public (the demo recording, images, icons)
+  // are not app pages and must not be sent to the sign-in screen: an external
+  // reviewer fetching one is not signed in and never will be.
+  if (/\.(mp4|webm|png|jpg|jpeg|gif|svg|ico|webp|pdf|txt|xml|woff2?)$/i.test(pathname)) {
+    return NextResponse.next();
+  }
+
   // app page: require a session cookie, else send to sign-in
   const hasSession =
     req.cookies.has("authjs.session-token") ||
