@@ -44,6 +44,22 @@ export default function CompareDesk({
   const [cards, setCards] = useState<CardDto[]>([]);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  /**
+   * Linking is done by picking two cards, not by dragging highlights. pdf.js
+   * renders its text layer above the highlight overlay, so a drag on a
+   * highlight never reaches it, and putting highlights on top would break the
+   * text selection that creates cards in the first place. Picking is also
+   * easier to aim at: you choose from a list showing the actual passage.
+   */
+  const [slotA, setSlotA] = useState<string | null>(null);
+  const [slotB, setSlotB] = useState<string | null>(null);
+
+  const pick = (cardId: string) => {
+    if (slotA === cardId || slotB === cardId) return;
+    if (!slotA) setSlotA(cardId);
+    else if (!slotB) setSlotB(cardId);
+    else setSlotB(cardId); // both full: replace the second
+  };
 
   const load = useCallback(async () => {
     const [l, c] = await Promise.all([
@@ -79,6 +95,8 @@ export default function CompareDesk({
           body: JSON.stringify({ fromCardId, toCardId }),
         });
         await load();
+        setSlotA(null);
+        setSlotB(null);
         setFlash("Linked");
         setTimeout(() => setFlash(null), 1600);
       } finally {
@@ -142,52 +160,134 @@ export default function CompareDesk({
     );
   };
 
-  return (
-    <div className="flex h-full">
-      <div className="flex-1 min-w-0 flex flex-col">
-        <div className="h-10 shrink-0 border-b border-slate-200 bg-white flex items-center gap-3 px-4">
-          {picker(leftId, setLeftId)}
-          <span className="text-xs text-slate-400">
-            Drag a highlight onto a highlight in the other pane to link them.
-          </span>
-          {flash && <span className="text-xs font-medium text-emerald-600">{flash}</span>}
+  /** The passages saved from one document, as a list you can actually click. */
+  const rail = (docId: string) => {
+    const mine = cards.filter((c) => c.documentId === docId);
+    return (
+      <div className="w-52 shrink-0 border-l border-slate-200 bg-slate-50 flex flex-col">
+        <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-slate-400 border-b border-slate-200">
+          Cards here ({mine.length})
         </div>
-        <div className="flex-1 min-h-0 flex divide-x divide-slate-200">
-          <div className="flex-1 min-w-0">
-            {leftId && (
-              <Reader
-                key={leftId}
-                matterId={matterId}
-                docId={leftId}
-                compact
-                onLinkDrop={createLink}
-                linkedCardIds={linkedCardIds}
-                onCardsChanged={load}
-              />
-            )}
-          </div>
-          <div className="flex-1 min-w-0 flex flex-col">
-            <div className="h-10 shrink-0 border-b border-slate-200 bg-white flex items-center px-4">
-              {picker(rightId, setRightId)}
-            </div>
-            <div className="flex-1 min-h-0">
-              {rightId && (
-                <Reader
-                  key={rightId}
-                  matterId={matterId}
-                  docId={rightId}
-                  compact
-                  onLinkDrop={createLink}
-                  linkedCardIds={linkedCardIds}
-                  onCardsChanged={load}
-                />
-              )}
-            </div>
-          </div>
+        <div className="flex-1 overflow-auto p-2 space-y-1.5">
+          {mine.length === 0 && (
+            <p className="text-[11px] text-slate-400 px-1">
+              Highlight a passage in this document to create a card.
+            </p>
+          )}
+          {mine.map((c) => {
+            const chosen = c.id === slotA || c.id === slotB;
+            return (
+              <button
+                key={c.id}
+                onClick={() => pick(c.id)}
+                className={`w-full text-left rounded-lg border px-2 py-1.5 text-[11px] leading-snug transition ${
+                  chosen
+                    ? "border-indigo-400 bg-indigo-50"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
+              >
+                <span className="flex items-center gap-1.5 mb-0.5">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: CARD_TYPE_COLOR[c.cardType as CardTypeValue] }}
+                  />
+                  <span className="text-slate-400">
+                    {c.page ? `p.${c.page}` : ""}
+                    {c.para ? ` ¶${c.para}` : ""}
+                  </span>
+                  {linkedCardIds.has(c.id) && (
+                    <span className="ml-auto text-slate-400" title="already linked">
+                      &#9679;
+                    </span>
+                  )}
+                </span>
+                <span className="text-slate-700 line-clamp-3">{c.quote || c.body}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
+    );
+  };
 
-      <aside className="w-80 shrink-0 border-l border-slate-200 bg-white flex flex-col">
+  const pane = (
+    docId: string,
+    setDocId: (v: string) => void,
+    side: "left" | "right"
+  ) => (
+    <div className={`flex-1 min-w-0 flex flex-col ${side === "left" ? "border-r border-slate-200" : ""}`}>
+      <div className="h-11 shrink-0 border-b border-slate-200 bg-white flex items-center gap-2 px-3">
+        <span className="text-[11px] uppercase tracking-wide text-slate-400 shrink-0">
+          {side === "left" ? "Left" : "Right"}
+        </span>
+        {picker(docId, setDocId)}
+      </div>
+      <div className="flex-1 min-h-0 flex">
+        <div className="flex-1 min-w-0">
+          {docId && (
+            <Reader
+              key={docId}
+              matterId={matterId}
+              docId={docId}
+              compact
+              linkedCardIds={linkedCardIds}
+              onCardsChanged={load}
+            />
+          )}
+        </div>
+        {rail(docId)}
+      </div>
+    </div>
+  );
+
+  const slotView = (cardId: string | null, label: string, clear: () => void) => {
+    const c = cardId ? cardById.get(cardId) : null;
+    return (
+      <div
+        className={`flex-1 min-w-0 rounded-lg border px-2.5 py-1.5 text-xs ${
+          c ? "border-indigo-300 bg-white" : "border-dashed border-slate-300 bg-slate-50"
+        }`}
+      >
+        <span className="text-[10px] uppercase tracking-wide text-slate-400">{label}</span>
+        {c ? (
+          <span className="flex items-center gap-2">
+            <span className="truncate text-slate-700">{(c.quote || c.body).slice(0, 70)}</span>
+            <button onClick={clear} className="ml-auto shrink-0 text-slate-400 hover:text-slate-600">
+              &times;
+            </button>
+          </span>
+        ) : (
+          <span className="block text-slate-400">Click a card in either list</span>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 border-b border-slate-200 bg-slate-50 flex items-center gap-2 px-4 py-2">
+        {slotView(slotA, "First", () => setSlotA(null))}
+        {slotView(slotB, "Second", () => setSlotB(null))}
+        <button
+          disabled={!slotA || !slotB || busy}
+          onClick={() => slotA && slotB && createLink(slotA, slotB)}
+          className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-30"
+        >
+          Link these
+        </button>
+        {flash && <span className="text-xs font-medium text-emerald-600">{flash}</span>}
+        {ready.length < 2 && (
+          <span className="text-xs text-amber-600">
+            Only one document in this matter, so both panes show the same one. Upload another to
+            compare.
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-h-0 flex">
+        {pane(leftId, setLeftId, "left")}
+        {pane(rightId, setRightId, "right")}
+
+        <aside className="w-80 shrink-0 border-l border-slate-200 bg-white flex flex-col">
         <div className="h-10 shrink-0 border-b border-slate-200 flex items-center px-4">
           <h2 className="text-sm font-medium">Links</h2>
           <span className="ml-auto text-xs text-slate-400">{links.length}</span>
@@ -230,8 +330,9 @@ export default function CompareDesk({
               </button>
             </div>
           ))}
-        </div>
-      </aside>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

@@ -29,7 +29,6 @@ export default function Reader({
   initialPage,
   initialCardId,
   compact = false,
-  onLinkDrop,
   linkedCardIds,
   onCardsChanged,
 }: {
@@ -39,7 +38,6 @@ export default function Reader({
   initialCardId?: string;
   /** in a side by side pane: no card panel of its own, the desk owns that */
   compact?: boolean;
-  onLinkDrop?: (fromCardId: string, toCardId: string) => void;
   linkedCardIds?: Set<string>;
   onCardsChanged?: () => void;
 }) {
@@ -314,7 +312,6 @@ export default function Reader({
                 selectedCardId={selectedCardId}
                 onSelectCard={setSelectedCardId}
                 onSize={reportPageSize}
-                onLinkDrop={onLinkDrop}
                 linkedCardIds={linkedCardIds}
                 registerRef={(page, el) => {
                   if (el) pageRefs.current.set(page, el);
