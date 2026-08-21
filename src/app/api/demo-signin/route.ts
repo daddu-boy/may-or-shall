@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/db";
+import { origin } from "@/lib/oauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,8 +29,10 @@ export async function POST(req: NextRequest) {
   const email = String(form?.get("email") || "").trim().toLowerCase();
   const password = String(form?.get("password") || "");
 
-  const deny = () =>
-    NextResponse.redirect(new URL("/demo-signin?error=1", req.url), 303);
+  // Redirects must use the public origin: behind Railway's proxy req.url is the
+  // internal http://localhost:8080, which would send a reviewer nowhere.
+  const base = origin();
+  const deny = () => NextResponse.redirect(`${base}/demo-signin?error=1`, 303);
 
   if (!expected || email !== DEMO_EMAIL || !password) return deny();
   const a = Buffer.from(password);
@@ -51,8 +54,8 @@ export async function POST(req: NextRequest) {
   const expires = new Date(Date.now() + THIRTY_DAYS);
   await prisma.session.create({ data: { sessionToken, userId: user.id, expires } });
 
-  const secure = new URL(req.url).protocol === "https:";
-  const res = NextResponse.redirect(new URL("/", req.url), 303);
+  const secure = base.startsWith("https:");
+  const res = NextResponse.redirect(base + "/", 303);
   res.cookies.set({
     name: secure ? "__Secure-authjs.session-token" : "authjs.session-token",
     value: sessionToken,
