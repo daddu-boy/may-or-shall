@@ -28,6 +28,7 @@ const PUBLIC_PREFIXES = [
   "/terms",
   "/.well-known",
   "/oauth",
+  "/demo-signin",
 ];
 
 function withCors(req: NextRequest, res: NextResponse): NextResponse {
