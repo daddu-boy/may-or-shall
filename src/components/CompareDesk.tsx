@@ -9,7 +9,15 @@ import {
   type CardTypeValue,
   type LinkKindValue,
 } from "@/lib/labels";
-import Reader from "./reader/Reader";
+import dynamic from "next/dynamic";
+
+// pdf.js touches DOM APIs at module scope, so the reader is client only. A
+// static import here renders it on the server on a hard load and the page 500s,
+// which is exactly what happened.
+const Reader = dynamic(() => import("./reader/Reader"), {
+  ssr: false,
+  loading: () => <p className="p-6 text-sm text-slate-400">Loading reader…</p>,
+});
 
 interface LinkDto {
   id: string;
@@ -295,7 +303,8 @@ export default function CompareDesk({
         <div className="flex-1 overflow-auto p-3 space-y-3">
           {links.length === 0 && (
             <p className="text-xs text-slate-400">
-              No links yet. Highlight a passage in each pane, then drag one onto the other.
+              No links yet. Highlight a passage in each document to make a card, then pick one
+              from each list above and press Link these.
             </p>
           )}
           {links.map((l) => (
