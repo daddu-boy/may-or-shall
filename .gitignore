@@ -53,3 +53,4 @@ pdf.worker.min.mjs
 # generated Postgres client used only by the one-time migration
 /node_modules/.prisma-pg-client
 /prisma/schema-pg-migrate.prisma
+demo-raw*.mov
