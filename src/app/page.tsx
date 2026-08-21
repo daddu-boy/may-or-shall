@@ -183,7 +183,7 @@ function MatterRow({
   return (
     <li
       data-tour={first ? "matter-row" : undefined}
-      className="surface px-5 py-4 flex items-center justify-between gap-4 transition-shadow hover:shadow-md"
+      className="surface px-5 py-4 flex items-center justify-between gap-4 transition-colors hover:bg-[var(--surface-sunken)]"
     >
       <div className="min-w-0">
         {renaming ? (

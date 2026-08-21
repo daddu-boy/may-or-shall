@@ -8,9 +8,9 @@
  * look at. Colour is reserved for card types, where it carries meaning.
  */
 :root {
-  --bg: #f5f5f7;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-sunken: #fafafa;
+  --surface-sunken: #f5f5f7;
   --text: #1d1d1f;
   --text-secondary: #6e6e73;
   --text-tertiary: #86868b;
@@ -20,7 +20,7 @@
   --accent-soft: #eef2ff;
   --radius-card: 14px;
   --radius-control: 10px;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-card: none;
 }
 
 body {
@@ -40,7 +40,11 @@ h1, h2, h3 {
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+}
+
+/* the quiet grey ground, used for wells and sidebars rather than whole pages */
+.sunken {
+  background: var(--surface-sunken);
 }
 
 .hairline {

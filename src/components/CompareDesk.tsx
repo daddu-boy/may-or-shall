@@ -61,6 +61,26 @@ export default function CompareDesk({
    */
   const [slotA, setSlotA] = useState<string | null>(null);
   const [slotB, setSlotB] = useState<string | null>(null);
+  /** card each pane should scroll to and select, set by clicking a link */
+  const [focusLeft, setFocusLeft] = useState<string | null>(null);
+  const [focusRight, setFocusRight] = useState<string | null>(null);
+
+  /**
+   * Open a linked passage. A link is only worth drawing if you can follow it,
+   * so clicking either end loads that card's document into a pane and scrolls
+   * to the highlight. The pane already showing that document is reused;
+   * otherwise the right one takes it, so the passage you came from stays put.
+   */
+  const reveal = (cardId: string) => {
+    const card = cardById.get(cardId);
+    if (!card?.documentId) return;
+    if (leftId === card.documentId) setFocusLeft(cardId);
+    else if (rightId === card.documentId) setFocusRight(cardId);
+    else {
+      setRightId(card.documentId);
+      setFocusRight(cardId);
+    }
+  };
 
   const pick = (cardId: string) => {
     if (slotA === cardId || slotB === cardId) return;
@@ -152,7 +172,12 @@ export default function CompareDesk({
     if (!c) return <span className="text-slate-400">(card deleted)</span>;
     const doc = c.documentId ? docById.get(c.documentId) : null;
     return (
-      <span>
+      <button
+        type="button"
+        onClick={() => reveal(cardId)}
+        title="Open this passage"
+        className="block w-full text-left rounded-md px-1 py-0.5 -mx-1 hover:bg-[var(--surface-sunken)]"
+      >
         <span
           className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle"
           style={{ background: CARD_TYPE_COLOR[c.cardType as CardTypeValue] }}
@@ -164,7 +189,7 @@ export default function CompareDesk({
           {c.page ? `, p.${c.page}` : ""}
           {c.para ? `, para ${c.para}` : ""}
         </span>
-      </span>
+      </button>
     );
   };
 
@@ -221,7 +246,8 @@ export default function CompareDesk({
   const pane = (
     docId: string,
     setDocId: (v: string) => void,
-    side: "left" | "right"
+    side: "left" | "right",
+    focusCardId: string | null
   ) => (
     <div className={`flex-1 min-w-0 flex flex-col ${side === "left" ? "border-r border-slate-200" : ""}`}>
       <div className="h-11 shrink-0 border-b border-slate-200 bg-white flex items-center gap-2 px-3">
@@ -233,9 +259,10 @@ export default function CompareDesk({
       <div className="flex-1 min-h-0">
         {docId && (
           <Reader
-            key={docId}
+            key={`${docId}:${focusCardId ?? ""}`}
             matterId={matterId}
             docId={docId}
+            initialCardId={focusCardId ?? undefined}
             compact
             linkedCardIds={linkedCardIds}
             onCardsChanged={load}
@@ -289,8 +316,8 @@ export default function CompareDesk({
         )}
       </div>
       <div className="flex-1 min-h-0 flex">
-        {pane(leftId, setLeftId, "left")}
-        {pane(rightId, setRightId, "right")}
+        {pane(leftId, setLeftId, "left", focusLeft)}
+        {pane(rightId, setRightId, "right", focusRight)}
 
         <aside className="w-80 shrink-0 border-l border-slate-200 bg-white flex flex-col">
         {/* one sidebar rather than a rail beside each pane: three columns of
