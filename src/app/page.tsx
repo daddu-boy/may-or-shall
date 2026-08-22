@@ -30,8 +30,9 @@ export default function Dashboard() {
     <main className="max-w-4xl mx-auto px-6 py-16">
       <div className="flex items-end justify-between mb-10">
         <div>
-          <h1 className="text-[34px] font-semibold leading-tight">Matters</h1>
-          <p className="mt-2 text-[15px]" style={{ color: "var(--text-secondary)" }}>
+          <p className="eyebrow mb-3">May or Shall</p>
+          <h1 className="display text-[56px]">Matters</h1>
+          <p className="mt-4 text-[15px]" style={{ color: "var(--text-secondary)" }}>
             Everything you are working on, in one place.
           </p>
         </div>
