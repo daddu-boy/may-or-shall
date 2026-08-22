@@ -69,7 +69,7 @@ const TOOLS = [
     name: "search",
     title: "Search the matter file",
     description:
-      "Search everything in this May or Shall account: saved cards (passages the lawyer chose, each with its exact quote and citation), matters, and uploaded documents. Returns results to be read with fetch.",
+      "Search everything in this May or Shall account. Results come in two tiers: first the saved cards, which are passages the lawyer chose and typed, then pages of the underlying documents, which cover everything else in the file including material nobody clipped. Read any result in full with fetch.",
     annotations: READ_ONLY,
     inputSchema: {
       type: "object",
@@ -82,7 +82,7 @@ const TOOLS = [
     name: "fetch",
     title: "Read one result in full",
     description:
-      "Retrieve the full text of a result returned by search, by its id. Also accepts traverse:<matterId> for the unanswered paragraphs of a plaint, and chronology:<matterId> for the list of dates.",
+      "Retrieve the full text of a result returned by search, by its id. Fetching a card returns its quote, its note, and the full text of the page it was taken from, so its citation resolves to the actual passage. Page ids look like page:<documentId>:<n> and carry previous and next ids so you can read on. Also accepts traverse:<matterId> for the unanswered paragraphs of a plaint, and chronology:<matterId> for the list of dates.",
     annotations: READ_ONLY,
     inputSchema: {
       type: "object",
@@ -143,7 +143,7 @@ const TOOLS = [
     name: "list_documents",
     annotations: READ_ONLY,
     description:
-      "List the documents uploaded to a matter, with their type, page count and annexure label.",
+      "List the documents uploaded to a matter, with their type, page count and annexure label. Any page can then be read with fetch using page:<documentId>:<n>.",
     inputSchema: {
       type: "object",
       properties: { matterId: { type: "string" } },
@@ -264,6 +264,38 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
           url: `${base}/matters/${d.matterId}/documents`,
         });
       }
+
+      /*
+       * Pages of the record itself, after the cards. Two tiers on purpose: the
+       * cards are the passages a lawyer chose, and come first because that
+       * judgment is the scarce thing here; the pages are everything else, so
+       * nothing in the file is out of reach even where it was never clipped.
+       */
+      const pages = await prisma.documentPage.findMany({
+        where: {
+          document: { matterId: { in: mine } },
+          text: { contains: q, mode: "insensitive" },
+        },
+        take: 8,
+        orderBy: [{ documentId: "asc" }, { page: "asc" }],
+        select: {
+          page: true,
+          text: true,
+          document: { select: { id: true, filename: true, matterId: true } },
+        },
+      });
+      for (const pg of pages) {
+        const at = pg.text.toLowerCase().indexOf(q.toLowerCase());
+        const snippet = pg.text
+          .slice(Math.max(0, at - 40), Math.max(0, at - 40) + 140)
+          .replace(/\s+/g, " ")
+          .trim();
+        results.push({
+          id: `page:${pg.document.id}:${pg.page}`,
+          title: `${pg.document.filename}, p.${pg.page} — …${snippet}…`,
+          url: `${base}/matters/${pg.document.matterId}/documents/${pg.document.id}?page=${pg.page}`,
+        });
+      }
     }
 
     return structured({ results });
@@ -278,14 +310,30 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       const c = await prisma.card.findUnique({
         where: { id: refId },
         select: {
-          id: true, matterId: true, cardType: true, quote: true, body: true, page: true,
-          para: true, citation: true, eventDate: true, sourceUrl: true, sourceTitle: true,
+          id: true, matterId: true, documentId: true, cardType: true, quote: true, body: true,
+          page: true, para: true, citation: true, eventDate: true, sourceUrl: true,
+          sourceTitle: true,
           matter: { select: { userId: true, title: true } },
           document: { select: { filename: true } },
         },
       });
       if (!c || c.matter.userId !== userId) return text("Not found in this account.", true);
       const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
+      /*
+       * The citation is resolved here rather than left as a string. A card that
+       * says "p.4, para 7" is of little use to a model that cannot open p.4, so
+       * the page it came from is returned with it. That is what lets one
+       * connector carry both what the lawyer marked and the record it sits in.
+       */
+      let context = "";
+      if (c.documentId && c.page) {
+        const pg = await prisma.documentPage.findUnique({
+          where: { documentId_page: { documentId: c.documentId, page: c.page } },
+          select: { text: true },
+        });
+        if (pg?.text) context = pg.text.replace(/\s+/g, " ").trim();
+      }
+
       const lines = [
         `Type: ${label}`,
         `Matter: ${c.matter.title}`,
@@ -294,13 +342,21 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         "",
         `Quote: "${c.quote}"`,
         c.body && c.body !== c.quote ? `Note: ${c.body}` : "",
+        context ? `\nThe page this passage was taken from:\n${context}` : "",
       ].filter(Boolean);
       return structured({
         id: raw,
         title: `[${label}] ${c.matter.title}`,
         text: lines.join("\n"),
         url: `${base}/matters/${c.matterId}/cards`,
-        metadata: { cardType: c.cardType, matterId: c.matterId },
+        metadata: {
+          cardType: c.cardType,
+          matterId: c.matterId,
+          documentId: c.documentId,
+          page: c.page,
+          para: c.para,
+          pageId: c.documentId && c.page ? `page:${c.documentId}:${c.page}` : undefined,
+        },
       });
     }
 
@@ -339,6 +395,45 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
           url: `${base}/matters/${matterId}/cards`,
         });
       }
+    }
+
+    if (kind === "page") {
+      // page:<documentId>:<n>
+      const [docPart, nPart] = refId.split(":");
+      const n = parseInt(nPart, 10);
+      const pg = await prisma.documentPage.findUnique({
+        where: { documentId_page: { documentId: docPart, page: n } },
+        select: {
+          text: true,
+          page: true,
+          document: {
+            select: {
+              id: true,
+              filename: true,
+              pageCount: true,
+              matterId: true,
+              matter: { select: { userId: true, title: true } },
+            },
+          },
+        },
+      });
+      if (!pg || pg.document.matter.userId !== userId) {
+        return text("Not found in this account.", true);
+      }
+      const d = pg.document;
+      return structured({
+        id: raw,
+        title: `${d.filename}, p.${pg.page}`,
+        text: `${d.filename}, page ${pg.page} of ${d.pageCount} (matter: ${d.matter.title})\n\n${pg.text}`,
+        url: `${base}/matters/${d.matterId}/documents/${d.id}?page=${pg.page}`,
+        metadata: {
+          documentId: d.id,
+          page: pg.page,
+          pageCount: d.pageCount,
+          previous: pg.page > 1 ? `page:${d.id}:${pg.page - 1}` : undefined,
+          next: pg.page < d.pageCount ? `page:${d.id}:${pg.page + 1}` : undefined,
+        },
+      });
     }
 
     if (kind === "document") {
@@ -585,8 +680,15 @@ export async function POST(req: NextRequest) {
       protocolVersion: agreed,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: "may-or-shall", version: "1.0.0" },
-      instructions:
-        "May or Shall holds a litigator's matters: passages they chose and typed, each with its citation. Call list_matters first. When drafting, ground every factual sentence in search_cards results and keep their citations. traverse_gaps answers which paragraphs of a plaint are still unanswered under Order VIII Rule 5 CPC.",
+      instructions: [
+        "May or Shall holds a litigator's matters. It gives you two different things and the difference matters.",
+        "",
+        "Cards are passages the lawyer read and deliberately saved, each typed (fact, date, admission, case law, their argument) and carrying its exact quote and citation. They are a record of what a trained reader thought was important. Treat them as the spine of any draft, and prefer them over your own recall.",
+        "",
+        "Pages are the rest of the record. Everything in the file is reachable through search and through fetch on a page id, including material nobody clipped. Use them to check context around a card, or to find something the lawyer has not marked. Fetching a card also returns the page it came from, so a citation is never a dead reference.",
+        "",
+        "Call list_matters first. Ground every factual sentence in a card or a page you have actually fetched, and keep the citation. Where the record and your general knowledge disagree, the record wins. traverse_gaps answers which paragraphs of a plaint still lack a specific denial and so risk being treated as admitted under Order VIII Rule 5 CPC.",
+      ].join("\n"),
     });
   }
 

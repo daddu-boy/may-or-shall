@@ -26,12 +26,17 @@ const overlap = () => page.evaluate(() => {
   return panes.some(p => p.getBoundingClientRect().right > ar.left + 2) ? "OVERLAPS" : "no overlap";
 });
 console.log("  panes:", await widths(), "|", await overlap());
-await page.screenshot({ path: `${OUT}/panel-docked.png` });
+await page.screenshot({ path: `${OUT}/panel-float.png` });
 
-await page.locator('button[title^="Collapse, so both documents"]').click();
+await page.locator('button[title^="Hide, so both documents"]').click();
 await page.waitForTimeout(1200);
 console.log("  after collapse:", await widths());
-await page.locator('button[title="Show cards and links"]').click();
+await page.waitForTimeout(600);
+await page.screenshot({ path: `${OUT}/panel-button.png` });
+const btn = page.locator('button[title="Show cards and links"]');
+const bb = await btn.boundingBox();
+console.log(`  trigger button: ${Math.round(bb.width)}x${Math.round(bb.height)} at top-right`);
+await btn.click();
 await page.waitForTimeout(1200);
 console.log("  after reopen:  ", await widths());
 await browser.close();
