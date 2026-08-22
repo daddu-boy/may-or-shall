@@ -82,7 +82,7 @@ const TOOLS = [
     name: "fetch",
     title: "Read one result in full",
     description:
-      "Retrieve the full text of a result returned by search, by its id. Fetching a card returns its quote, its note, and the full text of the page it was taken from, so its citation resolves to the actual passage. Page ids look like page:<documentId>:<n> and carry previous and next ids so you can read on. Also accepts traverse:<matterId> for the unanswered paragraphs of a plaint, and chronology:<matterId> for the list of dates.",
+      "Retrieve the full text of a result returned by search, by its id. Fetching a document returns its whole text with the lawyer's own marked passages listed first and then wrapped in place, numbered, so you can read the record and see what they singled out at the same time. Fetching a card returns its quote, its note, and the page it came from. Page ids look like page:<documentId>:<n> and carry previous and next ids so you can read on. Also accepts traverse:<matterId> and chronology:<matterId>.",
     annotations: READ_ONLY,
     inputSchema: {
       type: "object",
@@ -443,14 +443,88 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         select: {
           id: true, filename: true, docType: true, pageCount: true, annexureLabel: true,
           matterId: true, matter: { select: { userId: true, title: true } },
+          pages: { orderBy: { page: "asc" }, select: { page: true, text: true } },
+          cards: {
+            orderBy: [{ page: "asc" }, { createdAt: "asc" }],
+            select: { id: true, cardType: true, quote: true, body: true, page: true, para: true },
+          },
         },
       });
       if (!d || d.matter.userId !== userId) return text("Not found in this account.", true);
+
+      /*
+       * The document, with the lawyer's own passages marked inside it.
+       *
+       * The marks are numbered and listed separately above the text, rather
+       * than only inlined, so that the cards stay a countable thing the user
+       * recognises as theirs. A model that reports "working from your 7 marked
+       * passages, card 3 in particular" is legible to the person who made
+       * them; one that silently absorbs highlights into a wall of text is not.
+       */
+      const marked = d.cards.filter((c) => c.quote && c.quote.trim().length > 3);
+      const manifest = marked.length
+        ? marked
+            .map((c, i) => {
+              const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
+              const where = [c.page ? `p.${c.page}` : "", c.para ? `para ${c.para}` : ""]
+                .filter(Boolean)
+                .join(", ");
+              const note = c.body && c.body !== c.quote ? `\n     note: ${c.body}` : "";
+              return `  [${i + 1}] ${label}${where ? ` (${where})` : ""}\n     "${c.quote}"${note}`;
+            })
+            .join("\n")
+        : "  (none: nothing in this document has been marked yet)";
+
+      const body = d.pages
+        .map((pg) => {
+          let t = pg.text;
+          for (const [i, c] of marked.entries()) {
+            if (c.page && c.page !== pg.page) continue;
+            const q = c.quote.trim();
+            const at = t.indexOf(q);
+            if (at === -1) continue; // quote spans a line break the text layer set differently
+            const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
+            t = `${t.slice(0, at)}<<MARKED ${i + 1} ${label}>>${q}<</MARKED ${i + 1}>>${t.slice(at + q.length)}`;
+          }
+          return `--- page ${pg.page} ---\n${t}`;
+        })
+        .join("\n\n");
+
       return structured({
         id: raw,
         title: d.filename,
-        text: `${d.filename}\nType: ${d.docType}\nPages: ${d.pageCount}${d.annexureLabel ? `\nAnnexure: ${d.annexureLabel}` : ""}\nMatter: ${d.matter.title}\n\nOpen the document in May or Shall to read it; the cards saved from it carry the passages that were selected.`,
-        url: `${base}/matters/${d.matterId}/documents`,
+        text: [
+          `${d.filename} (${d.docType}, ${d.pageCount} page(s))`,
+          d.annexureLabel ? `Annexure: ${d.annexureLabel}` : "",
+          `Matter: ${d.matter.title}`,
+          "",
+          `The lawyer marked ${marked.length} passage(s) in this document. These are their own`,
+          `selections and are the part of the record they judged to matter:`,
+          "",
+          manifest,
+          "",
+          `Below is the full text. Each marked passage appears in place, wrapped as`,
+          `<<MARKED n TYPE>> ... <</MARKED n>>, numbered to the list above. Use the whole`,
+          `document for context, weight the marked passages, and when you rely on one, say`,
+          `which number so the lawyer can see which of their own passages you used.`,
+          "",
+          body,
+        ]
+          .filter((l) => l !== "")
+          .join("\n"),
+        url: `${base}/matters/${d.matterId}/documents/${d.id}`,
+        metadata: {
+          documentId: d.id,
+          pageCount: d.pageCount,
+          markedCount: marked.length,
+          marked: marked.map((c, i) => ({
+            n: i + 1,
+            cardId: c.id,
+            type: c.cardType,
+            page: c.page,
+            para: c.para,
+          })),
+        },
       });
     }
 
@@ -687,6 +761,8 @@ export async function POST(req: NextRequest) {
         "Cards are passages the lawyer read and deliberately saved, each typed (fact, date, admission, case law, their argument) and carrying its exact quote and citation. They are a record of what a trained reader thought was important. Treat them as the spine of any draft, and prefer them over your own recall.",
         "",
         "Pages are the rest of the record. Everything in the file is reachable through search and through fetch on a page id, including material nobody clipped. Use them to check context around a card, or to find something the lawyer has not marked. Fetching a card also returns the page it came from, so a citation is never a dead reference.",
+        "",
+        "To draft from a document, fetch the document itself rather than asking the user to upload it. You get the full text with their marked passages listed at the top and wrapped in place as <<MARKED n TYPE>>. Read the whole thing, give the marked passages more weight, and never draft only from them: the marks raise what matters, they do not hide the rest. When you rely on a marked passage, name its number, so the lawyer can see which of their own selections you used.",
         "",
         "Call list_matters first. Ground every factual sentence in a card or a page you have actually fetched, and keep the citation. Where the record and your general knowledge disagree, the record wins. traverse_gaps answers which paragraphs of a plaint still lack a specific denial and so risk being treated as admitted under Order VIII Rule 5 CPC.",
       ].join("\n"),
