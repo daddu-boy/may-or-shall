@@ -360,7 +360,8 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       });
     }
 
-    const matterId = kind === "document" ? null : refId;
+    // ids whose remainder is not a matter id: they carry their own lookup below
+    const matterId = kind === "document" || kind === "page" ? null : refId;
     if (matterId) {
       const m = await ownedMatter(userId, matterId);
       if (!m) return text("Not found in this account.", true);
