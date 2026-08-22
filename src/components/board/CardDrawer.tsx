@@ -18,6 +18,7 @@ interface LinkDto {
   fromCardId: string;
   toCardId: string;
   kind: LinkKindValue;
+  note: string;
   suggested: boolean;
 }
 
@@ -159,6 +160,9 @@ export default function CardDrawer({
                     }
                     className="block rounded-lg border border-slate-200 px-2.5 py-2 text-xs hover:bg-slate-50"
                   >
+                    {link.note ? (
+                      <span className="block font-medium text-slate-800">{link.note}</span>
+                    ) : null}
                     <span className="text-slate-400">
                       {outgoing
                         ? LINK_KIND_LABEL[link.kind]

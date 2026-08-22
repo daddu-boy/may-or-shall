@@ -1,11 +1,17 @@
-import Board from "@/components/board/Board";
+import CardsWorkspace from "@/components/CardsWorkspace";
 
 export default function CardsPage({
   params,
   searchParams,
 }: {
   params: { matterId: string };
-  searchParams: { card?: string };
+  searchParams: { card?: string; tab?: string };
 }) {
-  return <Board matterId={params.matterId} initialCardId={searchParams.card} />;
+  return (
+    <CardsWorkspace
+      matterId={params.matterId}
+      initialCardId={searchParams.card}
+      initialTab={searchParams.tab}
+    />
+  );
 }

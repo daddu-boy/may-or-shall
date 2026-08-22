@@ -71,6 +71,8 @@ export default function CompareDesk({
   const rowRef = useRef<HTMLDivElement>(null);
   /** the floating panel: translucent while you read, solid once you engage */
   const [panelOpen, setPanelOpen] = useState(true);
+  const [noteFor, setNoteFor] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
   const [panelSolid, setPanelSolid] = useState(false);
 
   /**
@@ -166,6 +168,14 @@ export default function CompareDesk({
 
   const setKind = async (id: string, kind: LinkKindValue) => {
     await api(`/api/links/${id}`, { method: "PATCH", body: JSON.stringify({ kind }) });
+    load();
+  };
+
+  /** Your own words about why two passages belong together, written where you
+   *  spotted it rather than remembered later. */
+  const saveNote = async (id: string, note: string) => {
+    await api(`/api/links/${id}`, { method: "PATCH", body: JSON.stringify({ note }) });
+    setNoteFor(null);
     load();
   };
 
@@ -490,6 +500,50 @@ export default function CompareDesk({
             >
               {l.suggested && (
                 <p className="mb-1 text-[11px] font-medium text-indigo-600">Suggested</p>
+              )}
+              {noteFor === l.id ? (
+                <div className="mb-2">
+                  <textarea
+                    autoFocus
+                    rows={2}
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="Why are these connected?"
+                    className="field w-full px-2 py-1.5 text-[11px]"
+                  />
+                  <div className="mt-1 flex gap-1.5">
+                    <button
+                      onClick={() => saveNote(l.id, noteDraft)}
+                      className="btn-primary px-2.5 py-1 text-[10.5px]"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setNoteFor(null)}
+                      className="btn-quiet px-2.5 py-1 text-[10.5px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setNoteFor(l.id);
+                    setNoteDraft(l.note || "");
+                  }}
+                  className="block w-full text-left mb-1.5"
+                >
+                  {l.note ? (
+                    <span className="text-[12px] font-medium leading-snug" style={{ color: "var(--text)" }}>
+                      {l.note}
+                    </span>
+                  ) : (
+                    <span className="text-[11px]" style={{ color: "var(--accent)" }}>
+                      + Add your own note
+                    </span>
+                  )}
+                </button>
               )}
               <div className="mb-1">{endpoint(l.fromCardId)}</div>
               <select
