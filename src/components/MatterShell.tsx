@@ -20,15 +20,31 @@ interface SearchResults {
   }[];
 }
 
-const NAV = [
-  { label: "Documents", slug: "documents" },
-  { label: "Open two PDFs", slug: "compare" },
-  { label: "Cards", slug: "cards" },
-  { label: "Chronology", slug: "chronology" },
-  { label: "Traverse", slug: "traverse" },
-  { label: "Drafts", slug: "drafts" },
-  { label: "Compilation", slug: "compilation" },
-  { label: "Annexures", slug: "annexures" },
+/**
+ * Two groups, because the list had grown into eight unlabelled items and read
+ * as one undifferentiated pile. The first is the case file as it comes in and
+ * how you read it; the second is what you produce from it. Editable rows sits
+ * last because it is the most specialised.
+ */
+const NAV_GROUPS = [
+  {
+    heading: "Case file",
+    items: [
+      { label: "Upload", slug: "documents" },
+      { label: "Workspace", slug: "compare" },
+      { label: "Cards", slug: "cards" },
+    ],
+  },
+  {
+    heading: "Drafting",
+    items: [
+      { label: "Chronology", slug: "chronology" },
+      { label: "Native Drafting", slug: "drafts" },
+      { label: "Compilation", slug: "compilation" },
+      { label: "Annexures", slug: "annexures" },
+      { label: "Editable rows", slug: "traverse" },
+    ],
+  },
 ] as const;
 
 const UPCOMING: string[] = [];
@@ -104,32 +120,43 @@ export default function MatterShell({
             </p>
           )}
         </div>
-        <nav className="px-3 space-y-0.5">
-          {NAV.map((item) => {
-            const href = `/matters/${matterId}/${item.slug}`;
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={item.slug}
-                href={href}
-                data-tour={`nav-${item.slug}`}
-                className="block rounded-[10px] px-3 py-2 text-[13.5px] font-medium transition-colors"
-                style={
-                  active
-                    ? { background: "var(--text)", color: "var(--bg)" }
-                    : { color: "var(--text-secondary)" }
-                }
+        <nav className="px-3 space-y-5">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.heading}>
+              <p
+                className="px-3 pb-1.5 text-[10.5px] font-medium uppercase tracking-[0.06em]"
+                style={{ color: "var(--text-tertiary)" }}
               >
-                {item.label}
-              </Link>
-            );
-          })}
+                {group.heading}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const href = `/matters/${matterId}/${item.slug}`;
+                  const active = pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={item.slug}
+                      href={href}
+                      data-tour={`nav-${item.slug}`}
+                      className="block rounded-[10px] px-3 py-2 text-[13.5px] font-medium transition-colors"
+                      style={
+                        active
+                          ? { background: "var(--text)", color: "var(--bg)" }
+                          : { color: "var(--text-secondary)" }
+                      }
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
           {UPCOMING.map((label) => (
             <span
               key={label}
               className="block px-3 py-2 text-[13.5px] cursor-not-allowed"
               style={{ color: "var(--text-tertiary)", opacity: 0.5 }}
-              title="Coming in a later phase"
             >
               {label}
             </span>

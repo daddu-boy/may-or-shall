@@ -115,15 +115,15 @@ export default function LinksView({ matterId }: { matterId: string }) {
         <h2 className="text-lg font-semibold">No links yet</h2>
         <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
           A link joins two passages: the paragraph of the plaint and the annexure it relies on, an
-          admission and the document that contradicts it. Open two documents side by side, pick a
-          card in each, and press Link these. Whatever you write about the connection will show up
+          admission and the document that contradicts it. Open two documents side by side in the workspace, pick a card in each, and press Link
+          these. Whatever you write about the connection will show up
           here.
         </p>
         <Link
           href={`/matters/${matterId}/compare`}
           className="btn-primary inline-block mt-6 px-5 py-2.5 text-[13.5px]"
         >
-          Open two PDFs
+          Open the workspace
         </Link>
       </div>
     );
@@ -131,11 +131,28 @@ export default function LinksView({ matterId }: { matterId: string }) {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-      <div className="flex items-baseline justify-between mb-6">
-        <h2 className="text-[22px] font-semibold">Links</h2>
-        <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-          {links.length} connection{links.length === 1 ? "" : "s"} in this matter
-        </span>
+      <div className="flex items-baseline justify-between mb-6 gap-4">
+        <div>
+          <h2 className="text-[22px] font-semibold">Links</h2>
+          <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+            {links.length} connection{links.length === 1 ? "" : "s"} in this matter
+          </span>
+        </div>
+        {/* the same two formats the cards export offers */}
+        <div className="flex items-center gap-2 shrink-0">
+          <a
+            href={`/api/matters/${matterId}/exports/links`}
+            className="btn-quiet px-3.5 py-2 text-[12.5px]"
+          >
+            Word
+          </a>
+          <a
+            href={`/api/matters/${matterId}/exports/links?format=pdf`}
+            className="btn-quiet px-3.5 py-2 text-[12.5px]"
+          >
+            PDF
+          </a>
+        </div>
       </div>
 
       <ul className="space-y-4">
