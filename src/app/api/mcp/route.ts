@@ -475,18 +475,45 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
             .join("\n")
         : "  (none: nothing in this document has been marked yet)";
 
+      /*
+       * Positions are found on the original page text and applied in one pass.
+       * Rewriting the string inside the loop and searching again from zero made
+       * overlapping quotes nest inside each other, so six cards quoting the same
+       * heading produced six stacked markers around one sentence.
+       */
       const body = d.pages
         .map((pg) => {
-          let t = pg.text;
+          const spans: { start: number; end: number; n: number; label: string }[] = [];
           for (const [i, c] of marked.entries()) {
             if (c.page && c.page !== pg.page) continue;
             const q = c.quote.trim();
-            const at = t.indexOf(q);
-            if (at === -1) continue; // quote spans a line break the text layer set differently
-            const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
-            t = `${t.slice(0, at)}<<MARKED ${i + 1} ${label}>>${q}<</MARKED ${i + 1}>>${t.slice(at + q.length)}`;
+            const start = pg.text.indexOf(q);
+            if (start === -1) continue; // the text layer broke the line differently
+            const end = start + q.length;
+            // first card to claim a stretch of text keeps it; a later card
+            // quoting the same words is still listed above, just not drawn twice
+            if (spans.some((sp) => start < sp.end && end > sp.start)) continue;
+            spans.push({
+              start,
+              end,
+              n: i + 1,
+              label: CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType,
+            });
           }
-          return `--- page ${pg.page} ---\n${t}`;
+          spans.sort((a, b) => a.start - b.start);
+
+          let out = "";
+          let cursor = 0;
+          for (const sp of spans) {
+            out +=
+              pg.text.slice(cursor, sp.start) +
+              `<<MARKED ${sp.n} ${sp.label}>>` +
+              pg.text.slice(sp.start, sp.end) +
+              `<</MARKED ${sp.n}>>`;
+            cursor = sp.end;
+          }
+          out += pg.text.slice(cursor);
+          return `--- page ${pg.page} ---\n${out}`;
         })
         .join("\n\n");
 
