@@ -69,9 +69,8 @@ export default function CompareDesk({
   const [split, setSplit] = useState(50);
   const dragging = useRef(false);
   const rowRef = useRef<HTMLDivElement>(null);
-  /** the floating panel: translucent while you read, solid once you engage */
+  /** the docked panel; collapses to a rail when the documents need the width */
   const [panelOpen, setPanelOpen] = useState(true);
-  const [panelSolid, setPanelSolid] = useState(false);
 
   /**
    * Open a linked passage. A link is only worth drawing if you can follow it,
@@ -377,99 +376,105 @@ export default function CompareDesk({
           </span>
         )}
       </div>
-      <div ref={rowRef} className="flex-1 min-h-0 flex relative">
-        <div style={{ width: `${split}%` }} className="min-w-0">
-          {pane(leftId, setLeftId, "left", focusLeft)}
-        </div>
+      <div className="flex-1 min-h-0 flex">
+        {/* the documents, sharing whatever the panel leaves them */}
+        <div ref={rowRef} className="flex-1 min-w-0 flex">
+          <div style={{ width: `${split}%` }} className="min-w-0">
+            {pane(leftId, setLeftId, "left", focusLeft)}
+          </div>
 
-        {/* drag to give whichever document needs the room */}
-        <div
-          onMouseDown={() => {
-            dragging.current = true;
-            document.body.style.cursor = "col-resize";
-            document.body.style.userSelect = "none";
-          }}
-          onDoubleClick={() => setSplit(50)}
-          title="Drag to resize. Double click to even them up."
-          className="w-1 shrink-0 cursor-col-resize relative group"
-          style={{ background: "var(--hairline)" }}
-        >
-          <span
-            className="absolute inset-y-0 -left-1 -right-1"
-            aria-hidden
-          />
-          <span
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: "var(--text-tertiary)" }}
-          />
-        </div>
+          <div
+            onMouseDown={() => {
+              dragging.current = true;
+              document.body.style.cursor = "col-resize";
+              document.body.style.userSelect = "none";
+            }}
+            onDoubleClick={() => setSplit(50)}
+            title="Drag to resize. Double click to even them up."
+            className="w-1 shrink-0 cursor-col-resize relative group"
+            style={{ background: "var(--hairline)" }}
+          >
+            <span className="absolute inset-y-0 -left-1 -right-1" aria-hidden />
+            <span
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: "var(--text-tertiary)" }}
+            />
+          </div>
 
-        <div style={{ width: `${100 - split}%` }} className="min-w-0">
-          {pane(rightId, setRightId, "right", focusRight)}
+          <div style={{ width: `${100 - split}%` }} className="min-w-0">
+            {pane(rightId, setRightId, "right", focusRight)}
+          </div>
         </div>
 
         {/*
-          The cards and links float above the documents rather than taking a
-          third column: two PDFs need the width more than a panel does. It sits
-          translucent while you read and turns solid the moment you touch it.
+          Docked to the edge and full height rather than floating over the
+          documents: a panel you work from should read as part of the app, not
+          as something resting on top of it. It still collapses to a rail when
+          the documents need every pixel.
         */}
-        {!panelOpen && (
+        {!panelOpen ? (
           <button
             onClick={() => setPanelOpen(true)}
-            className="absolute right-4 top-4 z-20 rounded-full px-3.5 py-2 text-xs font-medium"
+            title="Show cards and links"
+            className="w-10 shrink-0 flex flex-col items-center justify-center gap-2"
             style={{
-              background: "rgba(255,255,255,.8)",
-              backdropFilter: "blur(20px) saturate(180%)",
-              WebkitBackdropFilter: "blur(20px) saturate(180%)",
-              border: "1px solid var(--hairline)",
-              boxShadow: "0 8px 28px rgba(0,0,0,.10)",
+              borderLeft: "1px solid var(--hairline)",
+              background: "var(--surface-sunken)",
+              color: "var(--text-secondary)",
             }}
           >
-            Cards and links
+            <span className="text-sm">&#171;</span>
+            <span
+              className="text-[11px] font-medium tracking-wide"
+              style={{ writingMode: "vertical-rl" }}
+            >
+              Cards and links
+            </span>
+            <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+              {links.length}
+            </span>
           </button>
-        )}
-
-        {panelOpen && (
+        ) : (
           <aside
-            onMouseEnter={() => setPanelSolid(true)}
-            onMouseLeave={() => setPanelSolid(false)}
-            className="absolute right-4 top-4 bottom-4 w-[21rem] z-20 flex flex-col rounded-2xl overflow-hidden transition-all"
-            style={{
-              background: panelSolid ? "rgba(255,255,255,.985)" : "rgba(255,255,255,.72)",
-              backdropFilter: "blur(24px) saturate(180%)",
-              WebkitBackdropFilter: "blur(24px) saturate(180%)",
-              border: "1px solid var(--hairline)",
-              boxShadow: panelSolid
-                ? "0 16px 48px rgba(0,0,0,.16)"
-                : "0 10px 30px rgba(0,0,0,.08)",
-            }}
+            className="w-[22rem] shrink-0 flex flex-col"
+            style={{ borderLeft: "1px solid var(--hairline)", background: "var(--surface)" }}
           >
             <div
-              className="h-11 shrink-0 flex items-center px-4"
+              className="h-12 shrink-0 flex items-center px-4"
               style={{ borderBottom: "1px solid var(--hairline)" }}
             >
-              <h2 className="text-[13px] font-medium">Cards and links</h2>
+              <h2 className="text-[15px] font-semibold">Cards and links</h2>
               <button
                 onClick={() => setPanelOpen(false)}
-                title="Hide, so both documents get the full width"
-                className="ml-auto text-sm"
+                title="Collapse, so both documents get the width"
+                className="ml-auto text-sm px-1"
                 style={{ color: "var(--text-tertiary)" }}
               >
-                &times;
+                &#187;
               </button>
             </div>
+
             <div className="flex-1 min-h-0 overflow-auto">
-              <div style={{ borderBottom: "1px solid var(--hairline)" }}>
-                {rail(leftId)}
-                {rail(rightId)}
-              </div>
-              <div className="px-4 py-2 flex items-center">
-                <h3 className="text-[13px] font-medium">Links</h3>
-                <span className="ml-auto text-xs" style={{ color: "var(--text-tertiary)" }}>
+              {rail(leftId)}
+              {rail(rightId)}
+
+              <div
+                className="px-4 py-2.5 flex items-center sticky top-0"
+                style={{
+                  borderTop: "1px solid var(--hairline)",
+                  borderBottom: "1px solid var(--hairline)",
+                  background: "var(--surface-sunken)",
+                }}
+              >
+                <h3 className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                  Links
+                </h3>
+                <span className="ml-auto text-[11px]" style={{ color: "var(--text-tertiary)" }}>
                   {links.length}
                 </span>
               </div>
-              <div className="px-3 pb-3 space-y-3">
+
+              <div className="px-3 py-3 space-y-3">
           {links.length === 0 && (
             <p className="text-xs text-slate-400">
               No links yet. Highlight a passage in each document to make a card, then pick one

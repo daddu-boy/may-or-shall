@@ -34,7 +34,6 @@ const zi = page.locator('[data-testid="zoom-input"]').first();
 await zi.click();
 await page.waitForTimeout(200);
 console.log(`  after focus value=${await zi.inputValue()}`);
-await zi.press("Control+a");
 await zi.type("140", { delay: 60 });
 console.log(`  typed value=${await zi.inputValue()}`);
 await zi.press("Enter");
