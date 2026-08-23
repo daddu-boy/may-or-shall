@@ -50,22 +50,21 @@ export default function ChronologyView({ matterId }: { matterId: string }) {
   const duplicates = entries.filter((e) => e.flaggedDuplicate).length;
 
   return (
-    <div className="px-10 py-14 max-w-5xl">
-      <div className="flex items-end justify-between gap-8 mb-12">
+    <div className="p-6 max-w-5xl">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="eyebrow mb-3">List of dates</p>
-          <h1 className="display text-[52px]">Chronology</h1>
-          <p className="mt-4 text-[15px] leading-relaxed max-w-xl" style={{ color: "var(--text-secondary)" }}>
-            Assembled from your Date cards. Add rows by hand, and take any row out of the filing
-            before you export.
+          <h1 className="text-lg font-semibold">Chronology</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Auto-populated from Date cards; add manual rows below. Toggle rows out of the filing
+            before exporting.
           </p>
         </div>
         <a
           href={`/api/matters/${matterId}/exports/list-of-dates`}
-          className="btn-primary shrink-0 px-5 py-2.5 text-[13.5px]"
+          className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-700"
           data-testid="export-lod"
         >
-          Export
+          Export List of Dates (.docx)
         </a>
       </div>
 
@@ -79,39 +78,38 @@ export default function ChronologyView({ matterId }: { matterId: string }) {
       {loading ? (
         <p className="text-sm text-slate-400">Loading…</p>
       ) : (
-        <table className="w-full border-collapse" data-testid="chronology-table">
+        <table className="w-full text-sm border-collapse" data-testid="chronology-table">
           <thead>
-            <tr className="text-left rule">
-              <th className="eyebrow py-3 pr-6 w-32 font-medium">Date</th>
-              <th className="eyebrow py-3 pr-6 font-medium">Event</th>
-              <th className="eyebrow py-3 pr-6 w-52 font-medium">Source</th>
-              <th className="eyebrow py-3 w-24 font-medium">In filing</th>
-              <th className="py-3 w-10" />
+            <tr className="text-left text-xs text-slate-400 border-b border-slate-200">
+              <th className="py-2 pr-4 w-28">Date</th>
+              <th className="py-2 pr-4">Event</th>
+              <th className="py-2 pr-4 w-48">Source</th>
+              <th className="py-2 w-24">In filing</th>
+              <th className="py-2 w-10" />
             </tr>
           </thead>
           <tbody>
             {entries.map((e) => (
               <tr
                 key={e.id}
-                className={`row ${e.flaggedDuplicate ? "bg-amber-50" : ""} ${
+                className={`border-b border-slate-100 ${e.flaggedDuplicate ? "bg-amber-50" : ""} ${
                   e.includeInFiling ? "" : "opacity-40"
                 }`}
               >
-                <td className="tabular py-5 pr-6 whitespace-nowrap align-top text-[15px]">
+                <td className="py-2 pr-4 whitespace-nowrap font-medium">
                   {format(new Date(e.eventDate), "dd.MM.yyyy")}
                 </td>
-                <td className="py-5 pr-6 align-top text-[15px] leading-relaxed">
+                <td className="py-2 pr-4">
                   {e.description}
                   {e.flaggedDuplicate && (
                     <span className="ml-2 text-[10px] text-amber-700 font-medium">possible duplicate</span>
                   )}
                 </td>
-                <td className="py-5 pr-6 align-top text-[12.5px]" style={{ color: "var(--text-tertiary)" }}>
+                <td className="py-2 pr-4 text-xs text-slate-400">
                   {e.sourceCard?.document ? (
                     <Link
                       href={`/matters/${matterId}/documents/${e.sourceCard.document.id}?card=${e.sourceCard.id}`}
-                      className="hover:underline"
-                      style={{ color: "var(--text-secondary)" }}
+                      className="hover:underline text-blue-600"
                     >
                       {e.sourceCard.document.filename.replace(/\.pdf$/i, "").slice(0, 22)} · p.
                       {e.sourceCard.page}
@@ -123,7 +121,7 @@ export default function ChronologyView({ matterId }: { matterId: string }) {
                     "Manual"
                   )}
                 </td>
-                <td className="py-5 align-top">
+                <td className="py-2">
                   <input
                     type="checkbox"
                     checked={e.includeInFiling}
@@ -144,8 +142,8 @@ export default function ChronologyView({ matterId }: { matterId: string }) {
             ))}
             {entries.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-16 text-center text-[15px]" style={{ color: "var(--text-tertiary)" }}>
-                  Nothing here yet. Save a Date card while reading, or add a row below.
+                <td colSpan={5} className="py-6 text-center text-slate-400 text-sm">
+                  No entries yet. Create Date cards in the reader, or add a manual row below.
                 </td>
               </tr>
             )}
@@ -153,24 +151,24 @@ export default function ChronologyView({ matterId }: { matterId: string }) {
         </table>
       )}
 
-      <form onSubmit={addManual} className="mt-8 flex gap-2 items-center">
+      <form onSubmit={addManual} className="mt-4 flex gap-2 items-center">
         <input
           type="date"
           value={newDate}
           onChange={(e) => setNewDate(e.target.value)}
-          className="field tabular px-3 py-2.5 text-[14px]"
+          className="border border-slate-200 rounded px-2 py-1.5 text-sm"
           data-testid="manual-date"
         />
         <input
           value={newDesc}
           onChange={(e) => setNewDesc(e.target.value)}
           placeholder="Event description…"
-          className="field flex-1 px-3.5 py-2.5 text-[14px]"
+          className="flex-1 border border-slate-200 rounded px-3 py-1.5 text-sm"
           data-testid="manual-desc"
         />
         <button
           disabled={!newDate || !newDesc.trim()}
-          className="btn-quiet px-5 py-2.5 text-[13.5px] disabled:opacity-30"
+          className="rounded bg-slate-100 border border-slate-200 px-3 py-1.5 text-sm font-medium disabled:opacity-40"
           data-testid="manual-add"
         >
           Add row
