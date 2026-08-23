@@ -164,11 +164,28 @@ h1, h2, h3 {
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
-.rail-heading::after {
-  content: "";
+.rail-heading:hover { color: var(--text-secondary); }
+
+/* the rule is an element rather than ::after, so the chevron can sit past it */
+.rail-rule {
   flex: 1;
   height: 1px;
   background: var(--hairline);
+}
+
+.rail-chevron {
+  transition: transform 0.18s ease;
+  font-size: 10px;
+  line-height: 1;
+}
+.rail-chevron[data-open="false"] { transform: rotate(-90deg); }
+
+/* a collapsed group still says whether you are standing inside it */
+.rail-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #f5f5f7;
 }
 
 .rail-well {
@@ -191,6 +208,46 @@ h1, h2, h3 {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 .nav-item[data-active="true"]:hover { background: #ffffff; color: #0b0b0f; }
+
+/* the standing description: what this screen is for, in one line, always on */
+.nav-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+.nav-item:hover .nav-hint { color: var(--text-secondary); }
+.nav-item[data-active="true"] .nav-hint { color: rgba(11, 11, 15, 0.6); }
+
+/*
+ * The first visit bubble. It floats over the light content area, so it cannot
+ * be translucent white the way the rail panels are: it carries its own dark
+ * surface and only borrows the blur.
+ */
+.tip-card {
+  background: rgba(20, 20, 25, 0.94);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-card);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: #f5f5f7;
+}
+
+/* a nib pointing back at the item it explains */
+.tip-nib {
+  position: absolute;
+  left: -6px;
+  top: 22px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  background: rgba(20, 20, 25, 0.94);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
 
 /* a tile in the matters lobby: lifts a little when you point at it */
 .tile {

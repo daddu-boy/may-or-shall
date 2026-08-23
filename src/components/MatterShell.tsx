@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/clientTypes";
 import { CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
-import Coachmarks from "@/components/Coachmarks";
+import SectionTip from "@/components/SectionTip";
 
 interface SearchResults {
   documents: { documentId: string; filename: string; page: number; snippet: string }[];
@@ -25,27 +25,102 @@ interface SearchResults {
  * as one undifferentiated pile. The first is the case file as it comes in and
  * how you read it; the second is what you produce from it. Editable rows sits
  * last because it is the most specialised.
+ *
+ * Every item carries two explanations. The hint is one line, always visible,
+ * so nobody has to guess what a screen is for. The tip is longer and appears
+ * once, the first time you open that screen, and then never again.
  */
-const NAV_GROUPS = [
+interface NavItem {
+  label: string;
+  slug: string;
+  hint: string;
+  tip: { title: string; body: string };
+}
+
+const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
   {
     heading: "Case file",
     items: [
-      { label: "Upload", slug: "documents" },
-      { label: "Workspace", slug: "compare" },
-      { label: "Cards", slug: "cards" },
+      {
+        label: "Upload",
+        slug: "documents",
+        hint: "Put the case bundle in as PDFs",
+        tip: {
+          title: "Start here",
+          body: "Drag the PDFs of your bundle into this screen. Open one and it becomes a reader: select any passage and it saves as a card that remembers its document, page and paragraph.",
+        },
+      },
+      {
+        label: "Workspace",
+        slug: "compare",
+        hint: "Read two documents at once",
+        tip: {
+          title: "Two documents, one view",
+          body: "Choose a document for each side, then link a passage in one to a passage in the other and say how they relate. Click any card in the rails to jump straight to the line it came from.",
+        },
+      },
+      {
+        label: "Cards",
+        slug: "cards",
+        hint: "Every passage you have marked",
+        tip: {
+          title: "Everything you marked lands here",
+          body: "Cards are grouped by what they are. Filter them, tag them by issue, reorder them, and export the whole set to Word or PDF with every citation attached.",
+        },
+      },
     ],
   },
   {
     heading: "Drafting",
     items: [
-      { label: "Chronology", slug: "chronology" },
-      { label: "Native Drafting", slug: "drafts" },
-      { label: "Compilation", slug: "compilation" },
-      { label: "Annexures", slug: "annexures" },
-      { label: "Editable rows", slug: "traverse" },
+      {
+        label: "Chronology",
+        slug: "chronology",
+        hint: "Your Date cards as a List of Dates",
+        tip: {
+          title: "The list builds itself",
+          body: "Date cards arrive here on their own. Add rows by hand, take any row out of the filing, and export it in court format as a Word document.",
+        },
+      },
+      {
+        label: "Native Drafting",
+        slug: "drafts",
+        hint: "Write with your cards beside you",
+        tip: {
+          title: "Draft from what you marked",
+          body: "Write here with the card base to hand, or generate a first draft from your cards. Every factual sentence carries its citation, and regenerating makes a new version rather than overwriting.",
+        },
+      },
+      {
+        label: "Compilation",
+        slug: "compilation",
+        hint: "One PDF of the pages you cite",
+        tip: {
+          title: "The convenience compilation",
+          body: "Pick cards or issues and get a single PDF of exactly the pages they cite, with an index page, continuous pagination and a bookmark for each document.",
+        },
+      },
+      {
+        label: "Annexures",
+        slug: "annexures",
+        hint: "Label documents and renumber references",
+        tip: {
+          title: "Reorder without retyping",
+          body: "This is the registry that maps each document to its annexure label. Reorder it and every live reference in your drafts renumbers itself. Exports an Index of Annexures.",
+        },
+      },
+      {
+        label: "Editable rows",
+        slug: "traverse",
+        hint: "Answer a plaint paragraph by paragraph",
+        tip: {
+          title: "One row for every paragraph",
+          body: "Designate the plaint and it splits into a row per paragraph for the written statement. Review mode flags every paragraph that still lacks a specific denial, which is the risk under Order VIII Rule 5.",
+        },
+      },
     ],
   },
-] as const;
+];
 
 const UPCOMING: string[] = [];
 
@@ -74,6 +149,24 @@ export default function MatterShell({
       return !v;
     });
   };
+  /** groups fold away, because eight items with descriptions is a tall rail */
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      setCollapsed(JSON.parse(localStorage.getItem("mos.nav.groups") || "[]"));
+    } catch {
+      /* a corrupt value just means everything stays open */
+    }
+  }, []);
+  const toggleGroup = (heading: string) =>
+    setCollapsed((prev) => {
+      const next = prev.includes(heading)
+        ? prev.filter((h) => h !== heading)
+        : [...prev, heading];
+      localStorage.setItem("mos.nav.groups", JSON.stringify(next));
+      return next;
+    });
+
   const [results, setResults] = useState<SearchResults | null>(null);
   const [open, setOpen] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
@@ -90,6 +183,10 @@ export default function MatterShell({
     }, 250);
     return () => clearTimeout(debounce.current);
   }, [q, matterId]);
+
+  const current = NAV_GROUPS.flatMap((g) => g.items).find((i) =>
+    pathname.startsWith(`/matters/${matterId}/${i.slug}`)
+  );
 
   const go = (url: string) => {
     setOpen(false);
@@ -129,29 +226,47 @@ export default function MatterShell({
          * alone was not enough: two grey words above eight identical rows read
          * as one list, so the group now has a visible container.
          */}
-        <nav className="px-3 pb-4 space-y-4 overflow-y-auto">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.heading}>
-              <p className="rail-heading px-1.5 pb-2">{group.heading}</p>
-              <div className="rail-well space-y-0.5">
-                {group.items.map((item) => {
-                  const href = `/matters/${matterId}/${item.slug}`;
-                  const active = pathname.startsWith(href);
-                  return (
-                    <Link
-                      key={item.slug}
-                      href={href}
-                      data-tour={`nav-${item.slug}`}
-                      data-active={active}
-                      className="nav-item px-3 py-2 text-[13.5px] font-medium"
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
+        <nav className="px-3 pb-5 space-y-4 overflow-y-auto">
+          {NAV_GROUPS.map((group) => {
+            const open = !collapsed.includes(group.heading);
+            const holdsCurrent = group.items.some((i) => i.slug === current?.slug);
+            return (
+              <div key={group.heading}>
+                <button
+                  onClick={() => toggleGroup(group.heading)}
+                  className="rail-heading w-full px-1.5 pb-2"
+                  aria-expanded={open}
+                >
+                  <span>{group.heading}</span>
+                  <span className="rail-rule" />
+                  {!open && holdsCurrent && <span className="rail-dot" />}
+                  <span className="rail-chevron" data-open={open}>
+                    ▾
+                  </span>
+                </button>
+                {open && (
+                  <div className="rail-well space-y-0.5">
+                    {group.items.map((item) => {
+                      const href = `/matters/${matterId}/${item.slug}`;
+                      const active = pathname.startsWith(href);
+                      return (
+                        <Link
+                          key={item.slug}
+                          href={href}
+                          data-tour={`nav-${item.slug}`}
+                          data-active={active}
+                          className="nav-item px-3 py-2 text-[13.5px] font-medium"
+                        >
+                          {item.label}
+                          <span className="nav-hint">{item.hint}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
           {UPCOMING.map((label) => (
             <span
               key={label}
@@ -162,26 +277,6 @@ export default function MatterShell({
             </span>
           ))}
         </nav>
-        <Coachmarks
-          id="workspace-v1"
-          steps={[
-            {
-              anchor: "nav-documents",
-              title: "Documents: the case bundle",
-              body: "Drag PDFs in here. Open one and it becomes a reader: select any passage and it turns into a card that keeps its page and paragraph.",
-            },
-            {
-              anchor: "nav-cards",
-              title: "Cards: everything you marked",
-              body: "Every highlight lands here, grouped by what it is. From this board you can download the whole set as Word or PDF, citations attached.",
-            },
-            {
-              anchor: "nav-chronology",
-              title: "The filing builds itself",
-              body: "Date cards become a List of Dates. Traverse answers a plaint paragraph by paragraph. Compilation and Annexures assemble what you file.",
-            },
-          ]}
-        />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -261,6 +356,16 @@ export default function MatterShell({
         </header>
         <main className="flex-1 min-h-0 overflow-auto">{children}</main>
       </div>
+
+      {current && (
+        <SectionTip
+          key={current.slug}
+          id={current.slug}
+          title={current.tip.title}
+          body={current.tip.body}
+          anchor={`[data-tour="nav-${current.slug}"]`}
+        />
+      )}
     </div>
   );
 }
