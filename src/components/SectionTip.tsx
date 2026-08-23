@@ -1,33 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
- * A first visit bubble for one screen. It appears once, beside the navigation
- * item it explains, and never again for that screen. Deliberately not a tour:
- * a tour interrupts you on arrival and covers everything at once, whereas this
- * says one thing at the moment you first walk into the room.
+ * The explanation for one screen: what to actually do here. It appears beside
+ * the navigation item it belongs to, and the person dismisses it.
  *
- * The standing one line description under each navigation item is the part
- * that stays. This is the longer version, shown once.
+ * Deliberately dumb. Whether it should be on screen at all belongs to the
+ * shell, which knows what this account has already dismissed and whether the
+ * information button was just pressed. This only draws it and reports the
+ * dismissal.
  */
 export default function SectionTip({
-  id,
   title,
   body,
   anchor,
+  onDismiss,
 }: {
-  id: string;
   title: string;
   body: string;
   anchor: string;
+  onDismiss: () => void;
 }) {
-  const key = `mos.tip.${id}`;
   const [pos, setPos] = useState<{ top: number; left: number; nib: boolean } | null>(null);
-  const shown = useRef(false);
 
   useEffect(() => {
-    if (localStorage.getItem(key) === "1") return;
     // one frame is not enough: the rail animates its width on load
     const t = setTimeout(() => {
       const el = document.querySelector(anchor) as HTMLElement | null;
@@ -42,21 +39,11 @@ export default function SectionTip({
         // the rail is folded away, so the bubble sits under the top bar
         setPos({ top: 68, left: 20, nib: false });
       }
-      shown.current = true;
-    }, 420);
-    return () => {
-      clearTimeout(t);
-      // seen once it has been on screen, whether or not it was acknowledged
-      if (shown.current) localStorage.setItem(key, "1");
-    };
-  }, [key, anchor]);
+    }, 380);
+    return () => clearTimeout(t);
+  }, [anchor]);
 
   if (!pos) return null;
-
-  const dismiss = () => {
-    localStorage.setItem(key, "1");
-    setPos(null);
-  };
 
   return (
     <div
@@ -70,7 +57,7 @@ export default function SectionTip({
         {body}
       </p>
       <div className="mt-3 flex justify-end">
-        <button onClick={dismiss} className="btn-primary px-3.5 py-1.5 text-[12px]">
+        <button onClick={onDismiss} className="btn-primary px-3.5 py-1.5 text-[12px]">
           Got it
         </button>
       </div>

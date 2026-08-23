@@ -16,8 +16,22 @@ export type Step = {
  *
  * Steps whose anchor isn't on the page are skipped rather than left pointing at
  * nothing, so the same tour can be mounted on pages that differ slightly.
+ *
+ * Whether it has been seen belongs to the account, not the browser, so the
+ * caller passes that in. Without it the tour falls back to browser storage,
+ * which is only right for a page with no signed in user.
  */
-export default function Coachmarks({ id, steps }: { id: string; steps: Step[] }) {
+export default function Coachmarks({
+  id,
+  steps,
+  seen,
+  onSeen,
+}: {
+  id: string;
+  steps: Step[];
+  seen?: boolean;
+  onSeen?: () => void;
+}) {
   const key = `mos.tour.${id}`;
   const [step, setStep] = useState(-1);
   const [box, setBox] = useState<DOMRect | null>(null);
@@ -37,27 +51,35 @@ export default function Coachmarks({ id, steps }: { id: string; steps: Step[] })
   );
 
   const finish = useCallback(() => {
-    try {
-      localStorage.setItem(key, "1");
-    } catch {
-      /* private mode: the tour simply shows again */
+    if (onSeen) {
+      onSeen();
+    } else {
+      try {
+        localStorage.setItem(key, "1");
+      } catch {
+        /* private mode: the tour simply shows again */
+      }
     }
     setStep(-1);
     setBox(null);
-  }, [key]);
+  }, [key, onSeen]);
 
   // start once, after the page has had a chance to render its content
   useEffect(() => {
-    let done = false;
-    try {
-      done = localStorage.getItem(key) === "1";
-    } catch {
-      /* ignore */
+    let done: boolean;
+    if (seen === undefined) {
+      try {
+        done = localStorage.getItem(key) === "1";
+      } catch {
+        done = false;
+      }
+    } else {
+      done = seen;
     }
     if (done) return;
     const t = setTimeout(() => setStep(nextAvailable(0)), 700);
     return () => clearTimeout(t);
-  }, [key, nextAvailable]);
+  }, [key, seen, nextAvailable]);
 
   // keep the spotlight on the element as the page moves
   useEffect(() => {

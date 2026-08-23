@@ -167,6 +167,43 @@ export default function MatterShell({
       return next;
     });
 
+  /**
+   * Which explanations this account has already dismissed, from the server.
+   * Null until it arrives, so a bubble never flashes up and vanish again for
+   * someone who dismissed it months ago on another machine.
+   */
+  const [tipsSeen, setTipsSeen] = useState<string[] | null>(null);
+  const tipsLoaded = useRef(false);
+  useEffect(() => {
+    if (tipsLoaded.current) return;
+    tipsLoaded.current = true;
+    api<{ seen: string[] }>("/api/me/tips")
+      .then(({ seen }) => {
+        /*
+         * These used to live in browser storage. Anything dismissed there is
+         * carried up to the account once, so moving the record does not make
+         * every bubble reappear for people who already read them.
+         */
+        const stale = NAV_GROUPS.flatMap((g) => g.items)
+          .map((i) => i.slug)
+          .filter((slug) => !seen.includes(slug) && localStorage.getItem(`mos.tip.${slug}`) === "1");
+        if (stale.length === 0) return setTipsSeen(seen);
+        setTipsSeen([...seen, ...stale]);
+        Promise.all(
+          stale.map((id) =>
+            api("/api/me/tips", { method: "POST", body: JSON.stringify({ id }) }).catch(() => {})
+          )
+        ).then(() => stale.forEach((slug) => localStorage.removeItem(`mos.tip.${slug}`)));
+      })
+      .catch(() => setTipsSeen([]));
+  }, []);
+
+  /** set by the information button: show this screen's bubble again on demand */
+  const [asked, setAsked] = useState<string | null>(null);
+  useEffect(() => {
+    setAsked(null);
+  }, [pathname]);
+
   const [results, setResults] = useState<SearchResults | null>(null);
   const [open, setOpen] = useState(false);
   const debounce = useRef<ReturnType<typeof setTimeout>>();
@@ -187,6 +224,21 @@ export default function MatterShell({
   const current = NAV_GROUPS.flatMap((g) => g.items).find((i) =>
     pathname.startsWith(`/matters/${matterId}/${i.slug}`)
   );
+
+  const showTip =
+    current !== undefined &&
+    tipsSeen !== null &&
+    (asked === current.slug || !tipsSeen.includes(current.slug));
+
+  const dismissTip = () => {
+    setAsked(null);
+    if (!current || !tipsSeen || tipsSeen.includes(current.slug)) return;
+    setTipsSeen([...tipsSeen, current.slug]);
+    // the record is the account's, so a second device does not ask again
+    api("/api/me/tips", { method: "POST", body: JSON.stringify({ id: current.slug }) }).catch(
+      () => {}
+    );
+  };
 
   const go = (url: string) => {
     setOpen(false);
@@ -277,6 +329,18 @@ export default function MatterShell({
             </span>
           ))}
         </nav>
+
+        <div className="mt-auto px-3 pb-4 pt-2">
+          <button
+            onClick={() => current && setAsked(current.slug)}
+            disabled={!current}
+            className="chip flex w-full items-center gap-2 px-3 py-2 text-[12px] disabled:opacity-40"
+            title="Show what this screen is for"
+          >
+            <span className="tip-i">i</span>
+            About this screen
+          </button>
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -357,13 +421,13 @@ export default function MatterShell({
         <main className="flex-1 min-h-0 overflow-auto">{children}</main>
       </div>
 
-      {current && (
+      {showTip && current && (
         <SectionTip
-          key={current.slug}
-          id={current.slug}
+          key={`${current.slug}:${asked ?? "first"}`}
           title={current.tip.title}
           body={current.tip.body}
           anchor={`[data-tour="nav-${current.slug}"]`}
+          onDismiss={dismissTip}
         />
       )}
     </div>

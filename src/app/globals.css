@@ -221,6 +221,21 @@ h1, h2, h3 {
 .nav-item:hover .nav-hint { color: var(--text-secondary); }
 .nav-item[data-active="true"] .nav-hint { color: rgba(11, 11, 15, 0.6); }
 
+/* the information button's glyph, at the foot of the rail */
+.tip-i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 9.5px;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+}
+
 /*
  * The first visit bubble. It floats over the light content area, so it cannot
  * be translucent white the way the rail panels are: it carries its own dark

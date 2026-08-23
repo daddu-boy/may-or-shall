@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, type MatterDto } from "@/lib/clientTypes";
 import { OUR_SIDES, OUR_SIDE_LABEL } from "@/lib/labels";
 import ExtensionNudge from "@/components/ExtensionNudge";
 import Coachmarks from "@/components/Coachmarks";
+
+/** the dashboard tour, stored alongside the per screen tips */
+const DASHBOARD_TOUR = "tour:dashboard";
 
 /**
  * The lobby. Dark liquid glass, the same material the browser extension uses,
@@ -20,6 +23,25 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  /** the dashboard tour is remembered against the account, like every other tip */
+  const [tipsSeen, setTipsSeen] = useState<string[] | null>(null);
+  const tipsLoaded = useRef(false);
+  useEffect(() => {
+    if (tipsLoaded.current) return;
+    tipsLoaded.current = true;
+    api<{ seen: string[] }>("/api/me/tips")
+      .then(({ seen }) => {
+        // carried up from browser storage once, so the tour does not return
+        if (seen.includes(DASHBOARD_TOUR) || localStorage.getItem("mos.tour.dashboard-v1") !== "1") {
+          return setTipsSeen(seen);
+        }
+        setTipsSeen([...seen, DASHBOARD_TOUR]);
+        api("/api/me/tips", { method: "POST", body: JSON.stringify({ id: DASHBOARD_TOUR }) })
+          .then(() => localStorage.removeItem("mos.tour.dashboard-v1"))
+          .catch(() => {});
+      })
+      .catch(() => setTipsSeen([]));
+  }, []);
 
   const load = useCallback(async () => {
     setMatters(await api<MatterDto[]>("/api/matters"));
@@ -76,21 +98,31 @@ export default function Dashboard() {
           <ExtensionNudge />
         </div>
 
-        <Coachmarks
-          id="dashboard-v1"
-          steps={[
-            {
-              anchor: "matter-row",
-              title: "Start with the sample matter",
-              body: "We have put a worked example in your account: a plaint, seven cards taken from it, and a chronology. Open it to see how the pieces fit, then delete it whenever you like.",
-            },
-            {
-              anchor: "new-matter",
-              title: "Then create your own",
-              body: "A matter is your workspace: upload the bundle, read and highlight it, and the chronology, traverse, compilation and drafts build from what you mark.",
-            },
-          ]}
-        />
+        {tipsSeen && (
+          <Coachmarks
+            id="dashboard-v1"
+            seen={tipsSeen.includes(DASHBOARD_TOUR)}
+            onSeen={() => {
+              setTipsSeen([...tipsSeen, DASHBOARD_TOUR]);
+              api("/api/me/tips", {
+                method: "POST",
+                body: JSON.stringify({ id: DASHBOARD_TOUR }),
+              }).catch(() => {});
+            }}
+            steps={[
+              {
+                anchor: "matter-row",
+                title: "Start with the sample matter",
+                body: "We have put a worked example in your account: a plaint, seven cards taken from it, and a chronology. Open it to see how the pieces fit, then delete it whenever you like.",
+              },
+              {
+                anchor: "new-matter",
+                title: "Then create your own",
+                body: "A matter is your workspace: upload the bundle, read and highlight it, and the chronology, traverse, compilation and drafts build from what you mark.",
+              },
+            ]}
+          />
+        )}
 
         {showForm && (
           <NewMatterForm

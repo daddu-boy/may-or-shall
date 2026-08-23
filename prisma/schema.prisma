@@ -23,6 +23,14 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
 
+  /**
+   * Which one time explanations this person has already dismissed. Held
+   * against the account rather than the browser: dismissing a tip on the
+   * laptop should also dismiss it on the desktop, and signing in again is
+   * not a reason to be taught the app a second time.
+   */
+  tipsSeen String[] @default([])
+
   accounts    Account[]
   sessions    Session[]
   matters     Matter[]
