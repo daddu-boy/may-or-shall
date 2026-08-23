@@ -420,27 +420,24 @@ export default function CompareDesk({
 
         {/*
           The cards and links float above the documents rather than taking a
-          third column: two PDFs need the width more than a panel does. It sits
-          translucent while you read and turns solid the moment you touch it.
+          third column: two PDFs need the width more than a panel does.
+
+          It sits at the foot of the desk, not the head. At the top it covered
+          the reader's own toolbar, so the page number field of whichever
+          document was on the right was hidden underneath it.
         */}
         {!panelOpen && (
           <button
             onClick={() => setPanelOpen(true)}
             title="Show cards and links"
-            className="absolute right-5 top-5 z-20 flex items-center gap-2.5 rounded-full pl-5 pr-4 py-3 text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
-            style={{
-              background: "var(--text)",
-              color: "var(--bg)",
-              boxShadow: "0 10px 30px rgba(0,0,0,.22)",
-            }}
+            className="float-pill absolute right-5 bottom-5 z-20 py-2.5 pl-4 pr-3 text-[12.5px] font-semibold"
           >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <rect x="1.4" y="3.4" width="8.2" height="10.2" rx="2" stroke="currentColor" strokeWidth="1.3" opacity=".55" />
+              <rect x="5.4" y="1.4" width="9.2" height="11.2" rx="2" fill="rgba(20,20,25,.92)" stroke="currentColor" strokeWidth="1.3" />
+            </svg>
             Cards and links
-            <span
-              className="min-w-6 rounded-full px-2 py-0.5 text-[11px] font-bold"
-              style={{ background: "rgba(255,255,255,.22)" }}
-            >
-              {links.length}
-            </span>
+            <span className="float-count">{links.length}</span>
           </button>
         )}
 

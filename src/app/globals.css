@@ -293,6 +293,37 @@ h1, h2, h3 {
 .nav-i[data-active="true"]:hover { color: #0b0b0f; background: rgba(0, 0, 0, 0.07); }
 
 /*
+ * A floating control over a document: same surface as the first visit bubble,
+ * because anything translucent and pale disappears against a white page.
+ */
+.float-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 999px;
+  background: rgba(20, 20, 25, 0.92);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.2);
+  color: #f5f5f7;
+  transition: transform 0.14s ease, background 0.14s ease;
+}
+.float-pill:hover { transform: translateY(-1px); background: rgba(28, 28, 34, 0.95); }
+.float-pill:active { transform: scale(0.98); }
+
+.float-count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/*
  * The first visit bubble. It floats over the light content area, so it cannot
  * be translucent white the way the rail panels are: it carries its own dark
  * surface and only borrows the blur.
