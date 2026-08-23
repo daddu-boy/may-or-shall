@@ -296,10 +296,11 @@ export default function MatterShell({
               <div key={group.heading}>
                 <button
                   onClick={() => toggleGroup(group.heading)}
-                  className="rail-heading w-full px-1.5 pb-2"
+                  className="rail-heading mb-1.5"
                   aria-expanded={open}
                 >
                   <span>{group.heading}</span>
+                  <span className="rail-count">{group.items.length}</span>
                   <span className="rail-rule" />
                   {!open && holdsCurrent && <span className="rail-dot" />}
                   <span className="rail-chevron" data-open={open}>
