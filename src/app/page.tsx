@@ -261,9 +261,14 @@ function MatterTile({
   return (
     <div
       data-tour={first ? "matter-row" : undefined}
-      className="glass tile group relative flex min-h-[132px] flex-col justify-between p-5"
+      className="glass tile group relative flex min-h-[132px] cursor-pointer flex-col justify-between p-5"
     >
-      {/* the whole tile opens the matter; the controls below sit above it */}
+      {/*
+        The whole tile opens the matter. The link is laid over the tile and the
+        content underneath it is left unpositioned, so the link is what the
+        pointer meets anywhere on the face of the card. Only the controls lift
+        themselves back above it.
+      */}
       {!renaming && (
         <Link
           href={`/matters/${matter.id}/documents`}
@@ -272,7 +277,7 @@ function MatterTile({
         />
       )}
 
-      <div className="relative min-w-0">
+      <div className="min-w-0">
         {renaming ? (
           <input
             autoFocus
@@ -280,7 +285,7 @@ function MatterTile({
             onChange={(e) => setTitle(e.target.value)}
             onBlur={save}
             onKeyDown={(e) => e.key === "Enter" && save()}
-            className="field w-full px-3 py-1.5 text-[15px]"
+            className="field relative z-10 w-full px-3 py-1.5 text-[15px]"
           />
         ) : (
           <h2 className="truncate text-[19px] font-semibold leading-snug">
@@ -300,13 +305,13 @@ function MatterTile({
         </p>
       </div>
 
-      <div className="relative mt-5 flex items-end justify-between gap-3">
+      <div className="mt-5 flex items-end justify-between gap-3">
         <div className="flex gap-1.5">
           <Stat n={matter._count?.documents ?? 0} one="document" many="documents" />
           <Stat n={matter._count?.cards ?? 0} one="card" many="cards" />
         </div>
         <div
-          className="flex gap-2 text-[12px] opacity-70 transition-opacity group-hover:opacity-100"
+          className="relative z-10 flex gap-2 text-[12px] opacity-70 transition-opacity group-hover:opacity-100"
           style={{ color: "var(--text-secondary)" }}
         >
           <button onClick={() => setRenaming(true)} className="hover:text-[var(--text)]">
