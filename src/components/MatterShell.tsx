@@ -225,17 +225,27 @@ export default function MatterShell({
     pathname.startsWith(`/matters/${matterId}/${i.slug}`)
   );
 
-  const showTip =
-    current !== undefined &&
-    tipsSeen !== null &&
-    (asked === current.slug || !tipsSeen.includes(current.slug));
+  /**
+   * Which explanation is on screen: the one you asked for by pressing an
+   * item's information button, or otherwise this screen's own, if this account
+   * has never dismissed it.
+   */
+  const tipFor =
+    tipsSeen === null
+      ? undefined
+      : asked
+        ? NAV_GROUPS.flatMap((g) => g.items).find((i) => i.slug === asked)
+        : current && !tipsSeen.includes(current.slug)
+          ? current
+          : undefined;
 
   const dismissTip = () => {
     setAsked(null);
-    if (!current || !tipsSeen || tipsSeen.includes(current.slug)) return;
-    setTipsSeen([...tipsSeen, current.slug]);
+    if (!tipFor || !tipsSeen || tipsSeen.includes(tipFor.slug)) return;
+    // dismissing one means it has been read, however it came to be on screen
+    setTipsSeen([...tipsSeen, tipFor.slug]);
     // the record is the account's, so a second device does not ask again
-    api("/api/me/tips", { method: "POST", body: JSON.stringify({ id: current.slug }) }).catch(
+    api("/api/me/tips", { method: "POST", body: JSON.stringify({ id: tipFor.slug }) }).catch(
       () => {}
     );
   };
@@ -302,16 +312,26 @@ export default function MatterShell({
                       const href = `/matters/${matterId}/${item.slug}`;
                       const active = pathname.startsWith(href);
                       return (
-                        <Link
-                          key={item.slug}
-                          href={href}
-                          data-tour={`nav-${item.slug}`}
-                          data-active={active}
-                          className="nav-item px-3 py-2 text-[13.5px] font-medium"
-                        >
-                          {item.label}
-                          <span className="nav-hint">{item.hint}</span>
-                        </Link>
+                        <div key={item.slug} className="relative">
+                          <Link
+                            href={href}
+                            data-tour={`nav-${item.slug}`}
+                            data-active={active}
+                            className="nav-item px-3 py-2 pr-9 text-[13.5px] font-medium"
+                          >
+                            {item.label}
+                            <span className="nav-hint">{item.hint}</span>
+                          </Link>
+                          <button
+                            onClick={() => setAsked(item.slug)}
+                            data-active={active}
+                            className="nav-i"
+                            aria-label={`What ${item.label} is for`}
+                            title={`What ${item.label} is for`}
+                          >
+                            i
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -330,17 +350,6 @@ export default function MatterShell({
           ))}
         </nav>
 
-        <div className="mt-auto px-3 pb-4 pt-2">
-          <button
-            onClick={() => current && setAsked(current.slug)}
-            disabled={!current}
-            className="chip flex w-full items-center gap-2 px-3 py-2 text-[12px] disabled:opacity-40"
-            title="Show what this screen is for"
-          >
-            <span className="tip-i">i</span>
-            About this screen
-          </button>
-        </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -421,12 +430,12 @@ export default function MatterShell({
         <main className="flex-1 min-h-0 overflow-auto">{children}</main>
       </div>
 
-      {showTip && current && (
+      {tipFor && (
         <SectionTip
-          key={`${current.slug}:${asked ?? "first"}`}
-          title={current.tip.title}
-          body={current.tip.body}
-          anchor={`[data-tour="nav-${current.slug}"]`}
+          key={tipFor.slug}
+          title={tipFor.tip.title}
+          body={tipFor.tip.body}
+          anchor={`[data-tour="nav-${tipFor.slug}"]`}
           onDismiss={dismissTip}
         />
       )}

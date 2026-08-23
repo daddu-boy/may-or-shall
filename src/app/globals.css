@@ -221,20 +221,37 @@ h1, h2, h3 {
 .nav-item:hover .nav-hint { color: var(--text-secondary); }
 .nav-item[data-active="true"] .nav-hint { color: rgba(11, 11, 15, 0.6); }
 
-/* the information button's glyph, at the foot of the rail */
-.tip-i {
+/*
+ * The information button, one per item, sitting with that item's description.
+ * A sibling of the link rather than a child of it, because a button inside a
+ * link is neither a button nor a link once a keyboard gets hold of it.
+ */
+.nav-i {
+  position: absolute;
+  top: 8px;
+  right: 7px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
   border-radius: 999px;
   border: 1px solid currentColor;
-  font-size: 9.5px;
+  font-size: 10px;
   font-style: italic;
   font-weight: 600;
   line-height: 1;
+  color: var(--text-tertiary);
+  opacity: 0.55;
+  transition: opacity 0.14s ease, color 0.14s ease, background 0.14s ease;
 }
+.nav-i:hover {
+  opacity: 1;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+.nav-i[data-active="true"] { color: rgba(11, 11, 15, 0.55); }
+.nav-i[data-active="true"]:hover { color: #0b0b0f; background: rgba(0, 0, 0, 0.07); }
 
 /*
  * The first visit bubble. It floats over the light content area, so it cannot
