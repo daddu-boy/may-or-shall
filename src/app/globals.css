@@ -82,6 +82,144 @@ h1, h2, h3 {
 .field::placeholder { color: var(--text-tertiary); }
 
 
+/*
+ * Night: the app's chrome in dark liquid glass, the same language the browser
+ * extension speaks, so the clipper and the app no longer look like two
+ * products. Applied to the matters lobby and to the matter rail and top bar.
+ * Document surfaces stay light on purpose: a PDF is paper, and paper is white.
+ */
+.night {
+  --bg: #0b0b0f;
+  --surface: rgba(255, 255, 255, 0.055);
+  --surface-sunken: rgba(255, 255, 255, 0.035);
+  --text: #f5f5f7;
+  --text-secondary: #a5a5ad;
+  --text-tertiary: #7c7c85;
+  --hairline: rgba(255, 255, 255, 0.10);
+  --hairline-strong: rgba(255, 255, 255, 0.20);
+  --accent: #8b87ff;
+  --accent-soft: rgba(139, 135, 255, 0.16);
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-edge: rgba(255, 255, 255, 0.13);
+  --glass-hover: rgba(255, 255, 255, 0.11);
+  --glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  color: var(--text);
+  /* so native selects, checkboxes and date pickers stop rendering white */
+  color-scheme: dark;
+}
+
+/*
+ * Glass needs something behind it or it is just a flat grey box. These washes
+ * give the blur something to pick up as you scroll.
+ */
+.night-ground {
+  background:
+    radial-gradient(70rem 42rem at 8% -14%, rgba(139, 135, 255, 0.28), transparent 60%),
+    radial-gradient(55rem 34rem at 98% 2%, rgba(58, 160, 255, 0.18), transparent 56%),
+    radial-gradient(48rem 30rem at 62% 82%, rgba(139, 135, 255, 0.10), transparent 60%),
+    #0b0b0f;
+}
+
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-card);
+  /* the inset line is the bright top edge of a pane of glass */
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* Translucency is a gamble on the browser supporting it. If it does not, the
+   panel goes nearly opaque rather than turning into a smear. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .night { --glass: rgba(22, 22, 26, 0.97); }
+}
+
+/* a capsule control, the extension's chip: quiet until you touch it */
+.chip {
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  transition: background 0.14s ease, color 0.14s ease, transform 0.14s ease;
+}
+.chip:hover { background: var(--glass-hover); color: var(--text); }
+.chip:active { transform: scale(0.97); }
+
+/*
+ * A group of navigation items reads as a group because it sits in its own
+ * well, not because a small grey word floats above it. The heading carries a
+ * rule out to the edge so the section has a visible top and bottom.
+ */
+.rail-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.rail-heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+
+.rail-well {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 6px;
+}
+
+.nav-item {
+  display: block;
+  border-radius: 11px;
+  transition: background 0.14s ease, color 0.14s ease;
+  color: var(--text-secondary);
+}
+.nav-item:hover { background: rgba(255, 255, 255, 0.07); color: var(--text); }
+.nav-item[data-active="true"] {
+  background: #f5f5f7;
+  color: #0b0b0f;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.nav-item[data-active="true"]:hover { background: #ffffff; color: #0b0b0f; }
+
+/* a tile in the matters lobby: lifts a little when you point at it */
+.tile {
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+}
+.tile:hover {
+  transform: translateY(-2px);
+  background: var(--glass-hover);
+  border-color: var(--hairline-strong);
+}
+
+/* the segmented Active / All switch */
+.segment {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  padding: 3px;
+  display: inline-flex;
+}
+.segment button {
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.segment button[data-on="true"] { background: #f5f5f7; color: #0b0b0f; font-weight: 600; }
+
+
 /* pdf.js text layer: invisible glyphs positioned over the canvas so native
    text selection works. Mirrors pdf_viewer.css essentials. */
 .textLayer {

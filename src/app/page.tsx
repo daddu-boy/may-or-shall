@@ -8,6 +8,12 @@ import { OUR_SIDES, OUR_SIDE_LABEL } from "@/lib/labels";
 import ExtensionNudge from "@/components/ExtensionNudge";
 import Coachmarks from "@/components/Coachmarks";
 
+/**
+ * The lobby. Dark liquid glass, the same material the browser extension uses,
+ * so the two halves of the product stop looking like two products. Matters are
+ * tiles rather than a stack of thin rows: a matter is a place you go into, and
+ * a tile reads like a door where a row reads like a line item.
+ */
 export default function Dashboard() {
   const router = useRouter();
   const [matters, setMatters] = useState<MatterDto[]>([]);
@@ -25,100 +31,138 @@ export default function Dashboard() {
   }, [load]);
 
   const visible = matters.filter((m) => (showArchived ? true : m.status === "ACTIVE"));
+  const active = matters.filter((m) => m.status === "ACTIVE").length;
+  const docs = matters.reduce((n, m) => n + (m._count?.documents ?? 0), 0);
+  const cards = matters.reduce((n, m) => n + (m._count?.cards ?? 0), 0);
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-16">
-      <div className="flex items-end justify-between mb-10">
-        <div>
-          <h1 className="text-[34px] font-semibold leading-tight">Matters</h1>
-          <p className="mt-2 text-[15px]" style={{ color: "var(--text-secondary)" }}>
-            Everything you are working on, in one place.
+    <main className="night night-ground min-h-screen">
+      <div className="mx-auto max-w-5xl px-6 py-16">
+        <header className="flex items-start justify-between gap-6">
+          <div>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              May or Shall
+            </p>
+            <h1 className="mt-3 text-[44px] font-semibold leading-none">Matters</h1>
+            <p className="mt-4 text-[13.5px]" style={{ color: "var(--text-secondary)" }}>
+              {loading
+                ? "Loading…"
+                : matters.length === 0
+                  ? "Nothing here yet."
+                  : `${active} open · ${docs} document${docs === 1 ? "" : "s"} · ${cards} card${cards === 1 ? "" : "s"}`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 pt-2">
+            <Link href="/settings" className="chip px-4 py-2.5 text-[13px]">
+              Settings
+            </Link>
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="btn-primary flex items-center gap-2 px-5 py-2.5 text-[13px]"
+              data-testid="new-matter"
+              data-tour="new-matter"
+            >
+              <span className="text-[15px] leading-none">{showForm ? "×" : "+"}</span>
+              {showForm ? "Cancel" : "New matter"}
+            </button>
+          </div>
+        </header>
+
+        <div className="mt-8">
+          <ExtensionNudge />
+        </div>
+
+        <Coachmarks
+          id="dashboard-v1"
+          steps={[
+            {
+              anchor: "matter-row",
+              title: "Start with the sample matter",
+              body: "We have put a worked example in your account: a plaint, seven cards taken from it, and a chronology. Open it to see how the pieces fit, then delete it whenever you like.",
+            },
+            {
+              anchor: "new-matter",
+              title: "Then create your own",
+              body: "A matter is your workspace: upload the bundle, read and highlight it, and the chronology, traverse, compilation and drafts build from what you mark.",
+            },
+          ]}
+        />
+
+        {showForm && (
+          <NewMatterForm
+            onCreated={(matterId) => {
+              setShowForm(false);
+              router.push(`/matters/${matterId}/documents`);
+            }}
+          />
+        )}
+
+        {matters.length > 0 && (
+          <div className="mt-10 flex items-center justify-between">
+            <p
+              className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              {showArchived ? "All matters" : "Open"}
+            </p>
+            <div className="segment">
+              <button data-on={!showArchived} onClick={() => setShowArchived(false)}>
+                Open
+              </button>
+              <button data-on={showArchived} onClick={() => setShowArchived(true)}>
+                All
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <p className="mt-6 text-sm" style={{ color: "var(--text-tertiary)" }}>
+            Loading…
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/settings"
-            className="text-[13.5px] transition-colors"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Settings
-          </Link>
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="btn-primary px-5 py-2.5 text-[13.5px]"
-            data-testid="new-matter"
-            data-tour="new-matter"
-          >
-            New matter
-          </button>
-        </div>
+        ) : visible.length === 0 ? (
+          <div className="glass mt-10 px-8 py-14 text-center">
+            <p className="text-[19px] font-semibold">Start with a matter</p>
+            <p
+              className="mx-auto mt-2 max-w-md text-[13.5px] leading-relaxed"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              A matter is your workspace: upload the bundle, read and highlight the PDFs,
+              and build the chronology, traverse, compilations and drafts from what you mark.
+            </p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="btn-primary mt-6 px-5 py-2.5 text-[13px]"
+              data-testid="empty-create"
+            >
+              Create your first matter
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {visible.map((m, i) => (
+              <MatterTile key={m.id} matter={m} onChanged={load} first={i === 0} />
+            ))}
+            <button
+              onClick={() => setShowForm(true)}
+              className="tile flex min-h-[132px] flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed text-[13px]"
+              style={{ borderColor: "var(--hairline-strong)", color: "var(--text-tertiary)" }}
+            >
+              <span className="text-[20px] leading-none">+</span>
+              New matter
+            </button>
+          </div>
+        )}
       </div>
-
-      <ExtensionNudge />
-
-      <Coachmarks
-        id="dashboard-v1"
-        steps={[
-          {
-            anchor: "matter-row",
-            title: "Start with the sample matter",
-            body: "We have put a worked example in your account: a plaint, seven cards taken from it, and a chronology. Open it to see how the pieces fit, then delete it whenever you like.",
-          },
-          {
-            anchor: "new-matter",
-            title: "Then create your own",
-            body: "A matter is your workspace: upload the bundle, read and highlight it, and the chronology, traverse, compilation and drafts build from what you mark.",
-          },
-        ]}
-      />
-
-      {showForm && (
-        <NewMatterForm
-          onCreated={(matterId) => {
-            setShowForm(false);
-            router.push(`/matters/${matterId}/documents`);
-          }}
-        />
-      )}
-
-      {loading ? (
-        <p className="text-slate-400 text-sm">Loading…</p>
-      ) : visible.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white/60 px-6 py-10 text-center">
-          <p className="font-medium text-slate-700">Start with a matter</p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
-            A matter is your workspace: upload the bundle, read and highlight the PDFs,
-            and build the chronology, traverse, compilations and drafts from what you mark.
-          </p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="mt-4 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-            data-testid="empty-create"
-          >
-            Create your first matter →
-          </button>
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {visible.map((m, i) => (
-            <MatterRow key={m.id} matter={m} onChanged={load} first={i === 0} />
-          ))}
-        </ul>
-      )}
-
-      <label className="flex items-center gap-2 mt-10 text-sm text-slate-500">
-        <input
-          type="checkbox"
-          checked={showArchived}
-          onChange={(e) => setShowArchived(e.target.checked)}
-        />
-        Show archived
-      </label>
     </main>
   );
 }
 
-function MatterRow({
+function MatterTile({
   matter,
   onChanged,
   first,
@@ -180,12 +224,23 @@ function MatterRow({
     }
   };
 
+  const where = [matter.court, matter.caseNumber].filter(Boolean).join(" · ");
+
   return (
-    <li
+    <div
       data-tour={first ? "matter-row" : undefined}
-      className="surface px-5 py-4 flex items-center justify-between gap-4 transition-colors hover:bg-[var(--surface-sunken)]"
+      className="glass tile group relative flex min-h-[132px] flex-col justify-between p-5"
     >
-      <div className="min-w-0">
+      {/* the whole tile opens the matter; the controls below sit above it */}
+      {!renaming && (
+        <Link
+          href={`/matters/${matter.id}/documents`}
+          aria-label={`Open ${matter.title}`}
+          className="absolute inset-0 rounded-[14px]"
+        />
+      )}
+
+      <div className="relative min-w-0">
         {renaming ? (
           <input
             autoFocus
@@ -193,42 +248,67 @@ function MatterRow({
             onChange={(e) => setTitle(e.target.value)}
             onBlur={save}
             onKeyDown={(e) => e.key === "Enter" && save()}
-            className="border border-slate-300 rounded px-2 py-1 text-sm w-96"
+            className="field w-full px-3 py-1.5 text-[15px]"
           />
         ) : (
-          <Link
-            href={`/matters/${matter.id}/documents`}
-            className="font-medium hover:underline truncate block"
-          >
+          <h2 className="truncate text-[19px] font-semibold leading-snug">
             {matter.title}
             {matter.status === "ARCHIVED" && (
-              <span className="ml-2 text-xs text-slate-400">(archived)</span>
+              <span
+                className="ml-2 align-middle text-[10.5px] font-medium uppercase tracking-[0.1em]"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                Archived
+              </span>
             )}
-          </Link>
+          </h2>
         )}
-        <p className="text-xs text-slate-500 mt-1 truncate">
-          {[matter.court, matter.caseNumber].filter(Boolean).join(" · ") || "No court details"}
-          {" · "}
-          {matter._count?.documents ?? 0} docs · {matter._count?.cards ?? 0} cards
+        <p className="mt-1.5 truncate text-[12.5px]" style={{ color: "var(--text-secondary)" }}>
+          {where || "No court details"}
         </p>
       </div>
-      <div className="flex gap-2 shrink-0 text-xs">
-        <button onClick={() => setRenaming(true)} className="text-slate-500 hover:text-slate-900">
-          Rename
-        </button>
-        <button onClick={toggleArchive} className="text-slate-500 hover:text-slate-900">
-          {matter.status === "ACTIVE" ? "Archive" : "Restore"}
-        </button>
-        <button
-          onClick={remove}
-          disabled={deleting}
-          className="text-slate-400 hover:text-red-600 disabled:opacity-50"
-          data-testid="matter-delete"
+
+      <div className="relative mt-5 flex items-end justify-between gap-3">
+        <div className="flex gap-1.5">
+          <Stat n={matter._count?.documents ?? 0} one="document" many="documents" />
+          <Stat n={matter._count?.cards ?? 0} one="card" many="cards" />
+        </div>
+        <div
+          className="flex gap-2 text-[12px] opacity-70 transition-opacity group-hover:opacity-100"
+          style={{ color: "var(--text-secondary)" }}
         >
-          {deleting ? "Deleting…" : "Delete"}
-        </button>
+          <button onClick={() => setRenaming(true)} className="hover:text-[var(--text)]">
+            Rename
+          </button>
+          <button onClick={toggleArchive} className="hover:text-[var(--text)]">
+            {matter.status === "ACTIVE" ? "Archive" : "Restore"}
+          </button>
+          <button
+            onClick={remove}
+            disabled={deleting}
+            className="disabled:opacity-50 hover:text-[#ff6b6b]"
+            data-testid="matter-delete"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
       </div>
-    </li>
+    </div>
+  );
+}
+
+function Stat({ n, one, many }: { n: number; one: string; many: string }) {
+  return (
+    <span
+      className="rounded-full px-2.5 py-1 text-[11.5px]"
+      style={{
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid var(--glass-edge)",
+        color: "var(--text-secondary)",
+      }}
+    >
+      <span style={{ color: "var(--text)" }}>{n}</span> {n === 1 ? one : many}
+    </span>
   );
 }
 
@@ -255,13 +335,16 @@ function NewMatterForm({ onCreated }: { onCreated: (matterId: string) => void })
     }
   };
 
-  const input = "border border-slate-300 rounded-md px-3 py-2 text-sm w-full";
+  const input = "field px-3.5 py-2.5 text-[13.5px] w-full";
 
   return (
-    <form
-      onSubmit={submit}
-      className="surface p-5 mb-6 grid grid-cols-2 gap-3"
-    >
+    <form onSubmit={submit} className="glass mt-8 grid grid-cols-2 gap-3 p-6">
+      <p
+        className="col-span-2 text-[10px] font-semibold uppercase tracking-[0.14em]"
+        style={{ color: "var(--text-tertiary)" }}
+      >
+        New matter
+      </p>
       <input
         className={`${input} col-span-2`}
         placeholder="Matter title *"
@@ -297,10 +380,10 @@ function NewMatterForm({ onCreated }: { onCreated: (matterId: string) => void })
       <div className="flex justify-end">
         <button
           disabled={busy || !title.trim()}
-          className="rounded-md bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-40"
+          className="btn-primary px-5 py-2.5 text-[13px] disabled:opacity-40"
           data-testid="create-matter"
         >
-          Create matter
+          {busy ? "Creating…" : "Create matter"}
         </button>
       </div>
     </form>

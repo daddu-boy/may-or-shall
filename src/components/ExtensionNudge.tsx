@@ -60,24 +60,28 @@ export default function ExtensionNudge() {
   };
 
   return (
-    <div className="mb-6 flex items-start gap-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-4 py-3">
-      <span className="text-lg leading-none mt-0.5">🌐</span>
-      <div className="min-w-0 flex-1 text-sm">
-        <p className="font-medium text-slate-800">Clip from any website</p>
-        <p className="text-slate-600 mt-0.5">
+    <div className="glass mb-6 flex items-start gap-3.5 px-5 py-4">
+      <span className="mt-0.5 text-lg leading-none">🌐</span>
+      <div className="min-w-0 flex-1 text-[13.5px]">
+        <p className="font-semibold">Clip from any website</p>
+        <p className="mt-1 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
           Add the free Chrome extension to save highlights from judgments, orders and news
           straight into your matters. It connects to this app automatically.
         </p>
-        <div className="mt-2 flex items-center gap-4">
+        <div className="mt-3 flex items-center gap-4">
           <a
             href={STORE_URL}
             target="_blank"
             rel="noopener"
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+            className="btn-primary px-4 py-2 text-[12.5px]"
           >
             Get the Chrome extension
           </a>
-          <button onClick={dismiss} className="text-xs text-slate-500 hover:text-slate-700">
+          <button
+            onClick={dismiss}
+            className="text-[12.5px]"
+            style={{ color: "var(--text-tertiary)" }}
+          >
             Not now
           </button>
         </div>
@@ -85,7 +89,8 @@ export default function ExtensionNudge() {
       <button
         onClick={dismiss}
         aria-label="Dismiss"
-        className="text-slate-400 hover:text-slate-600 text-sm leading-none"
+        className="text-sm leading-none"
+        style={{ color: "var(--text-tertiary)" }}
       >
         ✕
       </button>

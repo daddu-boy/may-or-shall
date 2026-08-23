@@ -100,36 +100,40 @@ export default function MatterShell({
   return (
     <div className="flex h-screen" style={{ background: "var(--bg)" }}>
       <aside
-        className={`shrink-0 flex flex-col overflow-hidden transition-[width] duration-200 ${
-          navOpen ? "w-60" : "w-0"
+        className={`night shrink-0 flex flex-col overflow-hidden transition-[width] duration-200 ${
+          navOpen ? "w-64" : "w-0"
         }`}
-        style={{ borderRight: "1px solid var(--hairline)", background: "var(--surface)" }}
+        style={{
+          background:
+            "radial-gradient(30rem 20rem at 0% 0%, rgba(139,135,255,0.18), transparent 60%), linear-gradient(180deg, #121217 0%, #0b0b0f 100%)",
+        }}
       >
-        <div className="px-5 pt-5 pb-4">
+        <div className="px-5 pt-5 pb-5">
           <Link
             href="/"
-            className="text-xs transition-colors"
+            className="text-[11.5px] transition-colors hover:text-[var(--text)]"
             style={{ color: "var(--text-tertiary)" }}
           >
             ← All matters
           </Link>
-          <h2 className="mt-3 text-[15px] font-semibold leading-snug">{title}</h2>
+          <h2 className="mt-3 text-[16px] font-semibold leading-snug">{title}</h2>
           {subtitle && (
-            <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            <p className="mt-1.5 text-[11.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
               {subtitle}
             </p>
           )}
         </div>
-        <nav className="px-3 space-y-5">
+
+        {/*
+         * Each group sits in its own well under a ruled heading. The label
+         * alone was not enough: two grey words above eight identical rows read
+         * as one list, so the group now has a visible container.
+         */}
+        <nav className="px-3 pb-4 space-y-4 overflow-y-auto">
           {NAV_GROUPS.map((group) => (
             <div key={group.heading}>
-              <p
-                className="px-3 pb-1.5 text-[10.5px] font-medium uppercase tracking-[0.06em]"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                {group.heading}
-              </p>
-              <div className="space-y-0.5">
+              <p className="rail-heading px-1.5 pb-2">{group.heading}</p>
+              <div className="rail-well space-y-0.5">
                 {group.items.map((item) => {
                   const href = `/matters/${matterId}/${item.slug}`;
                   const active = pathname.startsWith(href);
@@ -138,12 +142,8 @@ export default function MatterShell({
                       key={item.slug}
                       href={href}
                       data-tour={`nav-${item.slug}`}
-                      className="block rounded-[10px] px-3 py-2 text-[13.5px] font-medium transition-colors"
-                      style={
-                        active
-                          ? { background: "var(--text)", color: "var(--bg)" }
-                          : { color: "var(--text-secondary)" }
-                      }
+                      data-active={active}
+                      className="nav-item px-3 py-2 text-[13.5px] font-medium"
                     >
                       {item.label}
                     </Link>
@@ -186,14 +186,13 @@ export default function MatterShell({
 
       <div className="flex-1 flex flex-col min-w-0">
         <header
-          className="h-14 shrink-0 flex items-center px-5 relative"
-          style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface)" }}
+          className="night h-14 shrink-0 flex items-center px-4 relative"
+          style={{ background: "linear-gradient(180deg, #121217 0%, #0e0e13 100%)" }}
         >
           <button
             onClick={toggleNav}
             title={navOpen ? "Hide the sidebar" : "Show the sidebar"}
-            className="mr-3 shrink-0 rounded-md px-2 py-1.5 text-sm"
-            style={{ color: "var(--text-secondary)" }}
+            className="chip mr-3 shrink-0 px-2.5 py-1.5 text-[13px]"
           >
             {navOpen ? "\u00ab" : "\u00bb"}
           </button>
@@ -203,46 +202,56 @@ export default function MatterShell({
             onFocus={() => results && setOpen(true)}
             placeholder="Search documents and cards in this matter…"
             className="field w-[26rem] px-3.5 py-2 text-[13.5px]"
-            style={{ background: "var(--surface-sunken)" }}
             data-testid="matter-search"
           />
           {open && results && (
             <div
-              className="surface absolute top-[3.25rem] left-5 w-[32rem] max-h-96 overflow-auto z-50 text-sm"
+              className="night glass absolute top-[3.25rem] left-4 w-[32rem] max-h-96 overflow-auto z-50 text-sm"
               onMouseLeave={() => setOpen(false)}
             >
               {results.documents.length === 0 && results.cards.length === 0 && (
-                <p className="p-3 text-slate-400">No results.</p>
+                <p className="p-3" style={{ color: "var(--text-tertiary)" }}>
+                  No results.
+                </p>
               )}
               {results.documents.length > 0 && (
                 <div className="p-2">
-                  <p className="px-2 py-1 text-xs font-semibold text-slate-400 uppercase">Documents</p>
+                  <p className="rail-heading px-2 py-1.5">Documents</p>
                   {results.documents.map((d, i) => (
                     <button
                       key={i}
                       onClick={() => go(`/matters/${matterId}/documents/${d.documentId}?page=${d.page}`)}
-                      className="block w-full text-left px-2 py-1.5 rounded hover:bg-slate-50"
+                      className="nav-item w-full text-left px-2.5 py-2"
                     >
-                      <span className="font-medium">{d.filename}</span>
-                      <span className="text-slate-400"> · p.{d.page}</span>
-                      <p className="text-xs text-slate-500 truncate">{d.snippet}</p>
+                      <span className="font-medium" style={{ color: "var(--text)" }}>
+                        {d.filename}
+                      </span>
+                      <span style={{ color: "var(--text-tertiary)" }}> · p.{d.page}</span>
+                      <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>
+                        {d.snippet}
+                      </p>
                     </button>
                   ))}
                 </div>
               )}
               {results.cards.length > 0 && (
-                <div className="p-2 border-t border-slate-100">
-                  <p className="px-2 py-1 text-xs font-semibold text-slate-400 uppercase">Cards</p>
+                <div className="p-2" style={{ borderTop: "1px solid var(--hairline)" }}>
+                  <p className="rail-heading px-2 py-1.5">Cards</p>
                   {results.cards.map((c) => (
                     <button
                       key={c.id}
                       onClick={() => go(`/matters/${matterId}/cards?card=${c.id}`)}
-                      className="block w-full text-left px-2 py-1.5 rounded hover:bg-slate-50"
+                      className="nav-item w-full text-left px-2.5 py-2"
                     >
-                      <span className="text-xs font-medium text-slate-400">
+                      <span
+                        className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
                         {CARD_TYPE_LABEL[c.cardType]}
                       </span>
-                      <p className="text-xs text-slate-600 truncate">{c.body}</p>
+                      <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>
+                        {c.body}
+                      </p>
                     </button>
                   ))}
                 </div>
