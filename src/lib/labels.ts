@@ -1,4 +1,10 @@
+/*
+ * Personal note leads. It is the bucket you reach for when a passage does not
+ * yet have a job, which is most passages on a first read, so it should be the
+ * one under your thumb rather than the one at the bottom of the list.
+ */
 export const CARD_TYPES = [
+  "MISC",
   "FACT",
   "DATE",
   "ISSUE",
@@ -8,12 +14,12 @@ export const CARD_TYPES = [
   "CASE_LAW",
   "ADMISSION",
   "QUESTION",
-  "MISC",
 ] as const;
 
 export type CardTypeValue = (typeof CARD_TYPES)[number];
 
 export const CARD_TYPE_LABEL: Record<CardTypeValue, string> = {
+  MISC: "Personal note",
   FACT: "Fact",
   DATE: "Date",
   ISSUE: "Issue",
@@ -23,11 +29,11 @@ export const CARD_TYPE_LABEL: Record<CardTypeValue, string> = {
   CASE_LAW: "Case law",
   ADMISSION: "Admission",
   QUESTION: "Question",
-  MISC: "Misc",
 };
 
 /** Highlight + chip colours keyed to card type (tailwind-free hex so the PDF overlay can use them too). */
 export const CARD_TYPE_COLOR: Record<CardTypeValue, string> = {
+  MISC: "#6b7280",
   FACT: "#3b82f6",
   DATE: "#f59e0b",
   ISSUE: "#8b5cf6",
@@ -37,7 +43,6 @@ export const CARD_TYPE_COLOR: Record<CardTypeValue, string> = {
   CASE_LAW: "#d946ef",
   ADMISSION: "#84cc16",
   QUESTION: "#f97316",
-  MISC: "#6b7280",
 };
 
 export const DOC_TYPES = [

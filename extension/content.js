@@ -24,7 +24,10 @@
 
   let dead = false; // this copy has been retired by a newer one
 
+  // Personal note leads, matching the app: it is the bucket a passage lands in
+  // before you have decided what it is.
   const CARD_TYPES = [
+    ["MISC", "Personal note", "#6b7280"],
     ["FACT", "Fact", "#3b82f6"],
     ["DATE", "Date", "#f59e0b"],
     ["ISSUE", "Issue", "#8b5cf6"],
@@ -34,7 +37,6 @@
     ["CASE_LAW", "Case law", "#d946ef"],
     ["ADMISSION", "Admission", "#84cc16"],
     ["QUESTION", "Question", "#f97316"],
-    ["MISC", "Misc", "#6b7280"],
   ];
 
   // Events that belong to the popover and must not reach the host page. Sites

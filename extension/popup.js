@@ -15,10 +15,11 @@ const NEW = "__new__";
 let appUrl = "https://app.mayorshall.com";
 
 const CARD_META = {
+  MISC: ["Personal note", "#6b7280"],
   FACT: ["Fact", "#3b82f6"], DATE: ["Date", "#f59e0b"], ISSUE: ["Issue", "#8b5cf6"],
   OUR_ARGUMENT: ["Our argument", "#10b981"], THEIR_ARGUMENT: ["Their argument", "#ef4444"],
   EVIDENCE: ["Evidence", "#06b6d4"], CASE_LAW: ["Case law", "#d946ef"],
-  ADMISSION: ["Admission", "#84cc16"], QUESTION: ["Question", "#f97316"], MISC: ["Misc", "#6b7280"],
+  ADMISSION: ["Admission", "#84cc16"], QUESTION: ["Question", "#f97316"],
 };
 
 // Show the last few cards saved to the selected matter, for instant confirmation.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { extractPdf } from "@/lib/pdf/extract";
+import { resolvePara } from "@/lib/pdf/paraMap";
 import { DOC_TYPES, type DocTypeValue } from "@/lib/labels";
 import { documentOut } from "@/lib/jsonFields";
 import { requireMatterOwner, isResponse } from "@/lib/requestUser";
@@ -78,5 +79,43 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
   }
 
-  return NextResponse.json(documentOut({ ...doc, storagePath }), { status: 201 });
+  /*
+   * Highlights the file already carried become cards, so a bundle somebody has
+   * spent months marking up in Acrobat, Preview or LiquidText arrives with that
+   * work intact rather than asking them to do it again here.
+   *
+   * They land as Personal note: the reader knew a passage mattered, not what it
+   * was for. Retyping one is a click, and the imported tag makes the whole
+   * batch easy to find and triage.
+   */
+  let importedCards = 0;
+  if (extraction.highlights.length > 0) {
+    const last = await prisma.card.findFirst({
+      where: { matterId: params.matterId },
+      orderBy: { orderIndex: "desc" },
+      select: { orderIndex: true },
+    });
+    let order = last?.orderIndex ?? 0;
+    const created = await prisma.card.createMany({
+      data: extraction.highlights.map((h) => {
+        const topRect = h.rects.reduce((a, b) => (a.y <= b.y ? a : b));
+        return {
+          matterId: params.matterId,
+          documentId: doc.id,
+          page: h.page,
+          para: resolvePara(extraction.paraMap, h.page, topRect.y),
+          quote: h.quote,
+          rects: JSON.stringify(h.rects),
+          cardType: "MISC",
+          body: h.note || h.quote,
+          tags: JSON.stringify(["imported"]),
+          createdBy: "import",
+          orderIndex: ++order,
+        };
+      }),
+    });
+    importedCards = created.count;
+  }
+
+  return NextResponse.json({ ...documentOut({ ...doc, storagePath }), importedCards }, { status: 201 });
 }

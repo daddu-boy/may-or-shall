@@ -10,6 +10,8 @@ interface UploadProgress {
   percent: number;
   status: "uploading" | "processing" | "done" | "error";
   error?: string;
+  /** highlights the file already carried, turned into cards on arrival */
+  imported?: number;
 }
 
 export default function DocumentsView({ matterId }: { matterId: string }) {
@@ -45,7 +47,13 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
       };
       xhr.onload = () => {
         if (xhr.status < 300) {
-          update({ status: "done", percent: 100 });
+          let imported = 0;
+          try {
+            imported = JSON.parse(xhr.responseText).importedCards || 0;
+          } catch {
+            /* the count is a nicety; the upload itself succeeded */
+          }
+          update({ status: "done", percent: 100, imported });
           load();
         } else {
           let msg = "Upload failed";
@@ -141,6 +149,15 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
                   <span className="w-20 text-right">
                     {u.status === "processing" ? "Processing…" : u.status === "done" ? "Done" : `${u.percent}%`}
                   </span>
+                  {u.status === "done" && !!u.imported && (
+                    <a
+                      href={`/matters/${matterId}/cards?tag=imported`}
+                      className="shrink-0 whitespace-nowrap underline"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {u.imported} highlight{u.imported === 1 ? "" : "s"} became cards
+                    </a>
+                  )}
                 </>
               )}
             </li>

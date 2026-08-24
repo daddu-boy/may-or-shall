@@ -124,6 +124,14 @@ const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
 
 const UPCOMING: string[] = [];
 
+/**
+ * Drafting starts folded. You arrive at a matter to read it, not to draft it,
+ * and the five drafting screens are the ones you go looking for rather than
+ * the ones you want in front of you. Folding it also keeps the rail short
+ * enough that every remaining item's description is visible without scrolling.
+ */
+const COLLAPSED_BY_DEFAULT = ["Drafting"];
+
 export default function MatterShell({
   matterId,
   title,
@@ -150,12 +158,15 @@ export default function MatterShell({
     });
   };
   /** groups fold away, because eight items with descriptions is a tall rail */
-  const [collapsed, setCollapsed] = useState<string[]>([]);
+  // the default is also the first paint, so Drafting never flashes open
+  const [collapsed, setCollapsed] = useState<string[]>(COLLAPSED_BY_DEFAULT);
   useEffect(() => {
+    const stored = localStorage.getItem("mos.nav.groups");
+    if (stored === null) return;
     try {
-      setCollapsed(JSON.parse(localStorage.getItem("mos.nav.groups") || "[]"));
+      setCollapsed(JSON.parse(stored));
     } catch {
-      /* a corrupt value just means everything stays open */
+      /* a corrupt value just leaves the default in place */
     }
   }, []);
   const toggleGroup = (heading: string) =>
