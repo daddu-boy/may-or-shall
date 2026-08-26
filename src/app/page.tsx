@@ -4,7 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, type MatterDto } from "@/lib/clientTypes";
-import { OUR_SIDES, OUR_SIDE_LABEL } from "@/lib/labels";
+import {
+  MATTER_KINDS,
+  MATTER_KIND_BLURB,
+  MATTER_KIND_LABEL,
+  OUR_SIDES,
+  OUR_SIDE_LABEL,
+  type MatterKind,
+} from "@/lib/labels";
 import ExtensionNudge from "@/components/ExtensionNudge";
 import Coachmarks from "@/components/Coachmarks";
 
@@ -301,7 +308,7 @@ function MatterTile({
           </h2>
         )}
         <p className="mt-1.5 truncate text-[12.5px]" style={{ color: "var(--text-secondary)" }}>
-          {where || "No court details"}
+          {matter.kind === "PROJECT" ? "Project" : where || "No court details"}
         </p>
       </div>
 
@@ -350,6 +357,12 @@ function Stat({ n, one, many }: { n: number; one: string; many: string }) {
 }
 
 function NewMatterForm({ onCreated }: { onCreated: (matterId: string) => void }) {
+  /**
+   * The kind is asked first because it decides what else is worth asking.
+   * A project has no court and no case number, and being made to skip past
+   * two empty fields is its own small insult.
+   */
+  const [kind, setKind] = useState<MatterKind>("CASE");
   const [title, setTitle] = useState("");
   const [court, setCourt] = useState("");
   const [caseNumber, setCaseNumber] = useState("");
@@ -364,7 +377,11 @@ function NewMatterForm({ onCreated }: { onCreated: (matterId: string) => void })
     try {
       const matter = await api<{ id: string }>("/api/matters", {
         method: "POST",
-        body: JSON.stringify({ title, court, caseNumber, parties, ourSide }),
+        body: JSON.stringify(
+          kind === "CASE"
+            ? { kind, title, court, caseNumber, parties, ourSide }
+            : { kind, title, parties }
+        ),
       });
       onCreated(matter.id);
     } finally {
@@ -375,53 +392,93 @@ function NewMatterForm({ onCreated }: { onCreated: (matterId: string) => void })
   const input = "field px-3.5 py-2.5 text-[13.5px] w-full";
 
   return (
-    <form onSubmit={submit} className="glass mt-8 grid grid-cols-2 gap-3 p-6">
+    <form onSubmit={submit} className="glass mt-8 p-6">
       <p
-        className="col-span-2 text-[10px] font-semibold uppercase tracking-[0.14em]"
+        className="text-[10px] font-semibold uppercase tracking-[0.14em]"
         style={{ color: "var(--text-tertiary)" }}
       >
         New matter
       </p>
-      <input
-        className={`${input} col-span-2`}
-        placeholder="Matter title *"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        data-testid="matter-title"
-      />
-      <input
-        className={input}
-        placeholder="Court (e.g. Delhi High Court)"
-        value={court}
-        onChange={(e) => setCourt(e.target.value)}
-      />
-      <input
-        className={input}
-        placeholder="Case number"
-        value={caseNumber}
-        onChange={(e) => setCaseNumber(e.target.value)}
-      />
-      <input
-        className={`${input} col-span-2`}
-        placeholder="Parties"
-        value={parties}
-        onChange={(e) => setParties(e.target.value)}
-      />
-      <select className={input} value={ourSide} onChange={(e) => setOurSide(e.target.value)}>
-        {OUR_SIDES.map((s) => (
-          <option key={s} value={s}>
-            {OUR_SIDE_LABEL[s]}
-          </option>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {MATTER_KINDS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setKind(k)}
+            aria-pressed={kind === k}
+            className="rounded-[14px] border p-4 text-left transition-colors"
+            style={{
+              borderColor: kind === k ? "var(--text)" : "var(--hairline)",
+              background: kind === k ? "rgba(255,255,255,0.08)" : "transparent",
+            }}
+            data-testid={`kind-${k.toLowerCase()}`}
+          >
+            <span className="text-[14px] font-semibold">{MATTER_KIND_LABEL[k]}</span>
+            <span
+              className="mt-1 block text-[12px] leading-relaxed"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {MATTER_KIND_BLURB[k]}
+            </span>
+          </button>
         ))}
-      </select>
-      <div className="flex justify-end">
-        <button
-          disabled={busy || !title.trim()}
-          className="btn-primary px-5 py-2.5 text-[13px] disabled:opacity-40"
-          data-testid="create-matter"
-        >
-          {busy ? "Creating…" : "Create matter"}
-        </button>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <input
+          className={`${input} col-span-2`}
+          placeholder={kind === "CASE" ? "Matter title *" : "Project title *"}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          data-testid="matter-title"
+        />
+
+        {kind === "CASE" && (
+          <>
+            <input
+              className={input}
+              placeholder="Court (e.g. Delhi High Court)"
+              value={court}
+              onChange={(e) => setCourt(e.target.value)}
+              data-testid="matter-court"
+            />
+            <input
+              className={input}
+              placeholder="Case number"
+              value={caseNumber}
+              onChange={(e) => setCaseNumber(e.target.value)}
+              data-testid="matter-case-number"
+            />
+          </>
+        )}
+
+        <input
+          className={`${input} col-span-2`}
+          placeholder={kind === "CASE" ? "Parties" : "Subject, or who this is for"}
+          value={parties}
+          onChange={(e) => setParties(e.target.value)}
+        />
+
+        {kind === "CASE" && (
+          <select className={input} value={ourSide} onChange={(e) => setOurSide(e.target.value)}>
+            {OUR_SIDES.map((s) => (
+              <option key={s} value={s}>
+                {OUR_SIDE_LABEL[s]}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <div className={kind === "CASE" ? "flex justify-end" : "col-span-2 flex justify-end"}>
+          <button
+            disabled={busy || !title.trim()}
+            className="btn-primary px-5 py-2.5 text-[13px] disabled:opacity-40"
+            data-testid="create-matter"
+          >
+            {busy ? "Creating…" : `Create ${MATTER_KIND_LABEL[kind].toLowerCase()}`}
+          </button>
+        </div>
       </div>
     </form>
   );

@@ -79,6 +79,17 @@ model Matter {
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title          String
+
+  /**
+   * MatterKind: CASE | PROJECT.
+   *
+   * A case is litigation: it has a court, a case number, annexures and a
+   * plaint to answer. A project is any other body of reading. The kind
+   * decides which screens exist and what the card types are called; it does
+   * not change how anything is stored, so a matter can change kind without
+   * orphaning a single card.
+   */
+  kind           String   @default("CASE")
   court          String   @default("")
   caseNumber     String   @default("")
   parties        String   @default("")

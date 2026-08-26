@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Matter" ADD COLUMN     "kind" TEXT NOT NULL DEFAULT 'CASE';

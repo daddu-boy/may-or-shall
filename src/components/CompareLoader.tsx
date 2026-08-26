@@ -3,9 +3,16 @@
 import { useEffect, useState } from "react";
 import { api, type DocumentDto } from "@/lib/clientTypes";
 import CompareDesk from "./CompareDesk";
+import type { MatterKind } from "@/lib/labels";
 
 /** Fetches the matter's documents, then hands the desk two of them to open. */
-export default function CompareLoader({ matterId }: { matterId: string }) {
+export default function CompareLoader({
+  matterId,
+  kind,
+}: {
+  matterId: string;
+  kind?: MatterKind;
+}) {
   const [documents, setDocuments] = useState<DocumentDto[] | null>(null);
 
   useEffect(() => {
@@ -13,5 +20,5 @@ export default function CompareLoader({ matterId }: { matterId: string }) {
   }, [matterId]);
 
   if (!documents) return <div className="p-10 text-sm text-slate-400">Loading documents…</div>;
-  return <CompareDesk matterId={matterId} documents={documents} />;
+  return <CompareDesk matterId={matterId} documents={documents} kind={kind} />;
 }

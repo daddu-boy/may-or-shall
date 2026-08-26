@@ -8,6 +8,7 @@ import {
   LINK_KIND_LABEL,
   type CardTypeValue,
   type LinkKindValue,
+  type MatterKind,
 } from "@/lib/labels";
 import dynamic from "next/dynamic";
 
@@ -41,9 +42,11 @@ interface LinkDto {
 export default function CompareDesk({
   matterId,
   documents,
+  kind = "CASE",
 }: {
   matterId: string;
   documents: DocumentDto[];
+  kind?: MatterKind;
 }) {
   const ready = useMemo(() => documents.filter((d) => d.status === "ready"), [documents]);
   const [leftId, setLeftId] = useState(ready[0]?.id ?? "");
@@ -331,6 +334,7 @@ export default function CompareDesk({
       <div className="flex-1 min-h-0">
         {docId && (
           <Reader
+            kind={kind}
             key={docId}
             matterId={matterId}
             docId={docId}

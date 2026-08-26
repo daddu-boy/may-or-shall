@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { api, type CardDto, type DocumentDto, type HighlightRect } from "@/lib/clientTypes";
-import { CARD_TYPES, CARD_TYPE_COLOR, CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
+import {
+  CARD_TYPES,
+  CARD_TYPE_COLOR,
+  cardTypeLabel,
+  type CardTypeValue,
+  type MatterKind,
+} from "@/lib/labels";
 import { extractDate } from "@/lib/dates";
 import PdfPage from "./PdfPage";
 import CardPanel from "./CardPanel";
@@ -29,6 +35,7 @@ export default function Reader({
   initialPage,
   initialCardId,
   compact = false,
+  kind = "CASE",
   linkedCardIds,
   focus,
   onCardsChanged,
@@ -39,6 +46,7 @@ export default function Reader({
   initialCardId?: string;
   /** in a side by side pane: no card panel of its own, the desk owns that */
   compact?: boolean;
+  kind?: MatterKind;
   linkedCardIds?: Set<string>;
   /**
    * Scroll to and select a card. The nonce lets the same card be requested
@@ -432,6 +440,7 @@ export default function Reader({
           pending={pending}
           onSave={saveCard}
           onDismiss={() => setPending(null)}
+          kind={kind}
         />
       )}
 
@@ -448,16 +457,29 @@ export default function Reader({
   );
 }
 
+const TAGS_KEY = "mos.reader.tagsOpen";
+
 function HighlightPopover({
   pending,
   onSave,
   onDismiss,
+  kind,
 }: {
   pending: PendingHighlight;
   onSave: (type: CardTypeValue, note: string, eventDate: string | null) => Promise<void>;
   onDismiss: () => void;
+  kind: MatterKind;
 }) {
   const [note, setNote] = useState("");
+  // a case opens it, a project does not, and a hand made choice outranks both
+  const [tagsOpen, setTagsOpen] = useState(kind === "CASE");
+  useEffect(() => {
+    const stored = localStorage.getItem(TAGS_KEY);
+    if (stored !== null) setTagsOpen(stored === "1");
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(TAGS_KEY, tagsOpen ? "1" : "0");
+  }, [tagsOpen]);
   const [dateValue, setDateValue] = useState(() => extractDate(pending.quote) ?? "");
   const [askDate, setAskDate] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -511,20 +533,56 @@ function HighlightPopover({
           </button>
         </div>
       )}
-      <div className="flex flex-wrap gap-1.5">
-        {CARD_TYPES.map((t) => (
-          <button
-            key={t}
-            disabled={busy}
-            onClick={() => pick(t)}
-            className="text-xs rounded-full px-2.5 py-1 font-medium text-white disabled:opacity-40"
-            style={{ background: CARD_TYPE_COLOR[t], opacity: askDate && t !== "DATE" ? 0.35 : 1 }}
-            data-testid={`chip-${t}`}
-          >
-            {CARD_TYPE_LABEL[t]}
-          </button>
-        ))}
+      {/*
+        The same fold the clipper uses. Nine legal categories as the first
+        thing anyone sees is right for a lawyer and wrong for everyone else,
+        who is being asked whether the sentence they just read is an
+        Admission. A case opens it by default, a project does not, and either
+        way the choice is remembered once it is made by hand.
+      */}
+      <div className="flex items-center gap-2">
+        <button
+          disabled={busy || askDate}
+          onClick={() => pick("MISC")}
+          className="flex-1 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+          data-testid="popover-save"
+        >
+          Save note
+        </button>
+        <button
+          type="button"
+          onClick={() => setTagsOpen((v) => !v)}
+          aria-expanded={tagsOpen}
+          className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900"
+          data-testid="popover-tags"
+        >
+          {kind === "CASE" ? "Legal tags" : "Tags"} {tagsOpen ? "▴" : "▾"}
+        </button>
       </div>
+      {tagsOpen && (
+        <div className="mt-2.5 border-t border-slate-100 pt-2.5">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.07em] text-slate-400">
+            Save it as
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {CARD_TYPES.filter((t) => t !== "MISC").map((t) => (
+              <button
+                key={t}
+                disabled={busy}
+                onClick={() => pick(t)}
+                className="rounded-full px-2.5 py-1 text-xs font-medium text-white disabled:opacity-40"
+                style={{
+                  background: CARD_TYPE_COLOR[t],
+                  opacity: askDate && t !== "DATE" ? 0.35 : 1,
+                }}
+                data-testid={`chip-${t}`}
+              >
+                {cardTypeLabel(t, kind)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <button onClick={onDismiss} className="mt-2 text-xs text-slate-400 hover:text-slate-600">
         Dismiss
       </button>

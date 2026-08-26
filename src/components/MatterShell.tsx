@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/clientTypes";
-import { CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
+import { cardTypeLabel, type CardTypeValue, type MatterKind } from "@/lib/labels";
 import SectionTip from "@/components/SectionTip";
 
 interface SearchResults {
@@ -35,15 +35,23 @@ interface NavItem {
   slug: string;
   hint: string;
   tip: { title: string; body: string };
+  /** litigation only: absent from a project's rail */
+  caseOnly?: boolean;
+  /** what this screen is called in a project, when the case name would not travel */
+  projectLabel?: string;
+  projectHint?: string;
+  projectTip?: { title: string; body: string };
 }
 
-const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
+const NAV_GROUPS: { heading: string; projectHeading?: string; items: NavItem[] }[] = [
   {
     heading: "Case file",
+    projectHeading: "Reading",
     items: [
       {
         label: "Upload",
         slug: "documents",
+        projectHint: "Put your documents in as PDFs",
         hint: "Put the case bundle in as PDFs",
         tip: {
           title: "Start here",
@@ -76,6 +84,12 @@ const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
       {
         label: "Chronology",
         slug: "chronology",
+        projectLabel: "Timeline",
+        projectHint: "Your Date cards in order",
+        projectTip: {
+          title: "The timeline builds itself",
+          body: "Date cards arrive here on their own. Add rows by hand, take any row out, and export the whole thing as a Word document.",
+        },
         hint: "Your Date cards as a List of Dates",
         tip: {
           title: "The list builds itself",
@@ -103,6 +117,7 @@ const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
       {
         label: "Annexures",
         slug: "annexures",
+        caseOnly: true,
         hint: "Label documents and renumber references",
         tip: {
           title: "Reorder without retyping",
@@ -112,6 +127,7 @@ const NAV_GROUPS: { heading: string; items: NavItem[] }[] = [
       {
         label: "Editable rows",
         slug: "traverse",
+        caseOnly: true,
         hint: "Answer a plaint paragraph by paragraph",
         tip: {
           title: "One row for every paragraph",
@@ -136,13 +152,40 @@ export default function MatterShell({
   matterId,
   title,
   subtitle,
+  kind,
   children,
 }: {
   matterId: string;
   title: string;
   subtitle: string;
+  kind: MatterKind;
   children: React.ReactNode;
 }) {
+  /**
+   * Annexures and Editable rows are Indian filing machinery: an Index of
+   * Annexures, and a plaint answered paragraph by paragraph under Order VIII
+   * Rule 5. In a project they are noise, so they are absent rather than
+   * greyed. Everything else travels, and only Chronology changes its name.
+   */
+  const groups = useMemo(
+    () =>
+      NAV_GROUPS.map((g) => ({
+        heading: kind === "PROJECT" ? g.projectHeading ?? g.heading : g.heading,
+        items: g.items
+          .filter((i) => kind === "CASE" || !i.caseOnly)
+          .map((i) =>
+            kind === "PROJECT"
+              ? {
+                  ...i,
+                  label: i.projectLabel ?? i.label,
+                  hint: i.projectHint ?? i.hint,
+                  tip: i.projectTip ?? i.tip,
+                }
+              : i
+          ),
+      })).filter((g) => g.items.length > 0),
+    [kind]
+  );
   const pathname = usePathname();
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -232,7 +275,7 @@ export default function MatterShell({
     return () => clearTimeout(debounce.current);
   }, [q, matterId]);
 
-  const current = NAV_GROUPS.flatMap((g) => g.items).find((i) =>
+  const current = groups.flatMap((g) => g.items).find((i) =>
     pathname.startsWith(`/matters/${matterId}/${i.slug}`)
   );
 
@@ -245,7 +288,7 @@ export default function MatterShell({
     tipsSeen === null
       ? undefined
       : asked
-        ? NAV_GROUPS.flatMap((g) => g.items).find((i) => i.slug === asked)
+        ? groups.flatMap((g) => g.items).find((i) => i.slug === asked)
         : current && !tipsSeen.includes(current.slug)
           ? current
           : undefined;
@@ -300,7 +343,7 @@ export default function MatterShell({
          * as one list, so the group now has a visible container.
          */}
         <nav className="px-3 pb-5 space-y-4 overflow-y-auto">
-          {NAV_GROUPS.map((group) => {
+          {groups.map((group) => {
             const open = !collapsed.includes(group.heading);
             const holdsCurrent = group.items.some((i) => i.slug === current?.slug);
             return (
@@ -427,7 +470,7 @@ export default function MatterShell({
                         className="text-[10px] font-semibold uppercase tracking-[0.12em]"
                         style={{ color: "var(--text-tertiary)" }}
                       >
-                        {CARD_TYPE_LABEL[c.cardType]}
+                        {cardTypeLabel(c.cardType, kind)}
                       </span>
                       <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>
                         {c.body}

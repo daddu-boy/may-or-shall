@@ -45,6 +45,49 @@ export const CARD_TYPE_COLOR: Record<CardTypeValue, string> = {
   QUESTION: "#f97316",
 };
 
+/**
+ * A case is litigation. A project is any other body of reading: a research
+ * question, a policy brief, a manuscript. The distinction is a vocabulary and
+ * a set of screens, never a difference in storage.
+ */
+export const MATTER_KINDS = ["CASE", "PROJECT"] as const;
+export type MatterKind = (typeof MATTER_KINDS)[number];
+
+export const MATTER_KIND_LABEL: Record<MatterKind, string> = {
+  CASE: "Case",
+  PROJECT: "Project",
+};
+
+export const MATTER_KIND_BLURB: Record<MatterKind, string> = {
+  CASE: "Litigation. Court, case number, annexures, and a plaint to answer.",
+  PROJECT: "Any other reading. Papers, reports, a manuscript, a brief.",
+};
+
+/**
+ * The same stored card types, said in the language of the work. Our argument
+ * and my claim are one idea; case law and a cited source are one idea. Only
+ * the label moves, so a matter can change kind and every card survives.
+ */
+export const CARD_TYPE_LABEL_BY_KIND: Record<MatterKind, Record<CardTypeValue, string>> = {
+  CASE: CARD_TYPE_LABEL,
+  PROJECT: {
+    MISC: "Personal note",
+    FACT: "Fact",
+    DATE: "Date",
+    ISSUE: "Open question",
+    OUR_ARGUMENT: "My claim",
+    THEIR_ARGUMENT: "Opposing view",
+    EVIDENCE: "Evidence",
+    CASE_LAW: "Source",
+    ADMISSION: "Concession",
+    QUESTION: "Question",
+  },
+};
+
+export function cardTypeLabel(type: CardTypeValue, kind: MatterKind = "CASE"): string {
+  return CARD_TYPE_LABEL_BY_KIND[kind][type];
+}
+
 export const DOC_TYPES = [
   "PLAINT",
   "WRITTEN_STATEMENT",

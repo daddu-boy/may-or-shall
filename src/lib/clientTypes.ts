@@ -11,6 +11,7 @@ export interface HighlightRect {
 export interface MatterDto {
   id: string;
   title: string;
+  kind: "CASE" | "PROJECT";
   court: string;
   caseNumber: string;
   parties: string;

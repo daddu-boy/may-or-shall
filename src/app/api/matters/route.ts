@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { MATTER_KINDS } from "@/lib/labels";
 import { getRequestUserId, unauthorized } from "@/lib/requestUser";
 
 export async function GET(req: NextRequest) {
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
 
 const createSchema = z.object({
   title: z.string().min(1),
+  kind: z.enum(MATTER_KINDS).optional().default("CASE"),
   court: z.string().optional().default(""),
   caseNumber: z.string().optional().default(""),
   parties: z.string().optional().default(""),
@@ -29,6 +31,12 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
-  const matter = await prisma.matter.create({ data: { ...parsed.data, userId } });
+  // A project has no court and no case number. If any arrived, drop them
+  // rather than storing details that no screen will ever show.
+  const data =
+    parsed.data.kind === "PROJECT"
+      ? { ...parsed.data, court: "", caseNumber: "", ourSide: "OTHER" as const }
+      : parsed.data;
+  const matter = await prisma.matter.create({ data: { ...data, userId } });
   return NextResponse.json(matter, { status: 201 });
 }

@@ -16,7 +16,12 @@ export default async function MatterLayout({
     <MatterShell
       matterId={matter.id}
       title={matter.title}
-      subtitle={[matter.court, matter.caseNumber].filter(Boolean).join(" · ")}
+      subtitle={
+        matter.kind === "PROJECT"
+          ? "Project"
+          : [matter.court, matter.caseNumber].filter(Boolean).join(" · ")
+      }
+      kind={matter.kind === "PROJECT" ? "PROJECT" : "CASE"}
     >
       {children}
     </MatterShell>

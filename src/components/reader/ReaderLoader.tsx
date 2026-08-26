@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { MatterKind } from "@/lib/labels";
 
 // pdf.js touches DOM APIs at module scope, so the reader is client-only.
 const Reader = dynamic(() => import("./Reader"), {
@@ -13,6 +14,7 @@ export default function ReaderLoader(props: {
   docId: string;
   initialPage?: number;
   initialCardId?: string;
+  kind?: MatterKind;
 }) {
   return <Reader {...props} />;
 }
