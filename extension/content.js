@@ -189,13 +189,36 @@
     return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   }
 
-  // Keep the popover on screen whatever it currently measures.
-  function place(width, height) {
-    if (!host || !anchor) return;
-    const left = Math.max(8, Math.min(anchor.left, innerWidth - width - 8));
-    const top = Math.max(8, Math.min(anchor.bottom + 8, innerHeight - height - 8));
+  /**
+   * Keep the popover on screen, measured rather than guessed.
+   *
+   * It used to be positioned from numbers each caller passed in, and those
+   * numbers were wrong: the panel is 320 wide plus 13 of padding on each side,
+   * so it was clamped 26px narrower than it really is and its right edge ran
+   * off the window. Measuring removes the class of bug rather than the instance.
+   *
+   * If there is no room below the selection it goes above it, which is what a
+   * selection near the foot of the window needs.
+   */
+  function fit(el) {
+    if (!host || !anchor || !el) return;
+    const r = el.getBoundingClientRect();
+    const w = r.width || 346;
+    const h = r.height || 240;
+    const left = Math.max(8, Math.min(anchor.left, innerWidth - w - 8));
+    let top = anchor.bottom + 8;
+    if (top + h > innerHeight - 8) {
+      const above = anchor.top - h - 8;
+      top = above >= 8 ? above : Math.max(8, innerHeight - h - 8);
+    }
     host.style.left = `${left}px`;
     host.style.top = `${top}px`;
+  }
+
+  /** measure now, and again once layout has settled (fonts, wrapping) */
+  function fitSoon(el) {
+    fit(el);
+    requestAnimationFrame(() => fit(el));
   }
 
   // Liquid glass: a translucent panel that picks up whatever is behind it,
@@ -260,7 +283,7 @@
       align-self:center;text-shadow:0 1px 2px rgba(255,255,255,.6)}
     :host(.dark) .pilltip{text-shadow:0 1px 2px rgba(0,0,0,.6)}
 
-    .box{width:320px;border-radius:18px;padding:13px}
+    .box{width:320px;box-sizing:border-box;border-radius:18px;padding:13px}
     .head{display:flex;align-items:center;gap:7px;margin-bottom:9px}
     .logo{width:16px;height:16px;border-radius:5px}
     .title{font-weight:600;font-size:11.5px}
@@ -360,7 +383,7 @@
       <div class="chips"><button class="reloadbtn" type="button">Reload this page</button></div>
     `;
     root.appendChild(box);
-    place(320, 150);
+    fitSoon(box);
     box.querySelector(".close").addEventListener("click", dismiss);
     box.querySelector(".reloadbtn").addEventListener("click", () => location.reload());
   }
@@ -416,7 +439,7 @@
     pill.addEventListener("focus", expand);
 
     document.documentElement.appendChild(host);
-    place(150, 34);
+    fitSoon(pill);
   }
 
   // ----------------------------------------------------------------- expanded
@@ -456,7 +479,7 @@
       <div class="status"></div>
     `;
     root.appendChild(box);
-    place(320, 240);
+    fitSoon(box);
 
     const chips = box.querySelector(".chips");
     const note = box.querySelector(".note");
@@ -607,7 +630,7 @@
       disclose.setAttribute("aria-expanded", String(open));
       // measure rather than guess: nine chips wrap to three rows on a narrow
       // panel, and a guessed height pushed the panel off the bottom of the page
-      place(320, box.getBoundingClientRect().height + 16);
+      fit(box);
       if (remember) setSync({ legalTagsOpen: open });
     };
     disclose.addEventListener("click", () =>
