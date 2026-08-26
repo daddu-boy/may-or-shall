@@ -296,8 +296,22 @@
     .dot{width:6px;height:6px;border-radius:50%;flex:none;
       box-shadow:0 0 0 2px rgba(255,255,255,.35)}
     :host(.dark) .dot{box-shadow:0 0 0 2px rgba(255,255,255,.08)}
-    .chip.first{animation:mospulse 1.8s ease-out 2}
-    @keyframes mospulse{0%{box-shadow:0 0 0 0 rgba(120,110,255,.45)}70%{box-shadow:0 0 0 8px rgba(120,110,255,0)}100%{box-shadow:0 0 0 0 rgba(120,110,255,0)}}
+    .saverow{display:flex;align-items:center;gap:8px}
+    .savebtn{flex:1;border:0;border-radius:999px;background:var(--accent);color:var(--on-accent);
+      font:600 12px var(--font);padding:8px 12px;cursor:pointer;transition:opacity .14s ease,transform .14s ease}
+    .savebtn:hover{opacity:.92}
+    .savebtn:active{transform:scale(.98)}
+    /* Kept shut by default: nobody outside a courtroom should have to decide
+       whether the sentence they just read is an Admission. Opened once, it
+       stays open, so a litigator pays the click a single time. */
+    .disclose{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--chip-edge);
+      background:var(--chip);color:var(--muted);font:500 11px var(--font);
+      padding:7px 10px;border-radius:999px;cursor:pointer;white-space:nowrap;
+      box-shadow:0 0 0 1px var(--under);transition:background .14s ease,color .14s ease}
+    .disclose:hover{background:var(--chip-hover);color:var(--text)}
+    .chev{font-size:8px;line-height:1;transition:transform .18s ease}
+    .disclose[aria-expanded="true"] .chev{transform:rotate(180deg)}
+    .chips[hidden]{display:none}
 
     .mark{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
       border-radius:5px;background:var(--accent);color:var(--on-accent);font:700 8px var(--font)}
@@ -421,7 +435,11 @@
       <div class="newrow"><input type="text" class="newname" placeholder="New matter title…">
         <button type="button" class="createbtn">Create</button></div>
       <input type="text" class="note" placeholder="Optional note…">
-      <div class="chips"></div>
+      <div class="saverow">
+        <button type="button" class="savebtn">Save note</button>
+        <button type="button" class="disclose" aria-expanded="false">Legal tags <span class="chev">▾</span></button>
+      </div>
+      <div class="chips" hidden></div>
       <div class="status"></div>
     `;
     root.appendChild(box);
@@ -527,8 +545,65 @@
       });
     });
 
-    let firstChip = true;
+    /**
+     * One save path. The plain button files the passage as a Personal note,
+     * which is what a clipped passage honestly is before anyone has decided
+     * what it is for. A legal tag files the same passage under a type.
+     */
+    function saveAs(value) {
+      if (!matterSel.value || matterSel.value === NEW) {
+        status.textContent = "Pick or create a matter first.";
+        status.className = "status err";
+        return;
+      }
+      status.textContent = "Saving…";
+      status.className = "status";
+      send(
+        {
+          type: "createCard",
+          payload: {
+            matterId: matterSel.value,
+            cardType: value,
+            quote,
+            note: note.value.trim(),
+            eventDate: value === "DATE" ? extractDate(quote) : null,
+            sourceUrl: location.href.slice(0, 2000),
+            sourceTitle: document.title.slice(0, 300),
+          },
+        },
+        (res) => {
+          if (!host) return;
+          if (res?.ok) {
+            status.textContent = "✓ Card saved to your matter";
+            status.className = "status ok";
+            setTimeout(dismiss, 1200);
+          } else {
+            status.textContent = res?.error || "Failed — check extension options";
+            status.className = "status err";
+          }
+        }
+      );
+    }
+
+    box.querySelector(".savebtn").addEventListener("click", () => saveAs("MISC"));
+
+    const disclose = box.querySelector(".disclose");
+    const setTags = (open, remember) => {
+      chips.hidden = !open;
+      disclose.setAttribute("aria-expanded", String(open));
+      place(320, open ? 300 : 240);
+      if (remember) setSync({ legalTagsOpen: open });
+    };
+    disclose.addEventListener("click", () =>
+      setTags(disclose.getAttribute("aria-expanded") !== "true", true)
+    );
+    // whoever opened it once works this way every time
+    getSync({ legalTagsOpen: false }, (v) => {
+      if (host && v.legalTagsOpen) setTags(true, false);
+    });
+
     for (const [value, label, color] of CARD_TYPES) {
+      if (value === "MISC") continue; // the plain save already files these
       const b = document.createElement("button");
       b.className = "chip";
       b.type = "button";
@@ -538,48 +613,7 @@
       dot.className = "dot";
       dot.style.background = color;
       b.append(dot, document.createTextNode(label));
-      if (firstChip) {
-        firstChip = false;
-        getSync({ chipsSeen: false }, (v) => {
-          if (v.chipsSeen) return;
-          b.classList.add("first");
-          setSync({ chipsSeen: true });
-        });
-      }
-      b.addEventListener("click", () => {
-        if (!matterSel.value || matterSel.value === NEW) {
-          status.textContent = "Pick or create a matter first.";
-          status.className = "status err";
-          return;
-        }
-        status.textContent = "Saving…";
-        status.className = "status";
-        send(
-          {
-            type: "createCard",
-            payload: {
-              matterId: matterSel.value,
-              cardType: value,
-              quote,
-              note: note.value.trim(),
-              eventDate: value === "DATE" ? extractDate(quote) : null,
-              sourceUrl: location.href.slice(0, 2000),
-              sourceTitle: document.title.slice(0, 300),
-            },
-          },
-          (res) => {
-            if (!host) return;
-            if (res?.ok) {
-              status.textContent = "✓ Card saved to your matter";
-              status.className = "status ok";
-              setTimeout(dismiss, 1200);
-            } else {
-              status.textContent = res?.error || "Failed — check extension options";
-              status.className = "status err";
-            }
-          }
-        );
-      });
+      b.addEventListener("click", () => saveAs(value));
       chips.appendChild(b);
     }
   }

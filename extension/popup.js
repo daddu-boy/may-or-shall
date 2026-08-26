@@ -3,6 +3,28 @@ const newRow = document.getElementById("newrow");
 const newName = document.getElementById("newname");
 const note = document.getElementById("note");
 const noteType = document.getElementById("notetype");
+const tagToggle = document.getElementById("tagtoggle");
+const typeRow = document.getElementById("typerow");
+
+/*
+ * The legal vocabulary is folded away here for the same reason it is in the
+ * popover: most people clipping a page are not deciding whether a sentence is
+ * an Admission. Opened once, it stays open, shared with the popover through
+ * the same stored flag.
+ */
+function setTags(open, remember) {
+  typeRow.hidden = !open;
+  tagToggle.setAttribute("aria-expanded", String(open));
+  tagToggle.textContent = open ? "Legal tags ▴" : "Legal tags ▾";
+  if (!open) noteType.value = "MISC";
+  if (remember) chrome.storage.sync.set({ legalTagsOpen: open });
+}
+tagToggle.addEventListener("click", () =>
+  setTags(tagToggle.getAttribute("aria-expanded") !== "true", true)
+);
+chrome.storage.sync.get({ legalTagsOpen: false }, (v) => {
+  if (v.legalTagsOpen) setTags(true, false);
+});
 const saveBtn = document.getElementById("save");
 const status = document.getElementById("status");
 const fixRow = document.getElementById("fixrow");
