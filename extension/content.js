@@ -285,9 +285,9 @@
     .newrow button{border:none;border-radius:999px;background:var(--accent);
       color:var(--on-accent);font:600 11px var(--font);padding:0 14px;cursor:pointer}
 
-    .chips{display:flex;flex-wrap:wrap;gap:6px}
-    .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--chip-edge);
-      background:var(--chip);color:var(--text);font:500 11.5px var(--font);
+    .chips{display:flex;flex-wrap:wrap;gap:7px 6px}
+    .chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--chip-edge);
+      background:var(--chip);color:var(--text);font:500 11px var(--font);
       letter-spacing:-.01em;padding:5px 11px;border-radius:999px;cursor:pointer;
       box-shadow:0 0 0 1px var(--under);
       transition:background .14s ease,transform .14s ease}
@@ -296,9 +296,9 @@
     .dot{width:6px;height:6px;border-radius:50%;flex:none;
       box-shadow:0 0 0 2px rgba(255,255,255,.35)}
     :host(.dark) .dot{box-shadow:0 0 0 2px rgba(255,255,255,.08)}
-    .saverow{display:flex;align-items:center;gap:8px}
+    .saverow{display:flex;align-items:center;gap:8px;margin-top:2px}
     .savebtn{flex:1;border:0;border-radius:999px;background:var(--accent);color:var(--on-accent);
-      font:600 12px var(--font);padding:8px 12px;cursor:pointer;transition:opacity .14s ease,transform .14s ease}
+      font:600 12px var(--font);padding:9px 12px;cursor:pointer;transition:opacity .14s ease,transform .14s ease}
     .savebtn:hover{opacity:.92}
     .savebtn:active{transform:scale(.98)}
     /* Kept shut by default: nobody outside a courtroom should have to decide
@@ -309,8 +309,18 @@
       padding:7px 10px;border-radius:999px;cursor:pointer;white-space:nowrap;
       box-shadow:0 0 0 1px var(--under);transition:background .14s ease,color .14s ease}
     .disclose:hover{background:var(--chip-hover);color:var(--text)}
-    .chev{font-size:8px;line-height:1;transition:transform .18s ease}
+    .chev{font-size:8px;line-height:1;opacity:.7;transition:transform .18s ease}
     .disclose[aria-expanded="true"] .chev{transform:rotate(180deg)}
+
+    /* The tags live in their own compartment under a rule. Sitting them
+       directly beneath the buttons read as one crowded pile, and it hid the
+       fact that pressing a tag saves there and then. */
+    .tags{margin-top:11px;padding-top:10px;border-top:1px solid var(--under);
+      animation:mosreveal .18s ease-out}
+    .tags[hidden]{display:none}
+    @keyframes mosreveal{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+    .tagshead{font:500 10px var(--font);letter-spacing:.07em;text-transform:uppercase;
+      color:var(--muted);margin-bottom:8px}
     .chips[hidden]{display:none}
 
     .mark{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
@@ -439,7 +449,10 @@
         <button type="button" class="savebtn">Save note</button>
         <button type="button" class="disclose" aria-expanded="false">Legal tags <span class="chev">▾</span></button>
       </div>
-      <div class="chips" hidden></div>
+      <div class="tags" hidden>
+        <div class="tagshead">Save it as</div>
+        <div class="chips"></div>
+      </div>
       <div class="status"></div>
     `;
     root.appendChild(box);
@@ -588,10 +601,13 @@
     box.querySelector(".savebtn").addEventListener("click", () => saveAs("MISC"));
 
     const disclose = box.querySelector(".disclose");
+    const tags = box.querySelector(".tags");
     const setTags = (open, remember) => {
-      chips.hidden = !open;
+      tags.hidden = !open;
       disclose.setAttribute("aria-expanded", String(open));
-      place(320, open ? 300 : 240);
+      // measure rather than guess: nine chips wrap to three rows on a narrow
+      // panel, and a guessed height pushed the panel off the bottom of the page
+      place(320, box.getBoundingClientRect().height + 16);
       if (remember) setSync({ legalTagsOpen: open });
     };
     disclose.addEventListener("click", () =>
