@@ -73,11 +73,18 @@ async function listMatters() {
     .map((m) => ({ id: m.id, title: m.title }));
 }
 
-async function createMatter(title) {
+/**
+ * A matter created from the clipper is a project unless the person says
+ * otherwise. A case needs a court, a case number and a side, none of which a
+ * browser popover should be collecting, so a case begins in the app; but the
+ * choice is offered here rather than assumed, because a litigator clipping a
+ * judgment into a live case is the other half of the traffic.
+ */
+async function createMatter(title, kind) {
   const config = await getConfig();
   const matter = await apiFetch(config, "/api/matters", {
     method: "POST",
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, kind: kind === "CASE" ? "CASE" : "PROJECT" }),
   });
   await chrome.storage.sync.set({ matterId: matter.id });
   return { id: matter.id, title: matter.title };
@@ -258,7 +265,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       } else if (msg.type === "getState") {
         sendResponse({ ok: true, ...(await getState()) });
       } else if (msg.type === "createMatter") {
-        sendResponse({ ok: true, matter: await createMatter(msg.title) });
+        sendResponse({ ok: true, matter: await createMatter(msg.title, msg.kind) });
       } else if (msg.type === "connect") {
         sendResponse(await connect(msg));
       } else if (msg.type === "connectStatus") {

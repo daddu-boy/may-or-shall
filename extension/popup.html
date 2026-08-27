@@ -42,6 +42,15 @@
   ::placeholder{color:var(--muted)}
   textarea{resize:vertical;min-height:52px}
   .row{display:flex;gap:5px;margin-top:5px}
+  /* a case has a court, a number and a side, and begins in the app; a project
+     is anything else you are reading, so the clipper offers both */
+  .kindrow{display:none;gap:5px;margin-top:5px;align-items:center}
+  .kindrow.show{display:flex}
+  .kindlab{font-size:11px;color:#6b7280;margin-right:2px}
+  .kindbtn{border:1px solid #d7d9e0;background:#fff;color:#6b7280;font:500 11px inherit;
+    padding:5px 11px;border-radius:999px;cursor:pointer}
+  .kindbtn:hover{background:#f4f5f8;color:#111}
+  .kindbtn[aria-pressed="true"]{background:#4f46e5;border-color:#4f46e5;color:#fff}
   .row[hidden]{display:none}
   #save{flex:1}
   #tagtoggle{white-space:nowrap}
@@ -92,8 +101,13 @@
   <label for="matter">Matter</label>
   <select id="matter"><option>Loading…</option></select>
   <div class="newrow" id="newrow">
-    <input id="newname" placeholder="New matter title…">
+    <input id="newname" placeholder="New title…">
     <button id="create" class="indigo">Create</button>
+  </div>
+  <div class="kindrow" id="kindrow">
+    <span class="kindlab">Create as</span>
+    <button id="kind-project" class="kindbtn" type="button" data-kind="PROJECT" aria-pressed="true">Project</button>
+    <button id="kind-case" class="kindbtn" type="button" data-kind="CASE" aria-pressed="false">Case</button>
   </div>
 
   <label for="note">Rough note → card</label>

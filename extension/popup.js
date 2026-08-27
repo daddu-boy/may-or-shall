@@ -128,6 +128,7 @@ function fillMatters(matters, selectedId) {
   if (matters.length === 0) {
     matterSelect.value = NEW;
     newRow.classList.add("show");
+    document.getElementById("kindrow").classList.add("show");
   }
 }
 
@@ -161,6 +162,7 @@ function refresh() {
     if (res.matters.length === 0) {
       // connected, but no matters yet — invite the user to create their first
       newRow.classList.add("show");
+      document.getElementById("kindrow").classList.add("show");
       newName.focus();
       setStatus("Connected. Name your first matter below and click Create.", "ok");
       recentWrap.style.display = "none";
@@ -231,6 +233,7 @@ document.getElementById("viewmatters").addEventListener("click", () => {
 matterSelect.addEventListener("change", () => {
   const isNew = matterSelect.value === NEW;
   newRow.classList.toggle("show", isNew);
+  document.getElementById("kindrow").classList.toggle("show", isNew);
   if (isNew) {
     newName.focus();
     return;
@@ -242,17 +245,32 @@ matterSelect.addEventListener("change", () => {
   loadRecent(matterSelect.value);
 });
 
+const kindRow = document.getElementById("kindrow");
+const kindBtns = [...document.querySelectorAll(".kindbtn")];
+let newKind = "PROJECT";
+function setKind(k, remember) {
+  newKind = k;
+  kindBtns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.kind === k)));
+  if (remember) chrome.storage.sync.set({ newMatterKind: k });
+}
+kindBtns.forEach((b) => b.addEventListener("click", () => setKind(b.dataset.kind, true)));
+// shared with the in-page panel, so the choice follows you between the two
+chrome.storage.sync.get({ newMatterKind: "PROJECT" }, (v) =>
+  setKind(v.newMatterKind === "CASE" ? "CASE" : "PROJECT", false)
+);
+
 document.getElementById("create").addEventListener("click", () => {
   const title = newName.value.trim();
   if (!title) return;
-  setStatus("Creating matter…");
-  chrome.runtime.sendMessage({ type: "createMatter", title }, (res) => {
+  setStatus(newKind === "CASE" ? "Creating case…" : "Creating project…");
+  chrome.runtime.sendMessage({ type: "createMatter", title, kind: newKind }, (res) => {
     if (res?.ok) {
       newName.value = "";
       newRow.classList.remove("show");
+      kindRow.classList.remove("show");
       chrome.runtime.sendMessage({ type: "getState" }, (st) => {
         if (st?.ok) fillMatters(st.matters, res.matter.id);
-        setStatus(`✓ Matter "${res.matter.title}" created and selected`, "ok");
+        setStatus(`✓ ${newKind === "CASE" ? "Case" : "Project"} "${res.matter.title}" created and selected`, "ok");
         loadRecent(res.matter.id);
       });
     } else {

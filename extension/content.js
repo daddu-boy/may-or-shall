@@ -302,8 +302,19 @@
     input::placeholder{color:var(--muted)}
     input:focus,select:focus{border-color:var(--accent)}
 
-    .newrow{display:none;gap:6px;margin-bottom:8px}
+    .newrow{display:none;gap:6px;margin-bottom:6px}
     .newrow.show{display:flex}
+    /* which kind of thing is being created: a case has a court and a number and
+       begins in the app, a project is anything else you are reading */
+    .kindrow{display:none;gap:6px;margin-bottom:8px;align-items:center}
+    .kindrow.show{display:flex}
+    .kindlab{font:11px var(--font);color:var(--muted);margin-right:2px}
+    .kindbtn{border:1px solid var(--chip-edge);background:var(--chip);color:var(--muted);
+      font:500 11px var(--font);padding:5px 11px;border-radius:999px;cursor:pointer;
+      box-shadow:0 0 0 1px var(--under);transition:background .14s ease,color .14s ease}
+    .kindbtn:hover{background:var(--chip-hover);color:var(--text)}
+    .kindbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
+      color:var(--on-accent);box-shadow:none}
     .newrow input{flex:1;margin-bottom:0}
     .newrow button{border:none;border-radius:999px;background:var(--accent);
       color:var(--on-accent);font:600 11px var(--font);padding:0 14px;cursor:pointer}
@@ -465,8 +476,13 @@
         <button class="icon close" title="Dismiss">${ICON_CLOSE}</button></div>
       <div class="quote">&ldquo;${quote.slice(0, 160).replace(/</g, "&lt;")}&rdquo;</div>
       <select class="matter"><option value="">Loading matters…</option></select>
-      <div class="newrow"><input type="text" class="newname" placeholder="New matter title…">
+      <div class="newrow"><input type="text" class="newname" placeholder="New title…">
         <button type="button" class="createbtn">Create</button></div>
+      <div class="kindrow">
+        <span class="kindlab">Create as</span>
+        <button type="button" class="kindbtn" data-kind="PROJECT" aria-pressed="true">Project</button>
+        <button type="button" class="kindbtn" data-kind="CASE" aria-pressed="false">Case</button>
+      </div>
       <input type="text" class="note" placeholder="Optional note…">
       <div class="saverow">
         <button type="button" class="savebtn">Save note</button>
@@ -485,6 +501,21 @@
     const note = box.querySelector(".note");
     const matterSel = box.querySelector(".matter");
     const newRow = box.querySelector(".newrow");
+    const kindRow = box.querySelector(".kindrow");
+    const kindBtns = [...box.querySelectorAll(".kindbtn")];
+    let newKind = "PROJECT";
+    const setKind = (k, remember) => {
+      newKind = k;
+      kindBtns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.kind === k)));
+      if (remember) setSync({ newMatterKind: k });
+      fit(box);
+    };
+    // whatever you made last time is what you probably want this time
+    getSync({ newMatterKind: "PROJECT" }, (v) => {
+      if (host) setKind(v.newMatterKind === "CASE" ? "CASE" : "PROJECT", false);
+    });
+    kindBtns.forEach((b) => b.addEventListener("click", () => setKind(b.dataset.kind, true)));
+
     const newName = box.querySelector(".newname");
     const status = box.querySelector(".status");
     box.querySelector(".close").addEventListener("click", dismiss);
@@ -548,6 +579,7 @@
       if (res.matters.length === 0) {
         matterSel.value = NEW;
         newRow.classList.add("show");
+        kindRow.classList.add("show");
         newName.focus();
         status.textContent = "No matters yet — name your first one and click Create.";
         status.className = "status";
@@ -555,23 +587,27 @@
     });
 
     matterSel.addEventListener("change", () => {
-      newRow.classList.toggle("show", matterSel.value === NEW);
-      if (matterSel.value === NEW) newName.focus();
+      const making = matterSel.value === NEW;
+      newRow.classList.toggle("show", making);
+      kindRow.classList.toggle("show", making);
+      fit(box);
+      if (making) newName.focus();
     });
 
     box.querySelector(".createbtn").addEventListener("click", () => {
       const title = newName.value.trim();
       if (!title) return;
-      status.textContent = "Creating matter…";
+      status.textContent = newKind === "CASE" ? "Creating case…" : "Creating project…";
       status.className = "status";
-      send({ type: "createMatter", title }, (res) => {
+      send({ type: "createMatter", title, kind: newKind }, (res) => {
         if (!host) return;
         if (res?.ok) {
           send({ type: "getState" }, (st) => {
             if (!host) return;
             if (st?.ok) fillMatters(st.matters, res.matter.id);
             newRow.classList.remove("show");
-            status.textContent = `✓ Matter "${res.matter.title}" created`;
+            kindRow.classList.remove("show");
+            status.textContent = `✓ ${newKind === "CASE" ? "Case" : "Project"} "${res.matter.title}" created`;
             status.className = "status ok";
           });
         } else {
