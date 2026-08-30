@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { MatterKind } from "@/lib/labels";
 import Board from "./board/Board";
 import LinksView from "./links/LinksView";
 
@@ -13,10 +14,12 @@ export default function CardsWorkspace({
   matterId,
   initialCardId,
   initialTab,
+  kind = "CASE",
 }: {
   matterId: string;
   initialCardId?: string;
   initialTab?: string;
+  kind?: MatterKind;
 }) {
   const [tab, setTab] = useState<"cards" | "links">(initialTab === "links" ? "links" : "cards");
 
@@ -45,7 +48,7 @@ export default function CardsWorkspace({
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
         {tab === "cards" ? (
-          <Board matterId={matterId} initialCardId={initialCardId} />
+          <Board matterId={matterId} initialCardId={initialCardId} kind={kind} />
         ) : (
           <LinksView matterId={matterId} />
         )}

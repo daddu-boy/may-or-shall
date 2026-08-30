@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type CardDto, type DocumentDto } from "@/lib/clientTypes";
-import { CARD_TYPES, CARD_TYPE_COLOR, CARD_TYPE_LABEL } from "@/lib/labels";
+import {
+  CARD_TYPES,
+  CARD_TYPE_COLOR,
+  cardTypeLabel,
+  type MatterKind,
+} from "@/lib/labels";
+import NewCardComposer from "./NewCardComposer";
 import CardDrawer from "./CardDrawer";
 import BoardCard from "./BoardCard";
 
@@ -11,9 +17,11 @@ type GroupBy = "type" | "document" | "tag" | "date";
 export default function Board({
   matterId,
   initialCardId,
+  kind = "CASE",
 }: {
   matterId: string;
   initialCardId?: string;
+  kind?: MatterKind;
 }) {
   const [cards, setCards] = useState<CardDto[]>([]);
   const [docs, setDocs] = useState<DocumentDto[]>([]);
@@ -27,6 +35,24 @@ export default function Board({
   const [drawerCardId, setDrawerCardId] = useState<string | null>(initialCardId ?? null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
+  const [composing, setComposing] = useState(false);
+
+  /*
+   * A note you cannot write down quickly is a note you do not write down. "n"
+   * opens the composer, unless you are already typing somewhere.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "n" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      if (el?.isContentEditable) return;
+      e.preventDefault();
+      setComposing(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const load = useCallback(async () => {
     const [c, d] = await Promise.all([
@@ -74,7 +100,7 @@ export default function Board({
     if (groupBy === "type") {
       return CARD_TYPES.map((t) => ({
         key: t,
-        title: CARD_TYPE_LABEL[t],
+        title: cardTypeLabel(t, kind),
         color: CARD_TYPE_COLOR[t],
         cards: sortCol(filtered.filter((c) => c.cardType === t)),
       })).filter((col) => col.cards.length > 0 || !filterType);
@@ -164,6 +190,15 @@ export default function Board({
   return (
     <div className="h-full flex flex-col">
       <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 flex items-center gap-2 flex-wrap text-xs">
+        <button
+          onClick={() => setComposing((v) => !v)}
+          className="rounded-full bg-slate-900 px-3.5 py-1.5 font-semibold text-white"
+          title="Write a note by hand (n)"
+          data-testid="new-card"
+        >
+          + New note
+        </button>
+        <span className="mx-1 text-slate-200">|</span>
         <label className="text-slate-500">Group by</label>
         <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={select}>
           <option value="type">Card type</option>
@@ -176,7 +211,7 @@ export default function Board({
           <option value="">All types</option>
           {CARD_TYPES.map((t) => (
             <option key={t} value={t}>
-              {CARD_TYPE_LABEL[t]}
+              {cardTypeLabel(t, kind)}
             </option>
           ))}
         </select>
@@ -230,6 +265,16 @@ export default function Board({
           </a>
         </div>
       </div>
+
+      {composing && (
+        <NewCardComposer
+          matterId={matterId}
+          documents={docs}
+          kind={kind}
+          onSaved={(card) => setCards((prev) => [...prev, card])}
+          onClose={() => setComposing(false)}
+        />
+      )}
 
       <div className="flex-1 overflow-auto">
         <div className="flex gap-3 p-4 min-h-full items-start">
