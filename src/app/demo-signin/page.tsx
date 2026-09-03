@@ -10,6 +10,11 @@ export default function DemoSignInPage({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   const failed = searchParams.error !== undefined;
+  const raw = searchParams.callbackUrl;
+  const requested = Array.isArray(raw) ? raw[0] : raw;
+  // same rule as the route: a path on this site, or nothing
+  const callbackUrl =
+    requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "";
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8">
@@ -25,6 +30,7 @@ export default function DemoSignInPage({
         )}
 
         <form action="/api/demo-signin" method="POST" className="mt-6 space-y-3">
+          {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
           <input
             name="email"
             type="email"

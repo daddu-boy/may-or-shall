@@ -89,6 +89,24 @@ function SignIn() {
             <p className="text-center text-xs text-slate-400">
               No password. We email you a secure link to sign in.
             </p>
+            {/*
+              The OAuth flow sends anyone who is not signed in here, including
+              an app store reviewer holding a demo email and password. Without
+              this they reach a page that can only email a link to an inbox
+              they do not have, and the review stops there.
+            */}
+            <p className="text-center text-xs">
+              <a
+                href={`/demo-signin${
+                  params.get("callbackUrl")
+                    ? `?callbackUrl=${encodeURIComponent(params.get("callbackUrl") as string)}`
+                    : ""
+                }`}
+                className="text-slate-400 underline underline-offset-2 hover:text-slate-600"
+              >
+                Reviewing this app? Sign in with the demo credentials
+              </a>
+            </p>
           </form>
         )}
       </div>

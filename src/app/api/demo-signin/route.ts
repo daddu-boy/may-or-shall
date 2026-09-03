@@ -29,10 +29,24 @@ export async function POST(req: NextRequest) {
   const email = String(form?.get("email") || "").trim().toLowerCase();
   const password = String(form?.get("password") || "");
 
+  /*
+   * Where to land after signing in. A reviewer arrives here in the middle of
+   * an OAuth flow, so dropping them on the dashboard strands the connection
+   * they were trying to authorise. Only a path on this site is accepted: a
+   * value beginning "//" or carrying a scheme would be an open redirect.
+   */
+  const requested = String(form?.get("callbackUrl") || "");
+  const next =
+    requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+
   // Redirects must use the public origin: behind Railway's proxy req.url is the
   // internal http://localhost:8080, which would send a reviewer nowhere.
   const base = origin();
-  const deny = () => NextResponse.redirect(`${base}/demo-signin?error=1`, 303);
+  const deny = () =>
+    NextResponse.redirect(
+      `${base}/demo-signin?error=1&callbackUrl=${encodeURIComponent(next)}`,
+      303
+    );
 
   if (!expected || email !== DEMO_EMAIL || !password) return deny();
   const a = Buffer.from(password);
@@ -55,7 +69,7 @@ export async function POST(req: NextRequest) {
   await prisma.session.create({ data: { sessionToken, userId: user.id, expires } });
 
   const secure = base.startsWith("https:");
-  const res = NextResponse.redirect(base + "/", 303);
+  const res = NextResponse.redirect(base + next, 303);
   res.cookies.set({
     name: secure ? "__Secure-authjs.session-token" : "authjs.session-token",
     value: sessionToken,
