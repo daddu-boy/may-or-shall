@@ -243,6 +243,51 @@ export async function createSampleMatter(userId: string): Promise<string | null>
       });
     }
 
+    /*
+     * Designate the plaint, so the traverse sheet exists from the first
+     * moment. Without it the deemed admission guard, which is the most
+     * distinctive thing this app does, answers "designate a plaint first" to
+     * anyone who tries it, including a reviewer following our own example.
+     * Two paragraphs are answered and the rest are left open, so the guard has
+     * something true to report rather than a blank sheet.
+     */
+    const { splitPlaintParas } = await import("./paraSplit");
+    const pages = await prisma.documentPage.findMany({
+      where: { documentId: doc.id },
+      orderBy: { page: "asc" },
+      select: { text: true },
+    });
+    const paras = splitPlaintParas(pages.map((p) => p.text));
+    if (paras.length > 0) {
+      await prisma.traverseSheet.create({
+        data: {
+          matterId: matter.id,
+          documentId: doc.id,
+          createdBy: "sample",
+          rows: {
+            create: paras.map((para, i) => ({
+              order: i + 1,
+              paraNo: String(para.no),
+              paraText: para.text,
+              ...(i === 0
+                ? {
+                    status: "ADMITTED",
+                    responseText:
+                      "<p>The execution of the works contract dated 15.03.2021 is admitted.</p>",
+                  }
+                : i === 1
+                  ? {
+                      status: "DENIED_SPECIFIC",
+                      responseText:
+                        "<p>Denied. The bills at RA-1 to RA-8 were certified by the Defendant's own engineer, as borne out by the record.</p>",
+                    }
+                  : {}),
+            })),
+          },
+        },
+      });
+    }
+
     // Date cards drive the chronology, exactly as they would for a real matter
     const { syncCardChronology } = await import("./chronology");
     const dated = await prisma.card.findMany({
