@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { api } from "@/lib/clientTypes";
 
 interface ConnectionDto {
@@ -25,8 +26,12 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [freshToken, setFreshToken] = useState<{ name: string; token: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [account, setAccount] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    api<{ email: string | null }>("/api/me")
+      .then((m) => setAccount(m.email))
+      .catch(() => {});
     setTokens(await api<TokenDto[]>("/api/tokens"));
     setConnections(await api<ConnectionDto[]>("/api/oauth/connections").catch(() => []));
   }, []);
@@ -71,6 +76,27 @@ export default function SettingsPage() {
       <p className="text-sm text-slate-500 mb-8">
         API tokens for the browser extension and other clients.
       </p>
+
+      {/*
+        Until now there was no way to sign out of the app at all, and no way to
+        see which account you were in. Both matter the moment someone uses more
+        than one, which is anyone with a demo account beside their own.
+      */}
+      <section className="rounded-lg border border-slate-200 bg-white p-5 mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold mb-1">Account</h2>
+          <p className="text-xs text-slate-500" data-testid="account-email">
+            {account ? `Signed in as ${account}` : "Signed in"}
+          </p>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/signin" })}
+          className="rounded-md border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          data-testid="sign-out"
+        >
+          Sign out
+        </button>
+      </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5 mb-6">
         <h2 className="text-sm font-semibold mb-1">Connected AI tools</h2>
