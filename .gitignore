@@ -54,3 +54,6 @@ pdf.worker.min.mjs
 /node_modules/.prisma-pg-client
 /prisma/schema-pg-migrate.prisma
 demo-raw*.mov
+
+# scratch scripts used while debugging
+scripts/.tmp-*
