@@ -297,6 +297,7 @@ export default function Board({
                     onToggleSelect={() => toggleSelect(card.id)}
                     onDragStart={() => setDragId(card.id)}
                     onDropOn={() => dropOn(card, col.cards)}
+                    onChanged={load}
                   />
                 ))}
               </div>

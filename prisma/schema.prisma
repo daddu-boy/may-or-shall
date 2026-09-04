@@ -181,6 +181,13 @@ model Card {
   /// Treatment: RELIED_ON | DISTINGUISHED | OVERRULED_RISK (nullable)
   treatment   String?
 
+  /**
+   * A reminder the user set on a personal note. remindSentAt is stamped once
+   * the mail has gone, so a job that runs twice in a day does not send twice.
+   */
+  remindAt     DateTime?
+  remindSentAt DateTime?
+
   orderIndex Float    @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -190,6 +197,7 @@ model Card {
 
   @@index([matterId, cardType])
   @@index([documentId])
+  @@index([remindAt])
 }
 
 model TraverseSheet {

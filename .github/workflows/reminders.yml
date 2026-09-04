@@ -1,0 +1,23 @@
+name: Send due reminders
+
+# Railway has no scheduler of its own, so the daily nudge comes from here.
+# The endpoint is idempotent: it stamps each note once it has gone out, and a
+# missed run is caught by the next one because everything overdue is collected,
+# not just today's.
+on:
+  schedule:
+    - cron: "30 2 * * *" # 08:00 IST
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the reminder job
+        run: |
+          code=$(curl -s -o /tmp/out -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://app.mayorshall.com/api/cron/reminders)
+          echo "HTTP $code"
+          cat /tmp/out
+          test "$code" = "200"

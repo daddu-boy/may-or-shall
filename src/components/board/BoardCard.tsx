@@ -3,6 +3,7 @@
 import { memo } from "react";
 import type { CardDto } from "@/lib/clientTypes";
 import { CARD_TYPE_COLOR, CARD_TYPE_LABEL } from "@/lib/labels";
+import CardMenu from "./CardMenu";
 
 function BoardCard({
   card,
@@ -11,6 +12,7 @@ function BoardCard({
   onToggleSelect,
   onDragStart,
   onDropOn,
+  onChanged,
 }: {
   card: CardDto;
   selected: boolean;
@@ -18,6 +20,7 @@ function BoardCard({
   onToggleSelect: () => void;
   onDragStart: () => void;
   onDropOn: () => void;
+  onChanged: () => void;
 }) {
   return (
     <div
@@ -52,6 +55,18 @@ function BoardCard({
         {card.eventDate && (
           <span className="text-[10px] text-amber-700">{card.eventDate.slice(0, 10)}</span>
         )}
+        {card.remindAt && (
+          <span
+            className="text-[10px] text-indigo-600"
+            title={`Reminder on ${card.remindAt.slice(0, 10)}`}
+            data-testid="reminder-chip"
+          >
+            ⏰ {card.remindAt.slice(0, 10)}
+          </span>
+        )}
+        <span className="ml-auto opacity-0 transition-opacity group-hover:opacity-100">
+          <CardMenu card={card} onChanged={onChanged} />
+        </span>
       </div>
       <p className="text-xs text-slate-700 line-clamp-3">{card.body || card.quote}</p>
       <div className="flex items-center gap-1 mt-1.5 flex-wrap">

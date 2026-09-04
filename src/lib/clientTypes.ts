@@ -46,6 +46,8 @@ export interface CardDto {
   cardType: CardTypeValue;
   body: string;
   eventDate: string | null;
+  /** a reminder set on a personal note; null when there is none */
+  remindAt: string | null;
   tags: string[];
   pinned: boolean;
   citation: string | null;
