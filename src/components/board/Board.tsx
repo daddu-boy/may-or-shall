@@ -185,6 +185,44 @@ export default function Board({
     load();
   };
 
+  /**
+   * Delete everything selected.
+   *
+   * A card is not only a card: a Date card owns its row in the List of Dates,
+   * and a link between two cards cannot outlive either end. Both cascade in the
+   * database, so the confirmation says so rather than letting a chronology
+   * quietly lose entries.
+   */
+  const removeSelected = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    const dated = ids.filter((id) => cards.find((c) => c.id === id)?.eventDate).length;
+    const ok = window.confirm(
+      `Delete ${ids.length} card${ids.length === 1 ? "" : "s"} permanently?\n\n` +
+        (dated > 0
+          ? `${dated} of them carr${dated === 1 ? "ies a date, and its" : "y dates, and their"} ` +
+            `List of Dates entr${dated === 1 ? "y" : "ies"} will go too.\n`
+          : "") +
+        `Any links to or from them will also go. This cannot be undone.`
+    );
+    if (!ok) return;
+
+    const results = await Promise.allSettled(
+      ids.map((id) => api(`/api/cards/${id}`, { method: "DELETE" }))
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    setSelectedIds(new Set());
+    await load();
+    // say so rather than leaving cards on the board with no explanation
+    if (failed > 0) {
+      window.alert(
+        `${ids.length - failed} deleted. ${failed} could not be deleted and are still on the board.`
+      );
+    }
+  };
+
+  const selectAllShown = () => setSelectedIds(new Set(filtered.map((c) => c.id)));
+
   const select = "border border-slate-200 rounded px-2 py-1 text-xs bg-white";
 
   return (
@@ -240,13 +278,38 @@ export default function Board({
         <input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className={select} />
         <span className="text-slate-400">–</span>
         <input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className={select} />
+        <button
+          onClick={selectAllShown}
+          className="text-slate-500 hover:text-slate-900"
+          title="Select every card currently shown"
+          data-testid="select-all"
+        >
+          Select all{filtered.length ? ` (${filtered.length})` : ""}
+        </button>
         {selectedIds.size > 0 && (
-          <button
-            onClick={applyTag}
-            className="rounded bg-slate-900 text-white px-3 py-1.5 font-medium"
-          >
-            Tag {selectedIds.size} selected
-          </button>
+          <>
+            <span className="text-slate-400">{selectedIds.size} selected</span>
+            <button
+              onClick={applyTag}
+              className="rounded bg-slate-900 text-white px-3 py-1.5 font-medium"
+            >
+              Tag
+            </button>
+            <button
+              onClick={removeSelected}
+              className="rounded border border-red-200 px-3 py-1.5 font-medium text-red-600 hover:bg-red-50"
+              data-testid="delete-selected"
+            >
+              Delete {selectedIds.size}
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-slate-500 hover:text-slate-900"
+              data-testid="clear-selection"
+            >
+              Clear
+            </button>
+          </>
         )}
         {/* every card, with its quote and source, as one document */}
         <div className="ml-auto flex items-center gap-1.5">
