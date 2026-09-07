@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { aiUnavailableReason } from "@/lib/ai";
+import { aiReadiness } from "@/lib/ai";
 import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 import {
   GENERATABLE_TYPES,
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "This artefact type cannot be regenerated" }, { status: 400 });
   }
 
-  const reason = aiUnavailableReason(source.matter.aiEnabled);
+  const reason = await aiReadiness(source.matter.aiEnabled, [GENERATABLE_TYPES[source.artefactType as GeneratableType].prompt]);
   if (reason) return NextResponse.json({ error: reason }, { status: 503 });
 
   try {
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         title: source.title,
         content: generated.html,
         promptSnapshot: generated.promptSnapshot,
+        sourceReview: generated.sourceReview,
         version: (latest?.version ?? source.version) + 1,
       },
     });

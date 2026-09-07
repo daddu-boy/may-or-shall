@@ -12,12 +12,12 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (!doc || !doc.storagePath) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
-  const data = await storage.get(doc.storagePath);
+  const data = await storage.get(req.nextUrl.searchParams.get("original") === "1" ? doc.originalStoragePath || doc.storagePath : doc.storagePath);
   return new NextResponse(new Uint8Array(data), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${encodeURIComponent(doc.filename)}"`,
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "private, no-cache",
     },
   });
 }

@@ -54,7 +54,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
   const docs = await prisma.document.findMany({
     where: { matterId: params.matterId },
-    select: { storagePath: true },
+    select: { storagePath: true, originalStoragePath: true },
   });
 
   await prisma.matter.delete({ where: { id: params.matterId } });
@@ -63,7 +63,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   await Promise.all(
     docs
       .filter((d) => d.storagePath)
-      .map((d) => storage.delete(d.storagePath).catch(() => {}))
+      .flatMap((d) => [d.storagePath, d.originalStoragePath].filter((key): key is string => Boolean(key)))
+      .map((key) => storage.delete(key).catch(() => {}))
   );
 
   return NextResponse.json({ ok: true, documentsDeleted: docs.length });

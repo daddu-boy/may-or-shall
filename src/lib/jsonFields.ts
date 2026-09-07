@@ -23,8 +23,8 @@ export function cardOut<T extends { rects: string; tags: string }>(c: T) {
 }
 
 /** Document row -> API shape (paraMap becomes an array). */
-export function documentOut<T extends { paraMap: string }>(d: T) {
-  return { ...d, paraMap: parseJson<ParaMarker[]>(d.paraMap, []) };
+export function documentOut<T extends { paraMap: string; extractionReport?: string }>(d: T) {
+  return { ...d, paraMap: parseJson<ParaMarker[]>(d.paraMap, []), extractionReport: parseJson(d.extractionReport, {}) };
 }
 
 /** TraverseRow -> API shape (linkedCardIds becomes an array). */

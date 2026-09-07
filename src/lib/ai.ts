@@ -75,6 +75,7 @@ export async function generate(opts: {
     messages: [{ role: "user", content: opts.prompt }],
   });
   const message = await stream.finalMessage();
+  if (message.stop_reason !== "end_turn") throw new Error("AI generation did not finish. Try a smaller source selection.");
   const text = message.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
@@ -99,4 +100,16 @@ export function aiUnavailableReason(matterAiEnabled: boolean): string | null {
   if (!aiAvailable())
     return "AI is not configured. Set ANTHROPIC_API_KEY in the server environment.";
   return null;
+}
+
+/** Check real deployment readiness, including every prompt offered by a page. */
+export async function aiReadiness(matterAiEnabled: boolean, prompts: string[]): Promise<string | null> {
+  const reason = aiUnavailableReason(matterAiEnabled);
+  if (reason) return reason;
+  try {
+    await Promise.all(prompts.map(name => fs.access(path.join(PROMPTS_DIR, `${name}.md`))));
+    return null;
+  } catch {
+    return "AI drafting is unavailable because this server is missing required prompt templates.";
+  }
 }

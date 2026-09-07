@@ -11,7 +11,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
     "test:e2e": "playwright test",
-    "dev:addin": "next dev --experimental-https --experimental-https-key $HOME/.office-addin-dev-certs/localhost.key --experimental-https-cert $HOME/.office-addin-dev-certs/localhost.crt"
+    "dev:addin": "next dev --experimental-https --experimental-https-key $HOME/.office-addin-dev-certs/localhost.key --experimental-https-cert $HOME/.office-addin-dev-certs/localhost.crt",
+    "test:unit": "tsx --test tests/unit/*.test.ts"
   },
   "prisma": {
     "seed": "tsx --env-file=.env prisma/seed.ts"

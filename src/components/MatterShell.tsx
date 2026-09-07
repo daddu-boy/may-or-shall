@@ -102,7 +102,7 @@ const NAV_GROUPS: { heading: string; projectHeading?: string; items: NavItem[] }
         hint: "Write with your cards beside you",
         tip: {
           title: "Draft from what you marked",
-          body: "Write here with the card base to hand, or generate a first draft from your cards. Every factual sentence carries its citation, and regenerating makes a new version rather than overwriting.",
+          body: "Write here with the card base to hand, or generate a first draft from your cards. AI factual claims carry checked source references for you to review, and regenerating makes a new version rather than overwriting.",
         },
       },
       {

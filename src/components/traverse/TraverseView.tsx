@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type CardDto, type DocumentDto } from "@/lib/clientTypes";
 import { DOC_TYPE_LABEL } from "@/lib/labels";
+import SourceReviewPanel from "@/components/drafts/SourceReviewPanel";
+import type { SourceReview } from "@/lib/groundedDraft";
 import RichTextEditor, { type AnnexureOption } from "@/components/editor/RichTextEditor";
 
 interface TraverseRowDto {
@@ -198,6 +200,7 @@ export default function TraverseView({
       <div className="space-y-4">
         {visibleRows.map((row) => (
           <TraverseRowCard
+            matterId={matterId}
             key={row.id}
             row={row}
             attachable={attachable}
@@ -226,12 +229,14 @@ export default function TraverseView({
 }
 
 function TraverseRowCard({
+  matterId,
   row,
   attachable,
   annexures,
   aiAvailable,
   onStatusChange,
 }: {
+  matterId: string;
   row: TraverseRowDto;
   attachable: CardDto[];
   annexures: AnnexureOption[];
@@ -241,6 +246,7 @@ function TraverseRowCard({
   const [responseText, setResponseText] = useState(row.responseText);
   const [status, setStatus] = useState(row.status);
   const [linked, setLinked] = useState<string[]>(row.linkedCardIds ?? []);
+  const [sourceReview, setSourceReview] = useState<SourceReview | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [saved, setSaved] = useState<"idle" | "saving" | "saved">("idle");
   const debounce = useRef<ReturnType<typeof setTimeout>>();
@@ -264,19 +270,15 @@ function TraverseRowCard({
   const askAi = async () => {
     setAiBusy(true);
     try {
-      const { suggestion } = await api<{ suggestion: string }>(
+      const { suggestion, sourceReview: review } = await api<{ suggestion: string; sourceReview: SourceReview }>(
         `/api/traverse-rows/${row.id}/ai`,
         { method: "POST", body: JSON.stringify({}) }
       );
-      const html = suggestion
-        .split(/\n{2,}|\n/)
-        .filter((s) => s.trim())
-        .map((s) => `<p>${s.trim()}</p>`)
-        .join("");
-      setResponseText(html);
-      setStatus("DENIED_SPECIFIC");
-      onStatusChange("DENIED_SPECIFIC");
-      save({ responseText: html, status: "DENIED_SPECIFIC" });
+      setResponseText(suggestion);
+      setSourceReview(review);
+      setStatus("NOT_STARTED");
+      onStatusChange("NOT_STARTED");
+      save({ responseText: suggestion, status: "NOT_STARTED" });
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -341,6 +343,7 @@ function TraverseRowCard({
           </span>
         </div>
 
+        {sourceReview && <SourceReviewPanel review={sourceReview} matterId={matterId} edited={responseText !== sourceReview.generatedContent} />}
         <RichTextEditor
           content={responseText}
           annexures={annexures}

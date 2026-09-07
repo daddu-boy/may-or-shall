@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/clientTypes";
+import SourceReviewPanel from "./SourceReviewPanel";
+import type { SourceReview } from "@/lib/groundedDraft";
+import { parseJson } from "@/lib/jsonFields";
 import RichTextEditor, { type AnnexureOption } from "@/components/editor/RichTextEditor";
 
 interface ArtefactDto {
@@ -13,6 +16,7 @@ interface ArtefactDto {
   title: string;
   content: string;
   version: number;
+  sourceReview: string;
 }
 
 export default function DraftEditor({
@@ -96,6 +100,7 @@ export default function DraftEditor({
 
   if (!artefact) return <p className="p-6 text-sm text-slate-400">Loading…</p>;
 
+  const review = parseJson<SourceReview | null>(artefact.sourceReview, null);
   return (
     <div className="p-6 max-w-4xl">
       <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -139,6 +144,8 @@ export default function DraftEditor({
           Sentences in [square brackets] were bridging text added by the AI — verify before filing.
         </p>
       )}
+
+      {review && <SourceReviewPanel review={review} matterId={matterId} edited={content !== review.generatedContent} />}
 
       <RichTextEditor
         content={content}

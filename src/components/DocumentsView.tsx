@@ -16,6 +16,8 @@ interface UploadProgress {
 
 export default function DocumentsView({ matterId }: { matterId: string }) {
   const [docs, setDocs] = useState<DocumentDto[]>([]);
+  const [ocrBusy, setOcrBusy] = useState<string | null>(null);
+  const [ocrError, setOcrError] = useState("");
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -66,6 +68,16 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
       xhr.onerror = () => update({ status: "error", error: "Network error" });
       xhr.send(form);
     });
+  };
+
+  const retryOcr = async (doc: DocumentDto) => {
+    setOcrBusy(doc.id);
+    setOcrError("");
+    try {
+      await api(`/api/documents/${doc.id}/ocr`, { method: "POST" });
+      await load();
+    } catch (e) { setOcrError((e as Error).message); }
+    finally { setOcrBusy(null); }
   };
 
   const changeType = async (doc: DocumentDto, docType: string) => {
@@ -131,6 +143,8 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
         Drag and drop PDFs here, or use the Upload button.
       </div>
 
+      <p className="text-xs text-slate-500 mb-3">Scans receive automatic OCR on this server. Up to 50 MB and 500 pages per PDF; automatic OCR supports up to 100 scanned pages. Keep this page open during processing.</p>
+      {ocrError && <p role="alert" className="text-sm text-red-600 mb-3">{ocrError}</p>}
       {uploads.length > 0 && (
         <ul className="mb-6 space-y-2">
           {uploads.map((u, i) => (
@@ -186,10 +200,16 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
                   {doc.pageCount} pages · {doc._count?.cards ?? 0} cards
                   {!doc.hasTextLayer && (
                     <span className="ml-2 text-amber-600">
-                      No text layer — highlighting limited to notes
+                      Some pages have little or no selectable text
                     </span>
                   )}
                 </p>
+                {doc.extractionReport?.message && <p className="text-xs text-amber-700 mt-1">{doc.extractionReport.message}</p>}
+                {!!doc.extractionReport?.warningPages?.length && <p className="text-xs text-amber-700">Check pages: {doc.extractionReport.warningPages.join(", ")}</p>}
+                <a href={`/api/documents/${doc.id}/file?original=1`} target="_blank" rel="noreferrer" className="text-xs underline">Open original PDF</a>
+                {(!doc.hasTextLayer || !!doc.extractionReport?.warningPages?.length) && (
+                  <button disabled={ocrBusy !== null} onClick={() => retryOcr(doc)} className="ml-3 text-xs underline disabled:opacity-50">{ocrBusy === doc.id ? "Running OCR…" : "Retry OCR"}</button>
+                )}
               </div>
               <select
                 value={doc.docType}

@@ -3,7 +3,7 @@ import { prisma } from "./db";
 import { MODELS, generate, loadPrompt } from "./ai";
 import { cardDigest, ourSideLabel } from "./cardDigest";
 import { cardOut } from "./jsonFields";
-import { mdToHtml } from "./docxUtils";
+import { GROUNDING_INSTRUCTIONS, validateGroundedDraft } from "./groundedDraft";
 
 export const GENERATABLE_TYPES = {
   SENIOR_BRIEF: { prompt: "senior-brief", title: "Note of brief to senior counsel" },
@@ -32,7 +32,7 @@ export async function generateArtefactContent(
   matter: Matter,
   artefactType: GeneratableType,
   issues: string[]
-): Promise<{ html: string; promptSnapshot: string; model: string }> {
+): Promise<{ html: string; promptSnapshot: string; model: string; sourceReview: string }> {
   const template = GENERATABLE_TYPES[artefactType];
   const cards = await selectCards(matter.id, issues);
   if (cards.length === 0) throw new Error("No cards match the selection — create or tag cards first.");
@@ -46,6 +46,7 @@ export async function generateArtefactContent(
     cards: cardDigest(cards),
   });
 
-  const result = await generate({ model: MODELS.brief, prompt, maxTokens: 32000 });
-  return { html: mdToHtml(result.text), promptSnapshot: prompt, model: result.model };
+  const result = await generate({ model: MODELS.brief, system: GROUNDING_INSTRUCTIONS, prompt, maxTokens: 32000 });
+  const validated = validateGroundedDraft(result.text, cards);
+  return { html: validated.html, sourceReview: JSON.stringify(validated.review), promptSnapshot: `${GROUNDING_INSTRUCTIONS}\n\n${prompt}`, model: result.model };
 }

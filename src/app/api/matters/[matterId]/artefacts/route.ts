@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { aiUnavailableReason } from "@/lib/ai";
+import { aiReadiness } from "@/lib/ai";
 import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 import {
   GENERATABLE_TYPES,
@@ -50,13 +50,15 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   let content = "";
   let promptSnapshot = "";
+  let sourceReview = "{}";
   if (mode === "generate") {
-    const reason = aiUnavailableReason(matter.aiEnabled);
+    const reason = await aiReadiness(matter.aiEnabled, [GENERATABLE_TYPES[artefactType].prompt]);
     if (reason) return NextResponse.json({ error: reason }, { status: 503 });
     try {
       const generated = await generateArtefactContent(matter, artefactType as GeneratableType, issues);
       content = generated.html;
       promptSnapshot = generated.promptSnapshot;
+      sourceReview = generated.sourceReview;
     } catch (e) {
       return NextResponse.json({ error: (e as Error).message }, { status: 502 });
     }
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       title,
       content,
       promptSnapshot,
+      sourceReview,
       version: (latest?.version ?? 0) + 1,
     },
   });

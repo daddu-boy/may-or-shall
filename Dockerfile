@@ -13,6 +13,8 @@ COPY . .
 RUN node scripts/copy-pdf-worker.mjs && npx prisma generate && npm run build
 
 FROM base AS runner
+# OCR stays local; English is installed by default.
+RUN apk add --no-cache ocrmypdf tesseract-ocr-data-eng
 ENV NODE_ENV=production
 # PDFs live under STORAGE_DIR — on Railway/Render, point this at a mounted disk.
 ENV STORAGE_DIR=/data/storage

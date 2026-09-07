@@ -42,8 +42,7 @@ waiting in your account, so you can see the whole flow before uploading anything
   for you, or for any AI add in you already use in Word, to draft from.
 - **AI first drafts, grounded.** Optionally generate a senior counsel brief, written
   submissions or a judge's note using Claude, strictly from your cards and never from the
-  raw PDFs. Every factual sentence carries a source citation, and connective text the model
-  adds is wrapped in [square brackets] for review. Regenerating creates a new version rather
+  raw PDFs. Factual claims must cite a selected source card and a matching quoted excerpt. Invalid references are rejected, and a source-review panel lets you compare claims to evidence. AI analysis is wrapped in [square brackets] for review; these checks do not establish that the evidence proves the claim. Regenerating creates a new version rather
   than overwriting, and AI can be switched off for any matter.
 
 ## How the pieces fit
@@ -168,7 +167,7 @@ Settings, and the connection reads nothing until a tool is called.
 
 ## Current limitations
 
-- Scanned PDFs without a text layer cannot be highlighted, because there is no OCR yet.
+- Scanned pages receive local OCR when OCRmyPDF is installed (included in Docker). Originals are retained and uncertain pages are flagged. OCR has upload/time limits and does not correct scans with existing text headers; see [deployment details](DEPLOY.md#ocr-and-source-review-upgrade).
 - Rich text is a pragmatic subset: paragraphs, headings, bold, italic and bullets. Word
   export converts that subset.
 - The Word add in is distributed by sideloading rather than through AppSource.

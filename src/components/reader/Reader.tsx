@@ -399,9 +399,14 @@ export default function Reader({
               </div>
             )}
           </div>
-          {!doc.hasTextLayer && (
-            <span className="text-xs text-amber-600">No text layer — highlighting unavailable</span>
+          {doc.extractionReport?.ocr === "completed" && (
+            <span className="text-xs text-amber-700">OCR text — verify quotations against the page image.</span>
           )}
+          {!!doc.extractionReport?.warningPages?.length && (
+            <span className="text-xs text-amber-700">Limited text on pages {doc.extractionReport.warningPages.join(", ")}</span>
+          )}
+          {!doc.hasTextLayer && <span className="text-xs text-amber-600">No text layer — retry OCR from Documents</span>}
+
         </div>
 
         <div

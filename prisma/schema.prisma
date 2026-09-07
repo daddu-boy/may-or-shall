@@ -125,6 +125,10 @@ model Document {
   docType       String   @default("MISC")
   annexureLabel String?
   storagePath   String
+  /// Immutable uploaded PDF, retained when OCR creates a searchable derivative.
+  originalStoragePath String?
+  /// Per-page extraction warnings and OCR provenance (JSON).
+  extractionReport String @default("{}")
   pageCount     Int      @default(0)
   hasTextLayer  Boolean  @default(true)
   /// JSON text: list of { label: string, page: number, y: number } paragraph markers in reading order
@@ -243,6 +247,8 @@ model GeneratedArtefact {
   version        Int      @default(1)
   /// prompt snapshot for AI-generated versions
   promptSnapshot String   @default("")
+  /// Generated claim/source snapshots; never a claim of substantive verification.
+  sourceReview   String   @default("{}")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   createdBy      String   @default("local")

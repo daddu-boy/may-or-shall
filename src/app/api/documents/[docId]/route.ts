@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { storage } from "@/lib/storage";
+import { documentOut } from "@/lib/jsonFields";
 import { DOC_TYPES } from "@/lib/labels";
 import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     include: { _count: { select: { cards: true } } },
   });
   if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
-  return NextResponse.json(doc);
+  return NextResponse.json(documentOut(doc));
 }
 
 const patchSchema = z.object({
@@ -32,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
   const doc = await prisma.document.update({ where: { id: params.docId }, data: parsed.data });
-  return NextResponse.json(doc);
+  return NextResponse.json(documentOut(doc));
 }
 
 /**
@@ -59,5 +60,6 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
   await prisma.document.delete({ where: { id: params.docId } });
   if (doc.storagePath) await storage.delete(doc.storagePath);
+  if (doc.originalStoragePath) await storage.delete(doc.originalStoragePath);
   return NextResponse.json({ ok: true, orphanedCards: doc._count.cards });
 }

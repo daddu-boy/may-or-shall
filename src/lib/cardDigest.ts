@@ -26,10 +26,10 @@ export function sourceChip(card: CardWithDoc): string {
 export function cardDigest(cards: CardWithDoc[]): string {
   return cards
     .map((card) => {
-      const lines = [`- [${card.cardType}] ${card.body || card.quote}`];
+      const lines = [`- cardId: ${card.id}\n  [${card.cardType}] ${card.body || card.quote}`];
       const chip = sourceChip(card);
       if (chip) lines.push(`  source: ${chip}`);
-      if (card.quote && card.quote !== card.body) lines.push(`  quote: "${card.quote}"`);
+      if (card.quote) lines.push(`  quote: "${card.quote}"`);
       if (card.eventDate) lines.push(`  date: ${card.eventDate.toISOString().slice(0, 10)}`);
       if (card.citation) lines.push(`  citation: ${card.citation}`);
       if (card.proposition) lines.push(`  proposition: ${card.proposition}`);

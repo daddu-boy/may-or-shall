@@ -29,6 +29,7 @@ export interface DocumentDto {
   annexureLabel: string | null;
   pageCount: number;
   hasTextLayer: boolean;
+  extractionReport?: import("./pdf/ocr").ExtractionReport;
   paraMap: { label: string; page: number; y: number }[];
   status: string;
   createdAt: string;

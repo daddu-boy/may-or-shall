@@ -1,7 +1,7 @@
 import DraftEditor from "@/components/drafts/DraftEditor";
-import { aiAvailable } from "@/lib/ai";
+import { aiReadiness } from "@/lib/ai";
 
-export default function DraftEditorPage({
+export default async function DraftEditorPage({
   params,
 }: {
   params: { matterId: string; artefactId: string };
@@ -10,7 +10,7 @@ export default function DraftEditorPage({
     <DraftEditor
       matterId={params.matterId}
       artefactId={params.artefactId}
-      aiAvailable={aiAvailable()}
+      aiAvailable={(await aiReadiness(true, ["senior-brief", "written-submissions", "judge-note"])) === null}
     />
   );
 }
