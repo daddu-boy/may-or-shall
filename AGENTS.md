@@ -45,11 +45,24 @@ on a hard page load that client side navigation hides. See
 gesture on a highlight is swallowed by it. Do not attempt drag interactions on
 highlights; it was tried and removed.
 
-**Position floating panels by measuring them, not by passing in sizes.** Two
-separate bugs came from hardcoded dimensions: the clipper panel hung 26px off
-the right edge, and the card menu was clipped by the scrolling column it sat
-in. Measure with `getBoundingClientRect`, clamp to the viewport, and flip above
-the anchor when there is no room below.
+**Tell every floating or sticky element how to behave against what is behind
+it.** Three separate bugs came from the same omission. The clipper panel was
+positioned from a hardcoded size and hung 26px off the right edge. The card
+menu sat inside a scrolling column and was clipped by it. The board's column
+headings were `sticky` with no background and no z-index, so cards scrolled
+visibly through them and two lines of text printed on top of each other.
+Measure with `getBoundingClientRect`, clamp to the viewport, flip above the
+anchor when there is no room below, render into the body with a portal when an
+ancestor scrolls, and give anything sticky an opaque background and a z-index.
+
+**The clipper runs in every frame, on purpose.** Until 2.7.0 it ran in the top
+frame only, so it could not clip inside a Claude artifact or any embedded page.
+`content.js` is declared with `all_frames` and `match_origin_as_fallback`, and
+`background.js` injects it into all frames of tabs already open at update.
+`connect.js` stays top frame only. A size guard in `onMouseUp` keeps the
+clipper quiet in frames too small to hold its panel. If you change any of this,
+rerun the five frame cases: top, plain cross origin iframe, sandboxed cross
+origin iframe, sandboxed srcdoc, and a tiny frame that must stay quiet.
 
 **`str.replace()` in a patch script silently does nothing when the pattern does
 not match.** Assert the pattern is present before replacing, or you will report
