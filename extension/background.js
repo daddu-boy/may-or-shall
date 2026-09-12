@@ -190,7 +190,17 @@ async function injectIntoOpenTabs() {
       // the app's own pages also carry the silent auto-connect script
       if (APP_ORIGINS.some((o) => (tab.url || "").startsWith(o))) files.push("connect.js");
       try {
-        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files });
+        // The clipper goes into every frame, so a Claude artifact or any other
+        // embedded page in an already open tab is covered after an update, not
+        // only after a reload. The auto connect handshake stays in the top
+        // frame: it belongs on the app's own page and nowhere inside it.
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id, allFrames: true },
+          files: files.filter((f) => f !== "connect.js"),
+        });
+        if (files.includes("connect.js")) {
+          await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["connect.js"] });
+        }
         if (!(await tabIsCurrent(tab.id))) stale++;
       } catch {
         /* chrome:// pages and the Web Store refuse injection */

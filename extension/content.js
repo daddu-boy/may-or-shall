@@ -697,6 +697,11 @@
     if (dead) return;
     if (host && e.composedPath().includes(host)) return;
     if (!enabled) return; // clipping switched off from the popup
+    // The clipper now runs inside iframes too, which is how it reaches a Claude
+    // artifact. Most iframes on the web are ads and widgets far too small to
+    // hold the panel, so a frame that cannot fit it stays quiet. Checked here
+    // rather than at load, because embedded frames are often sized afterwards.
+    if (window.top !== window && (innerWidth < 320 || innerHeight < 180)) return;
     // don't double up on the May or Shall app's own reader popover
     if (apiOrigin && location.origin === apiOrigin) return;
     setTimeout(() => {
