@@ -4,6 +4,7 @@ import { getRequestUserId } from "@/lib/requestUser";
 import { CARD_TYPES, CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
 import { origin, resourceUrl, userFromAccessToken } from "@/lib/oauth";
 import { queryTerms, scoreText, firstHit } from "@/lib/searchTerms";
+import { matchLinkedPages, readLinkedPage } from "@/lib/linkedPage";
 
 /**
  * Model Context Protocol server (Streamable HTTP, stateless).
@@ -228,6 +229,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       body: string;
       tags: string;
       citation: string | null;
+      sourceUrl: string | null;
     };
     const cardTitle = (c: PoolCard) => {
       const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
@@ -252,7 +254,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       where: { matterId: { in: mine } },
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       take: 2000,
-      select: { id: true, matterId: true, cardType: true, quote: true, body: true, tags: true, citation: true },
+      select: { id: true, matterId: true, cardType: true, quote: true, body: true, tags: true, citation: true, sourceUrl: true },
     });
 
     const seen = new Set<string>();
@@ -330,22 +332,37 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
     }
 
     /*
-     * The words found little. Rather than answer with next to nothing, hand
-     * over the cards of the matters concerned, marked plainly as not matching
-     * the words, so the model can judge them by meaning, which it does well and
-     * this code should not pretend to. Scoped to the matters the hits came
-     * from, or else the most recently worked on, and capped so a large account
-     * cannot flood the conversation.
+     * The words found little. First the pages the matter's clipped cards came
+     * from are opened and searched, since the answer is often on the page rather
+     * than in the line that was clipped. Then the matter's other cards are handed
+     * over, marked plainly as not matching the words, so the model can judge
+     * them by meaning, which it does well and this code should not pretend to.
+     * A card whose page wants a login says so, so the model can tell the user it
+     * looked relevant but could not be read. Scoped to the matters the hits came
+     * from, or else the most recently worked on, and capped throughout.
      */
     if (q && cardHits < 3) {
       const scope = hitMatters.size ? [...hitMatters] : mine.slice(0, 3);
+      const candidates = pool.filter((c) => !seen.has(c.id) && scope.includes(c.matterId));
+      const { matches, state } = await matchLinkedPages(candidates, terms, q);
+      for (const m of matches) {
+        results.push({
+          id: `card:${m.card.id}`,
+          title: `Found on the web page this card links to: ${cardTitle(m.card)}. The page says: …${m.excerpt}…`,
+          url: `${base}/matters/${m.card.matterId}/cards`,
+        });
+        seen.add(m.card.id);
+      }
       let added = 0;
-      for (const c of pool) {
+      for (const c of candidates) {
         if (added >= 40) break;
-        if (seen.has(c.id) || !scope.includes(c.matterId)) continue;
+        if (seen.has(c.id)) continue;
+        const login = c.sourceUrl && state.get(c.sourceUrl) === "login";
         results.push({
           id: `card:${c.id}`,
-          title: `Not a word match, judge by meaning: ${cardTitle(c)}`,
+          title: login
+            ? `Not a word match, judge by meaning. Its web page needs the user's login and could not be read; if it looks relevant, say so: ${cardTitle(c)}`
+            : `Not a word match, judge by meaning: ${cardTitle(c)}`,
           url: `${base}/matters/${c.matterId}/cards`,
         });
         seen.add(c.id);
@@ -389,6 +406,23 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         if (pg?.text) context = pg.text.replace(/\s+/g, " ").trim();
       }
 
+      /*
+       * A clipped card carries one line; the page it came from carries the rest.
+       * Public pages are read and included. Pages that need the user's login are
+       * named as such, so the model can say why it could not read further.
+       */
+      let linked = "";
+      if (!context && c.sourceUrl && /^https?:\/\//i.test(c.sourceUrl)) {
+        const p = await readLinkedPage(c.sourceUrl);
+        if (p.status === "ok") {
+          linked = `\nThe web page this card was clipped from (${p.title || c.sourceUrl}), read just now:\n${p.text.slice(0, 12000).replace(/\s+/g, " ")}`;
+        } else if (p.status === "login") {
+          linked = "\nThe web page this card was clipped from needs the user's own login, so it could not be read. Tell the user so if more than the quote is needed.";
+        } else {
+          linked = `\nThe web page this card was clipped from could not be read (${p.reason}).`;
+        }
+      }
+
       const lines = [
         `Type: ${label}`,
         `Matter: ${c.matter.title}`,
@@ -398,6 +432,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         `Quote: "${c.quote}"`,
         c.body && c.body !== c.quote ? `Note: ${c.body}` : "",
         context ? `\nThe page this passage was taken from:\n${context}` : "",
+        linked,
       ].filter(Boolean);
       return structured({
         id: raw,
@@ -667,6 +702,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
 
     let cards = all;
     let heading = "";
+    const pageNote = new Map<string, string>();
     const terms = q ? queryTerms(q) : [];
     if (terms.length) {
       const ranked = all
@@ -678,8 +714,19 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         cards = ranked;
         heading = "matching those words";
       } else {
-        // say so, and hand over the matter's cards to be judged by meaning
-        heading = "none contains those words; these are the matter's cards to judge by meaning instead";
+        // look on the pages the cards came from, then hand over the rest to be judged by meaning
+        const { matches, state } = await matchLinkedPages(all, terms, q);
+        for (const m of matches) pageNote.set(m.card.id, `the web page it links to contains those words: "…${m.excerpt}…"`);
+        for (const c of all) {
+          if (c.sourceUrl && state.get(c.sourceUrl) === "login" && !pageNote.has(c.id)) {
+            pageNote.set(c.id, "its web page needs the user's login and could not be read; if this looks relevant, say so");
+          }
+        }
+        const found = new Set(matches.map((m) => m.card.id));
+        cards = [...matches.map((m) => m.card), ...all.filter((c) => !found.has(c.id))];
+        heading = matches.length
+          ? `no card's own text contains those words, but ${matches.length} link(s) to a page that does (listed first); the rest are the matter's cards to judge by meaning`
+          : "none contains those words; these are the matter's cards to judge by meaning instead";
       }
     }
     cards = cards.slice(0, limit);
@@ -690,7 +737,8 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
             const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
             const when = c.eventDate ? ` [${c.eventDate.toISOString().slice(0, 10)}]` : "";
             const note = c.body && c.body !== c.quote ? `\n  note: ${c.body}` : "";
-            return `[${label}]${when} "${c.quote}"${note}\n  source: ${cite(c)}`;
+            const onPage = pageNote.has(c.id) ? `\n  ${pageNote.get(c.id)}` : "";
+            return `[${label}]${when} "${c.quote}"${note}\n  source: ${cite(c)}${onPage}`;
           })
           .join("\n\n")
     );
