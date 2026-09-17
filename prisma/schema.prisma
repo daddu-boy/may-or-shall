@@ -169,6 +169,9 @@ model Card {
   /// web captures (browser extension): source page URL + title
   sourceUrl   String?
   sourceTitle String?
+  /// the text around a web clip, captured in the browser at clip time (bounded), so
+  /// the passage can be read later even when its page needs the user's login
+  sourceContext String?
 
   /// CardType: FACT | DATE | ISSUE | OUR_ARGUMENT | THEIR_ARGUMENT | EVIDENCE | CASE_LAW | ADMISSION | QUESTION | MISC
   cardType  String    @default("MISC")

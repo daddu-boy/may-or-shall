@@ -42,3 +42,10 @@ test("firstHit points at the first matching word for a snippet", () => {
   assert.equal(firstHit("Long preamble. Then termination followed.", queryTerms("termination")), 20);
   assert.equal(firstHit("nothing here", ["zzz"]), -1);
 });
+
+test("a typo still finds other forms of the word", () => {
+  const terms = queryTerms("terminaton");
+  assert.equal(scoreText("The agreement was terminated.", terms, "terminaton").matched, 1);
+  assert.equal(scoreText("Notice of termination.", terms, "terminaton").matched, 1);
+  assert.equal(scoreText("The term of the lease.", terms, "terminaton").matched, 0);
+});

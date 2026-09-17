@@ -145,6 +145,7 @@ async function createCard(payload) {
       eventDate: payload.eventDate || null,
       sourceUrl: payload.sourceUrl,
       sourceTitle: payload.sourceTitle,
+      sourceContext: payload.sourceContext || null,
     }),
   });
 }

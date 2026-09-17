@@ -74,6 +74,7 @@ const createSchema = z.object({
   citation: z.string().nullable().optional(),
   sourceUrl: z.string().url().max(2000).nullable().optional(),
   sourceTitle: z.string().max(300).nullable().optional(),
+  sourceContext: z.string().max(4000).nullable().optional(),
   proposition: z.string().nullable().optional(),
   treatment: z.enum(["RELIED_ON", "DISTINGUISHED", "OVERRULED_RISK"]).nullable().optional(),
 });
@@ -120,6 +121,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       citation: data.citation ?? null,
       sourceUrl: data.sourceUrl ?? null,
       sourceTitle: data.sourceTitle ?? null,
+      sourceContext: data.sourceUrl && data.sourceContext ? data.sourceContext.slice(0, 4000) : null,
       proposition: data.proposition ?? null,
       treatment: data.treatment ?? null,
       orderIndex: (last?.orderIndex ?? 0) + 1,

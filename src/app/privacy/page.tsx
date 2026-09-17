@@ -15,7 +15,7 @@ export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12 text-slate-800">
       <h1 className="text-2xl font-semibold mb-1">May or Shall — Privacy Policy</h1>
-      <p className="text-sm text-slate-500 mb-8">Last updated: 29 July 2026</p>
+      <p className="text-sm text-slate-500 mb-8">Last updated: 17 September 2026</p>
 
       <p className="mb-6">
         This policy covers the <b>May or Shall</b> service and all of its parts: the May or
@@ -54,9 +54,19 @@ export default function PrivacyPage() {
       </ul>
       <p className="mb-6">
         Nothing is collected passively. The Word add-in reads your document only when you
-        ask it to insert cards, and the browser extension reads a page only at the moment
-        you select text and choose to save it. Neither records your browsing, and the
-        service contains no analytics, advertising or tracking.
+        ask it to insert cards, and the browser extension reads a page only when you select
+        text on it. When you save a clip, the extension sends the selected text, your note,
+        the page address and title, and the passage around your selection (at most 1,500
+        characters), so the clip can still be read later where the page needs your login.
+        Nothing is sent if you do not save. Neither records your browsing, and the service
+        contains no analytics, advertising or tracking.
+      </p>
+      <p className="mb-6">
+        When you search from a connected assistant such as ChatGPT and your saved words
+        find little, the service may open the public web pages your clips came from to look
+        for the answer there. It does so without any login of yours, so pages that need one
+        are never read; it keeps what it reads in memory for up to half an hour and does not
+        store it.
       </p>
 
       <h2 className="text-lg font-semibold mt-8 mb-2">How it is used</h2>

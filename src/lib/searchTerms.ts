@@ -80,6 +80,19 @@ function within(a: string, b: string, limit: number): boolean {
   return prev[b.length] <= limit;
 }
 
+/**
+ * A misspelt word and a different form of the right word can be two edits apart
+ * ("terminaton", "terminated") while plainly sharing a root. Count them as
+ * meeting when they agree on all but the last three letters of the query word,
+ * and on at least six.
+ */
+function sharesRoot(word: string, term: string): boolean {
+  const need = Math.max(6, term.length - 3);
+  if (word.length < need) return false;
+  for (let i = 0; i < need; i++) if (word[i] !== term[i]) return false;
+  return true;
+}
+
 export interface Score {
   /** higher is better; zero means no word matched */
   score: number;
@@ -109,7 +122,10 @@ export function scoreText(text: string, terms: string[], phrase: string): Score 
         !hit &&
         t.length >= 5 &&
         !/\d/.test(t) &&
-        (within(stems[i], t, 1) || within(ws[i], t, 1) || within(stem(t), stems[i], 1))
+        (within(stems[i], t, 1) ||
+          within(ws[i], t, 1) ||
+          within(stem(t), stems[i], 1) ||
+          sharesRoot(ws[i], t))
       ) {
         hit = 0.7;
       }

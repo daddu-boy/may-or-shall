@@ -236,6 +236,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       tags: string;
       citation: string | null;
       sourceUrl: string | null;
+      sourceContext: string | null;
     };
     const cardTitle = (c: PoolCard) => {
       const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
@@ -260,7 +261,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       where: { matterId: { in: mine } },
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       take: 2000,
-      select: { id: true, matterId: true, cardType: true, quote: true, body: true, tags: true, citation: true, sourceUrl: true },
+      select: { id: true, matterId: true, cardType: true, quote: true, body: true, tags: true, citation: true, sourceUrl: true, sourceContext: true },
     });
 
     const seen = new Set<string>();
@@ -273,7 +274,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       }
     } else {
       const ranked = pool
-        .map((c) => ({ c, s: scoreText(`${c.quote} ${c.body} ${c.tags} ${c.citation ?? ""}`, terms, q) }))
+        .map((c) => ({ c, s: scoreText(`${c.quote} ${c.body} ${c.tags} ${c.citation ?? ""} ${c.sourceContext ?? ""}`, terms, q) }))
         .filter((x) => x.s.matched > 0)
         .sort((a, b) => b.s.matched - a.s.matched || b.s.score - a.s.score);
       for (const { c } of ranked.slice(0, 20)) {
@@ -394,7 +395,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         select: {
           id: true, matterId: true, documentId: true, cardType: true, quote: true, body: true,
           page: true, para: true, citation: true, eventDate: true, sourceUrl: true,
-          sourceTitle: true,
+          sourceTitle: true, sourceContext: true,
           matter: { select: { userId: true, title: true } },
           document: { select: { filename: true } },
         },
@@ -440,6 +441,9 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         `Quote: "${c.quote}"`,
         c.body && c.body !== c.quote ? `Note: ${c.body}` : "",
         context ? `\nThe page this passage was taken from:\n${context}` : "",
+        c.sourceContext
+          ? `\nThe text around this passage, saved from the page when it was clipped:\n${c.sourceContext}`
+          : "",
         linked,
       ].filter(Boolean);
       return structured({
@@ -703,6 +707,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         eventDate: true,
         sourceUrl: true,
         sourceTitle: true,
+        sourceContext: true,
         document: { select: { filename: true } },
       },
     });
@@ -714,7 +719,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
     const terms = q ? queryTerms(q) : [];
     if (terms.length) {
       const ranked = all
-        .map((c) => ({ c, s: scoreText(`${c.quote} ${c.body} ${c.tags} ${c.citation ?? ""}`, terms, q) }))
+        .map((c) => ({ c, s: scoreText(`${c.quote} ${c.body} ${c.tags} ${c.citation ?? ""} ${c.sourceContext ?? ""}`, terms, q) }))
         .filter((x) => x.s.matched > 0)
         .sort((a, b) => b.s.matched - a.s.matched || b.s.score - a.s.score)
         .map((x) => x.c);

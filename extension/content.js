@@ -70,6 +70,7 @@
   let expanded = false;
   let anchor = null; // the selection rect the popover is placed against
   let quote = "";
+  let context = ""; // the passage around the selection, taken at selection time
   let hoverTimer = null;
 
   // Chrome tears the extension down when it updates or is reloaded, which
@@ -179,6 +180,44 @@
     host = null;
     root = null;
     expanded = false;
+  }
+
+  /*
+   * The text around a clip, read now, while the page is open and signed in, so
+   * the passage can still be read later where the page itself needs the
+   * person's login (mail, chat, research tools). Deliberately bounded: the
+   * enclosing passage, at most CONTEXT_MAX characters, never the whole page.
+   */
+  const CONTEXT_MAX = 1500;
+  const BLOCK = "p,li,td,th,blockquote,pre,dd,dt,h1,h2,h3,h4,h5,h6,article,section,div";
+
+  function contextAround(range, text) {
+    try {
+      let node = range.commonAncestorContainer;
+      if (node.nodeType !== 1) node = node.parentElement;
+      let el = node && node.closest ? node.closest(BLOCK) : null;
+      if (!el || el.closest("input, textarea")) return "";
+      const read = (e) => (e.innerText || "").replace(/\s+/g, " ").trim();
+      let body = read(el);
+      // climb while the passage is little more than the selection itself
+      for (let i = 0; i < 4 && body.length < text.length + 300; i++) {
+        const up = el.parentElement;
+        if (!up || up === document.body || up === document.documentElement) break;
+        const t = read(up);
+        if (t.length > 20000) break;
+        el = up;
+        body = t;
+      }
+      if (body.length <= text.length + 20) return "";
+      if (body.length <= CONTEXT_MAX) return body;
+      const at = body.indexOf(text.slice(0, 80));
+      const centre = at >= 0 ? at + Math.min(text.length, CONTEXT_MAX) / 2 : body.length / 2;
+      const from = Math.max(0, Math.min(Math.round(centre - CONTEXT_MAX / 2), body.length - CONTEXT_MAX));
+      const end = from + CONTEXT_MAX;
+      return (from > 0 ? "…" : "") + body.slice(from, end) + (end < body.length ? "…" : "");
+    } catch {
+      return "";
+    }
   }
 
   function extractDate(text) {
@@ -401,10 +440,11 @@
 
   // ---------------------------------------------------------------- collapsed
 
-  function showPill(rect, text) {
+  function showPill(rect, text, around) {
     dismiss();
     anchor = rect;
     quote = text;
+    context = around || "";
 
     host = document.createElement("div");
     host.style.cssText = "position:fixed;z-index:2147483647;left:-9999px;top:-9999px";
@@ -641,6 +681,7 @@
             eventDate: value === "DATE" ? extractDate(quote) : null,
             sourceUrl: location.href.slice(0, 2000),
             sourceTitle: document.title.slice(0, 300),
+            sourceContext: context || null,
           },
         },
         (res) => {
@@ -715,7 +756,7 @@
       }
       const rects = sel.getRangeAt(0).getClientRects();
       const rect = rects[rects.length - 1] || sel.getRangeAt(0).getBoundingClientRect();
-      showPill(rect, text);
+      showPill(rect, text, contextAround(sel.getRangeAt(0), text));
     }, 10);
   }
 
