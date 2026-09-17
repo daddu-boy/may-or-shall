@@ -43,3 +43,9 @@ test("a blocked reader is told apart from a sign-in wall", async () => {
   assert.match(pageProblem({ status: "unreadable", url: "u", reason: "the site turns away automated readers" }), /try opening the link yourself/);
   assert.equal(pageProblem({ status: "ok", url: "u", title: "", text: "" }), "");
 });
+
+test("the excerpt is the passage holding most of the words, not the menu", async () => {
+  const { bestPassage } = await import("../../src/lib/linkedPage");
+  const page = "Menu Habeas corpus 58 languages Deutsch Español\n" + "Filler text. ".repeat(40) + "A writ of habeas corpus orders a custodian to produce the detainee.";
+  assert.match(bestPassage(page, ["writ", "habea", "corpus"]), /writ of habeas corpus orders/);
+});

@@ -304,6 +304,35 @@ export async function readLinkedPages(urls: string[], limit = 8): Promise<Map<st
   return new Map(unique.map((u, i) => [u, pages[i]]));
 }
 
+/**
+ * The stretch of a page where most of the query's words sit together. The first
+ * occurrence is often a menu or a heading; the passage that holds several of the
+ * words at once is usually the one that answers.
+ */
+export function bestPassage(text: string, terms: string[], width = 240): string {
+  const lower = text.toLowerCase();
+  let best = { at: Math.max(0, firstHit(text, terms)), score: -1 };
+  for (const t of terms) {
+    let from = 0;
+    for (let n = 0; n < 60; n++) {
+      const i = lower.indexOf(t, from);
+      if (i < 0) break;
+      from = i + t.length;
+      const start = Math.max(0, i - 60);
+      const win = lower.slice(start, start + width);
+      let score = 0;
+      for (const u of terms) {
+        const k = win.split(u).length - 1;
+        if (k) score += 10 + Math.min(k, 3);
+      }
+      // prose over menus: sentences have full stops and few very short lines
+      if (/[.;:]\s/.test(win)) score += 2;
+      if (score > best.score) best = { at: start, score };
+    }
+  }
+  return text.slice(best.at, best.at + width).replace(/\s+/g, " ").trim();
+}
+
 export interface PageMatch<T> {
   card: T;
   excerpt: string;
@@ -341,9 +370,7 @@ export async function matchLinkedPages<T extends { sourceUrl: string | null }>(
     const s = scoreText(p.text, terms, phrase);
     if (!s.matched) continue;
     done.add(c.sourceUrl as string);
-    const at = Math.max(0, firstHit(p.text, terms));
-    const from = Math.max(0, at - 60);
-    matches.push({ card: c, score: s.matched * 10 + s.score, excerpt: p.text.slice(from, from + 220).replace(/\s+/g, " ").trim() });
+    matches.push({ card: c, score: s.matched * 10 + s.score, excerpt: bestPassage(p.text, terms) });
   }
   matches.sort((a, b) => b.score - a.score);
   return { matches, state };
