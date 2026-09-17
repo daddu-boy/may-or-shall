@@ -59,6 +59,12 @@ function text(body: string, isError = false): Json {
  * and once as JSON encoded text. That is ChatGPT's contract for a connector,
  * not a preference of ours.
  */
+const OPEN_PAGES_NOTE =
+  "No saved card contains these words. Do not answer from the card titles alone. " +
+  "Open, with fetch, each card below that may be relevant by meaning: fetching a card also reads the web page it was clipped from. " +
+  "Where a card says its page turned away May or Shall's reader, open its link yourself with web browsing if you can. " +
+  "Where a card says its page needs the user's login, tell the user that it looked relevant but needs them to open it.";
+
 function structured(payload: Json): Json {
   return { content: [{ type: "text", text: JSON.stringify(payload) }], structuredContent: payload };
 }
@@ -341,6 +347,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
      * looked relevant but could not be read. Scoped to the matters the hits came
      * from, or else the most recently worked on, and capped throughout.
      */
+    let note = "";
     if (q && cardHits < 3) {
       const scope = hitMatters.size ? [...hitMatters] : mine.slice(0, 3);
       const candidates = pool.filter((c) => !seen.has(c.id) && scope.includes(c.matterId));
@@ -353,6 +360,8 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         });
         seen.add(m.card.id);
       }
+      // nothing the lawyer saved says it in words: ask the model to go and look
+      if (!cardHits && !matches.length) note = OPEN_PAGES_NOTE;
       let added = 0;
       for (const c of candidates) {
         if (added >= 40) break;
@@ -363,14 +372,15 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
           title: note
             ? `Not a word match, judge by meaning: ${cardTitle(c)}. Also, ${note}`
             : `Not a word match, judge by meaning: ${cardTitle(c)}`,
-          url: `${base}/matters/${c.matterId}/cards`,
+          // point at the page itself, so opening the result opens what the card was clipped from
+          url: c.sourceUrl && /^https?:\/\//i.test(c.sourceUrl) ? c.sourceUrl : `${base}/matters/${c.matterId}/cards`,
         });
         seen.add(c.id);
         added++;
       }
     }
 
-    return structured({ results });
+    return structured(note ? { results, note } : { results });
   }
 
   if (name === "fetch") {
@@ -724,6 +734,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         heading = matches.length
           ? `no card's own text contains those words, but ${matches.length} link(s) to a page that does (listed first); the rest are the matter's cards to judge by meaning`
           : "none contains those words; these are the matter's cards to judge by meaning instead";
+        if (!matches.length) heading += `.\n\n${OPEN_PAGES_NOTE.replace("with fetch", "with fetch (id card:<id>)")}`;
       }
     }
     cards = cards.slice(0, limit);
@@ -735,7 +746,7 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
             const when = c.eventDate ? ` [${c.eventDate.toISOString().slice(0, 10)}]` : "";
             const note = c.body && c.body !== c.quote ? `\n  note: ${c.body}` : "";
             const onPage = pageNote.has(c.id) ? `\n  ${pageNote.get(c.id)}` : "";
-            return `[${label}]${when} "${c.quote}"${note}\n  source: ${cite(c)}${onPage}`;
+            return `[${label}]${when} "${c.quote}"${note}\n  source: ${cite(c)}${onPage}\n  id: card:${c.id}`;
           })
           .join("\n\n")
     );
