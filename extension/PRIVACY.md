@@ -1,6 +1,6 @@
 # May or Shall — Web Clipper: Privacy Policy
 
-*Last updated: 29 July 2026*
+*Last updated: 17 September 2026*
 
 **The short version: the clipper sends what you choose to save to your own May or Shall
 account, and nothing else. No analytics, no advertising, no tracking, no third parties.**
@@ -19,8 +19,10 @@ data goes only there.
 
 ## What the extension collects
 
-- **Text you explicitly select and choose to save**, an optional note you type, and the
-  **URL and title of the page** you saved it from. This is sent to your May or Shall
+- **Text you explicitly select and choose to save**, an optional note you type, the
+  **URL and title of the page** you saved it from, and **the passage around your
+  selection** (the paragraph or block it sits in, at most 1,500 characters, never the
+  whole page), so the clip can still be read later where the page needs your login. This is sent to your May or Shall
   account so that each saved passage keeps its citation. It is never sold, and never
   shared with any third party.
 - **Your account credential.** Signing in to May or Shall (by email link) issues the
@@ -31,8 +33,8 @@ data goes only there.
 
 Your May or Shall account itself is identified by the **email address** you sign in with.
 
-Nothing is collected passively. The extension reads page content **only** at the moment
-you select text and choose to save it. It does not track your browsing, does not record
+Nothing is collected passively. The extension reads page content **only** when you
+select text, and sends it **only** if you choose to save it. It does not track your browsing, does not record
 pages you visit, and contains no analytics, advertising, or telemetry of any kind. Only
 pages you deliberately clip from are ever recorded, and only as the source citation of a
 card you created.
