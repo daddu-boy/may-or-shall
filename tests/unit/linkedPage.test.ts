@@ -49,3 +49,12 @@ test("the excerpt is the passage holding most of the words, not the menu", async
   const page = "Menu Habeas corpus 58 languages Deutsch Español\n" + "Filler text. ".repeat(40) + "A writ of habeas corpus orders a custodian to produce the detainee.";
   assert.match(bestPassage(page, ["writ", "habea", "corpus"]), /writ of habeas corpus orders/);
 });
+
+test("a page with none of the words still sends the start of its prose", async () => {
+  const { pageNoteFor } = await import("../../src/lib/linkedPage");
+  const text = "Home\nAbout\nContact\nThe tribunal held that the lessee remained liable for arrears accrued before the surrender of the premises.\nFooter";
+  const note = pageNoteFor({ status: "ok", url: "u", title: "t", text });
+  assert.match(note, /reads, in part: "The tribunal held/);
+  assert.doesNotMatch(note, /Home|Contact/);
+  assert.match(pageNoteFor({ status: "login", url: "u" }), /login/);
+});

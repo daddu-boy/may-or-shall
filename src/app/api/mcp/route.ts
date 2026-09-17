@@ -4,7 +4,7 @@ import { getRequestUserId } from "@/lib/requestUser";
 import { CARD_TYPES, CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
 import { origin, resourceUrl, userFromAccessToken } from "@/lib/oauth";
 import { queryTerms, scoreText, firstHit } from "@/lib/searchTerms";
-import { matchLinkedPages, pageProblem, readLinkedPage } from "@/lib/linkedPage";
+import { matchLinkedPages, pageNoteFor, pageProblem, readLinkedPage } from "@/lib/linkedPage";
 
 /**
  * Model Context Protocol server (Streamable HTTP, stateless).
@@ -357,11 +357,11 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       for (const c of candidates) {
         if (added >= 40) break;
         if (seen.has(c.id)) continue;
-        const problem = c.sourceUrl ? pageProblem(state.get(c.sourceUrl)) : "";
+        const note = c.sourceUrl ? pageNoteFor(state.get(c.sourceUrl)) : "";
         results.push({
           id: `card:${c.id}`,
-          title: problem
-            ? `Not a word match, judge by meaning; ${problem}: ${cardTitle(c)}`
+          title: note
+            ? `Not a word match, judge by meaning: ${cardTitle(c)}. Also, ${note}`
             : `Not a word match, judge by meaning: ${cardTitle(c)}`,
           url: `${base}/matters/${c.matterId}/cards`,
         });
@@ -716,8 +716,8 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         const { matches, state } = await matchLinkedPages(all, terms, q);
         for (const m of matches) pageNote.set(m.card.id, `the web page it links to contains those words: "…${m.excerpt}…"`);
         for (const c of all) {
-          const problem = c.sourceUrl ? pageProblem(state.get(c.sourceUrl)) : "";
-          if (problem && !pageNote.has(c.id)) pageNote.set(c.id, problem);
+          const note = c.sourceUrl ? pageNoteFor(state.get(c.sourceUrl)) : "";
+          if (note && !pageNote.has(c.id)) pageNote.set(c.id, note);
         }
         const found = new Set(matches.map((m) => m.card.id));
         cards = [...matches.map((m) => m.card), ...all.filter((c) => !found.has(c.id))];

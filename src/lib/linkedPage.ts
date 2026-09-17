@@ -206,6 +206,16 @@ export function htmlToText(html: string): { title: string; text: string } {
   return { title: title.replace(/\s+/g, " ").trim(), text: text.slice(0, MAX_TEXT) };
 }
 
+/** What to tell the model about a card's page that held none of the words. */
+export function pageNoteFor(p: LinkedPage | undefined): string {
+  if (!p) return "";
+  if (p.status === "ok") {
+    const gist = pageGist(p.text);
+    return gist ? `its web page does not contain those words but reads, in part: "${gist}"` : "";
+  }
+  return pageProblem(p);
+}
+
 /** One plain sentence on why a card's page could not be used, for the model to pass on. */
 export function pageProblem(p: LinkedPage | undefined): string {
   if (!p || p.status === "ok") return "";
@@ -331,6 +341,19 @@ export function bestPassage(text: string, terms: string[], width = 240): string 
     }
   }
   return text.slice(best.at, best.at + width).replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The opening of a page's actual prose, skipping menus and headings: the first
+ * lines long enough to be sentences. Sent when a page holds none of the words,
+ * so the model can still judge by meaning whether it is the one wanted.
+ */
+export function pageGist(text: string, width = 320): string {
+  const lines = text.split("\n").map((l) => l.replace(/\s+/g, " ").trim());
+  const prose = lines.filter((l) => l.length >= 80 && /[.?!;:]/.test(l));
+  const body = (prose.length ? prose : lines.filter((l) => l.length >= 30)).join(" ");
+  const out = body.slice(0, width).trim();
+  return out.length < body.length ? `${out}…` : out;
 }
 
 export interface PageMatch<T> {
