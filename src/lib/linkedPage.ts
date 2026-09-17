@@ -206,6 +206,16 @@ export function htmlToText(html: string): { title: string; text: string } {
   return { title: title.replace(/\s+/g, " ").trim(), text: text.slice(0, MAX_TEXT) };
 }
 
+/** One plain sentence on why a card's page could not be used, for the model to pass on. */
+export function pageProblem(p: LinkedPage | undefined): string {
+  if (!p || p.status === "ok") return "";
+  if (p.status === "login") return "its web page needs the user's own login and could not be read; if it looks relevant, tell the user so";
+  if (p.reason === "the site turns away automated readers") {
+    return "its web page turned away May or Shall's reader; if it looks relevant, try opening the link yourself";
+  }
+  return `its web page could not be read (${p.reason})`;
+}
+
 /** A page that is mostly a sign-in form, or says it wants one and has little else. */
 export function looksLikeLogin(html: string, text: string): boolean {
   const password = /<input[^>]+type=["']?password/i.test(html);
@@ -248,12 +258,24 @@ async function load(start: string): Promise<LinkedPage> {
       url = new URL(raw.location, url);
       continue;
     }
-    if (raw.status === 401 || raw.status === 403 || raw.status === 407) return { status: "login", url: start };
+    if (raw.status === 401 || raw.status === 407) return { status: "login", url: start };
+    if (raw.status === 403) {
+      // forbidden is as often a site turning away automated readers as a sign-in wall
+      const t = htmlToText(raw.body).text;
+      if (looksLikeLogin(raw.body, t)) return { status: "login", url: start };
+      return { status: "unreadable", url: start, reason: "the site turns away automated readers" };
+    }
+    if (raw.status === 429 || raw.status === 503) {
+      return { status: "unreadable", url: start, reason: "the site turns away automated readers" };
+    }
     if (raw.status >= 400) return { status: "unreadable", url: start, reason: `the site answered ${raw.status}` };
     if (!/text\/html|application\/xhtml|text\/plain/i.test(raw.type)) {
       return { status: "unreadable", url: start, reason: "not a web page (for example a PDF)" };
     }
     const { title, text } = /html/i.test(raw.type) ? htmlToText(raw.body) : { title: "", text: raw.body.slice(0, MAX_TEXT) };
+    if (/just a moment|attention required|verify you are human|captcha/i.test(title)) {
+      return { status: "unreadable", url: start, reason: "the site turns away automated readers" };
+    }
     if (/html/i.test(raw.type) && looksLikeLogin(raw.body, text)) return { status: "login", url: start };
     if (text.length < 40) return { status: "unreadable", url: start, reason: "the page has no readable text (it may need JavaScript)" };
     return { status: "ok", url: start, title, text };
@@ -299,19 +321,19 @@ export async function matchLinkedPages<T extends { sourceUrl: string | null }>(
   terms: string[],
   phrase: string,
   limit = 8
-): Promise<{ matches: PageMatch<T>[]; state: Map<string, LinkedPage["status"]> }> {
-  const state = new Map<string, LinkedPage["status"]>();
+): Promise<{ matches: PageMatch<T>[]; state: Map<string, LinkedPage> }> {
+  const state = new Map<string, LinkedPage>();
   const linked = cards.filter((c) => c.sourceUrl && /^https?:\/\//i.test(c.sourceUrl));
   const readable: string[] = [];
   for (const c of linked) {
     const u = c.sourceUrl as string;
-    if (needsLoginByHost(u)) state.set(u, "login");
+    if (needsLoginByHost(u)) state.set(u, { status: "login", url: u });
     else if (!readable.includes(u)) readable.push(u);
   }
   const matches: PageMatch<T>[] = [];
   if (!terms.length || !readable.length) return { matches, state };
   const pages = await readLinkedPages(readable, limit);
-  for (const [u, p] of pages) state.set(u, p.status);
+  for (const [u, p] of pages) state.set(u, p);
   const done = new Set<string>();
   for (const c of linked) {
     const p = pages.get(c.sourceUrl as string);

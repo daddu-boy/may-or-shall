@@ -36,3 +36,10 @@ test("a sign-in wall is recognised, a long public page with a login box is not",
   const long = "Judgment text. ".repeat(400);
   assert.ok(!looksLikeLogin(`<div hidden><input type=password></div><p>${long}</p>`, long));
 });
+
+test("a blocked reader is told apart from a sign-in wall", async () => {
+  const { pageProblem } = await import("../../src/lib/linkedPage");
+  assert.match(pageProblem({ status: "login", url: "u" }), /login/);
+  assert.match(pageProblem({ status: "unreadable", url: "u", reason: "the site turns away automated readers" }), /try opening the link yourself/);
+  assert.equal(pageProblem({ status: "ok", url: "u", title: "", text: "" }), "");
+});

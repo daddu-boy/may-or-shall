@@ -4,7 +4,7 @@ import { getRequestUserId } from "@/lib/requestUser";
 import { CARD_TYPES, CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
 import { origin, resourceUrl, userFromAccessToken } from "@/lib/oauth";
 import { queryTerms, scoreText, firstHit } from "@/lib/searchTerms";
-import { matchLinkedPages, readLinkedPage } from "@/lib/linkedPage";
+import { matchLinkedPages, pageProblem, readLinkedPage } from "@/lib/linkedPage";
 
 /**
  * Model Context Protocol server (Streamable HTTP, stateless).
@@ -357,11 +357,11 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
       for (const c of candidates) {
         if (added >= 40) break;
         if (seen.has(c.id)) continue;
-        const login = c.sourceUrl && state.get(c.sourceUrl) === "login";
+        const problem = c.sourceUrl ? pageProblem(state.get(c.sourceUrl)) : "";
         results.push({
           id: `card:${c.id}`,
-          title: login
-            ? `Not a word match, judge by meaning. Its web page needs the user's login and could not be read; if it looks relevant, say so: ${cardTitle(c)}`
+          title: problem
+            ? `Not a word match, judge by meaning; ${problem}: ${cardTitle(c)}`
             : `Not a word match, judge by meaning: ${cardTitle(c)}`,
           url: `${base}/matters/${c.matterId}/cards`,
         });
@@ -416,10 +416,8 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         const p = await readLinkedPage(c.sourceUrl);
         if (p.status === "ok") {
           linked = `\nThe web page this card was clipped from (${p.title || c.sourceUrl}), read just now:\n${p.text.slice(0, 12000).replace(/\s+/g, " ")}`;
-        } else if (p.status === "login") {
-          linked = "\nThe web page this card was clipped from needs the user's own login, so it could not be read. Tell the user so if more than the quote is needed.";
         } else {
-          linked = `\nThe web page this card was clipped from could not be read (${p.reason}).`;
+          linked = `\nAbout the web page this card was clipped from: ${pageProblem(p)}.`;
         }
       }
 
@@ -718,9 +716,8 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         const { matches, state } = await matchLinkedPages(all, terms, q);
         for (const m of matches) pageNote.set(m.card.id, `the web page it links to contains those words: "…${m.excerpt}…"`);
         for (const c of all) {
-          if (c.sourceUrl && state.get(c.sourceUrl) === "login" && !pageNote.has(c.id)) {
-            pageNote.set(c.id, "its web page needs the user's login and could not be read; if this looks relevant, say so");
-          }
+          const problem = c.sourceUrl ? pageProblem(state.get(c.sourceUrl)) : "";
+          if (problem && !pageNote.has(c.id)) pageNote.set(c.id, problem);
         }
         const found = new Set(matches.map((m) => m.card.id));
         cards = [...matches.map((m) => m.card), ...all.filter((c) => !found.has(c.id))];
