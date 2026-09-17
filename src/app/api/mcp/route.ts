@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getRequestUserId } from "@/lib/requestUser";
 import { CARD_TYPES, CARD_TYPE_LABEL, type CardTypeValue } from "@/lib/labels";
 import { origin, resourceUrl, userFromAccessToken } from "@/lib/oauth";
+import { queryTerms, scoreText, firstHit } from "@/lib/searchTerms";
 
 /**
  * Model Context Protocol server (Streamable HTTP, stateless).
@@ -213,47 +214,74 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
     const matters = await prisma.matter.findMany({
       where: { userId, status: "ACTIVE" },
       select: { id: true, title: true },
+      orderBy: { updatedAt: "desc" },
     });
     const mine = matters.map((m) => m.id);
     const titleOf = new Map(matters.map((m) => [m.id, m.title]));
+    const terms = q ? queryTerms(q) : [];
 
-    if (q) {
+    type PoolCard = {
+      id: string;
+      matterId: string;
+      cardType: string;
+      quote: string;
+      body: string;
+      tags: string;
+      citation: string | null;
+    };
+    const cardTitle = (c: PoolCard) => {
+      const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
+      const snippet = (c.quote || c.body).replace(/\s+/g, " ").slice(0, 90);
+      return `[${label}] ${snippet}${snippet.length === 90 ? "…" : ""} (${titleOf.get(c.matterId) ?? "matter"})`;
+    };
+
+    if (terms.length) {
       for (const m of matters) {
-        if (m.title.toLowerCase().includes(q.toLowerCase())) {
+        if (scoreText(m.title, terms, q).matched) {
           results.push({ id: `matter:${m.id}`, title: `Matter: ${m.title}`, url: `${base}/matters/${m.id}/cards` });
         }
       }
     }
 
-    const cards = await prisma.card.findMany({
-      where: {
-        matterId: { in: mine },
-        ...(q
-          ? {
-              OR: [
-                { quote: { contains: q, mode: "insensitive" as const } },
-                { body: { contains: q, mode: "insensitive" as const } },
-              ],
-            }
-          : {}),
-      },
+    /*
+     * Every card this person owns, scored here rather than in SQL. At the scale
+     * of one lawyer's matters that is instant, and it keeps the scoping in the
+     * query above, where it cannot be got wrong by hand written SQL.
+     */
+    const pool: PoolCard[] = await prisma.card.findMany({
+      where: { matterId: { in: mine } },
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-      take: 20,
-      select: { id: true, matterId: true, cardType: true, quote: true, body: true },
+      take: 2000,
+      select: { id: true, matterId: true, cardType: true, quote: true, body: true, tags: true, citation: true },
     });
-    for (const c of cards) {
-      const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
-      const snippet = (c.quote || c.body).replace(/\s+/g, " ").slice(0, 90);
-      results.push({
-        id: `card:${c.id}`,
-        title: `[${label}] ${snippet}${snippet.length === 90 ? "…" : ""} (${titleOf.get(c.matterId) ?? "matter"})`,
-        url: `${base}/matters/${c.matterId}/cards`,
-      });
+
+    const seen = new Set<string>();
+    const hitMatters = new Set<string>();
+    let cardHits = 0;
+    if (!terms.length) {
+      for (const c of pool.slice(0, 20)) {
+        results.push({ id: `card:${c.id}`, title: cardTitle(c), url: `${base}/matters/${c.matterId}/cards` });
+        seen.add(c.id);
+      }
+    } else {
+      const ranked = pool
+        .map((c) => ({ c, s: scoreText(`${c.quote} ${c.body} ${c.tags} ${c.citation ?? ""}`, terms, q) }))
+        .filter((x) => x.s.matched > 0)
+        .sort((a, b) => b.s.matched - a.s.matched || b.s.score - a.s.score);
+      for (const { c } of ranked.slice(0, 20)) {
+        results.push({ id: `card:${c.id}`, title: cardTitle(c), url: `${base}/matters/${c.matterId}/cards` });
+        seen.add(c.id);
+        hitMatters.add(c.matterId);
+        cardHits++;
+      }
     }
 
-    if (q) {
+    if (terms.length) {
       const docs = await prisma.document.findMany({
-        where: { matterId: { in: mine }, filename: { contains: q, mode: "insensitive" } },
+        where: {
+          matterId: { in: mine },
+          OR: terms.map((t) => ({ filename: { contains: t, mode: "insensitive" as const } })),
+        },
         take: 10,
         select: { id: true, matterId: true, filename: true },
       });
@@ -271,12 +299,12 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
        * judgment is the scarce thing here; the pages are everything else, so
        * nothing in the file is out of reach even where it was never clipped.
        */
-      const pages = await prisma.documentPage.findMany({
+      const pagePool = await prisma.documentPage.findMany({
         where: {
           document: { matterId: { in: mine } },
-          text: { contains: q, mode: "insensitive" },
+          OR: terms.map((t) => ({ text: { contains: t, mode: "insensitive" as const } })),
         },
-        take: 8,
+        take: 60,
         orderBy: [{ documentId: "asc" }, { page: "asc" }],
         select: {
           page: true,
@@ -284,17 +312,44 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
           document: { select: { id: true, filename: true, matterId: true } },
         },
       });
-      for (const pg of pages) {
-        const at = pg.text.toLowerCase().indexOf(q.toLowerCase());
-        const snippet = pg.text
-          .slice(Math.max(0, at - 40), Math.max(0, at - 40) + 140)
-          .replace(/\s+/g, " ")
-          .trim();
+      const pages = pagePool
+        .map((pg) => ({ pg, s: scoreText(pg.text, terms, q) }))
+        .filter((x) => x.s.matched > 0)
+        .sort((a, b) => b.s.matched - a.s.matched || b.s.score - a.s.score)
+        .slice(0, 8);
+      for (const { pg } of pages) {
+        const at = Math.max(0, firstHit(pg.text, terms));
+        const from = Math.max(0, at - 40);
+        const snippet = pg.text.slice(from, from + 140).replace(/\s+/g, " ").trim();
         results.push({
           id: `page:${pg.document.id}:${pg.page}`,
-          title: `${pg.document.filename}, p.${pg.page} — …${snippet}…`,
+          title: `${pg.document.filename}, p.${pg.page}: …${snippet}…`,
           url: `${base}/matters/${pg.document.matterId}/documents/${pg.document.id}?page=${pg.page}`,
         });
+      }
+    }
+
+    /*
+     * The words found little. Rather than answer with next to nothing, hand
+     * over the cards of the matters concerned, marked plainly as not matching
+     * the words, so the model can judge them by meaning, which it does well and
+     * this code should not pretend to. Scoped to the matters the hits came
+     * from, or else the most recently worked on, and capped so a large account
+     * cannot flood the conversation.
+     */
+    if (q && cardHits < 3) {
+      const scope = hitMatters.size ? [...hitMatters] : mine.slice(0, 3);
+      let added = 0;
+      for (const c of pool) {
+        if (added >= 40) break;
+        if (seen.has(c.id) || !scope.includes(c.matterId)) continue;
+        results.push({
+          id: `card:${c.id}`,
+          title: `Not a word match, judge by meaning: ${cardTitle(c)}`,
+          url: `${base}/matters/${c.matterId}/cards`,
+        });
+        seen.add(c.id);
+        added++;
       }
     }
 
@@ -586,26 +641,19 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
   if (name === "search_cards") {
     const q = typeof args.query === "string" ? args.query.trim() : "";
     const limit = Math.min(Math.max(Number(args.limit) || 40, 1), 200);
-    const cards = await prisma.card.findMany({
+    const all = await prisma.card.findMany({
       where: {
         matterId: matter.id,
         ...(args.cardType ? { cardType: String(args.cardType) } : {}),
-        ...(q
-          ? {
-              OR: [
-                { quote: { contains: q, mode: "insensitive" as const } },
-                { body: { contains: q, mode: "insensitive" as const } },
-              ],
-            }
-          : {}),
       },
       orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-      take: limit,
+      take: 2000,
       select: {
         id: true,
         cardType: true,
         quote: true,
         body: true,
+        tags: true,
         page: true,
         para: true,
         citation: true,
@@ -615,9 +663,28 @@ async function runTool(userId: string, name: string, args: Json): Promise<Json> 
         document: { select: { filename: true } },
       },
     });
-    if (!cards.length) return text(`No matching cards in "${matter.title}".`);
+    if (!all.length) return text(`No cards in "${matter.title}".`);
+
+    let cards = all;
+    let heading = "";
+    const terms = q ? queryTerms(q) : [];
+    if (terms.length) {
+      const ranked = all
+        .map((c) => ({ c, s: scoreText(`${c.quote} ${c.body} ${c.tags} ${c.citation ?? ""}`, terms, q) }))
+        .filter((x) => x.s.matched > 0)
+        .sort((a, b) => b.s.matched - a.s.matched || b.s.score - a.s.score)
+        .map((x) => x.c);
+      if (ranked.length) {
+        cards = ranked;
+        heading = "matching those words";
+      } else {
+        // say so, and hand over the matter's cards to be judged by meaning
+        heading = "none contains those words; these are the matter's cards to judge by meaning instead";
+      }
+    }
+    cards = cards.slice(0, limit);
     return text(
-      `${cards.length} card(s) from "${matter.title}":\n\n` +
+      `${cards.length} card(s) from "${matter.title}"${heading ? `, ${heading}` : ""}:\n\n` +
         cards
           .map((c) => {
             const label = CARD_TYPE_LABEL[c.cardType as CardTypeValue] ?? c.cardType;
