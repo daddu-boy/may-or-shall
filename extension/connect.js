@@ -17,10 +17,7 @@
     /* non-fatal */
   }
 
-  chrome.runtime.sendMessage({ type: "connectStatus" }, (res) => {
-    if (chrome.runtime.lastError) return;
-    if (res?.connected) return; // already connected — nothing to do
-
+  const mint = (reason) =>
     fetch("/api/extension/session", {
       method: "GET",
       credentials: "same-origin",
@@ -33,8 +30,33 @@
           type: "connect",
           apiBase,
           token: data.token,
+          email: data.email || "",
           matters: data.matters || [],
+          switchedFrom: reason === "switch" ? true : undefined,
         });
+      })
+      .catch(() => {});
+
+  chrome.runtime.sendMessage({ type: "connectStatus" }, (res) => {
+    if (chrome.runtime.lastError) return;
+    if (!res?.connected) {
+      mint("first");
+      return;
+    }
+    /*
+     * Already connected, but to whom? Signing into a second account used to
+     * leave the clipper holding the first account's token: the popup named one
+     * email while every clip went to the other, and a matter picked in one
+     * account came back "not found" in the other. So ask who is signed in here
+     * (a call that mints nothing) and re-connect if it is someone else.
+     */
+    fetch("/api/extension/whoami", { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((who) => {
+        if (!who?.signedIn || !who.email) return;
+        const known = (res.email || "").toLowerCase();
+        if (known && known === who.email.toLowerCase()) return;
+        mint("switch");
       })
       .catch(() => {});
   });

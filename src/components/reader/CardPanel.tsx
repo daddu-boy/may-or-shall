@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type CardDto } from "@/lib/clientTypes";
-import { CARD_TYPES, CARD_TYPE_COLOR, CARD_TYPE_LABEL } from "@/lib/labels";
+import { CARD_TYPES, CARD_TYPE_LABEL } from "@/lib/labels";
+import { useCardTypes } from "@/lib/useCardTypes";
 
 /** Right panel of the reader: all cards for the open document in page order (PRD F2). */
 export default function CardPanel({
@@ -65,6 +66,7 @@ function PanelCard({
   onSelect: () => void;
   onChanged: () => void;
 }) {
+  const { labelOf, colorOf, categories } = useCardTypes();
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState(card.body);
   const [para, setPara] = useState(card.para ?? "");
@@ -101,9 +103,9 @@ function PanelCard({
       <div className="flex items-center gap-2 mb-1">
         <span
           className="text-[10px] font-semibold text-white rounded-full px-2 py-0.5"
-          style={{ background: CARD_TYPE_COLOR[card.cardType] }}
+          style={{ background: colorOf(card.cardType) }}
         >
-          {CARD_TYPE_LABEL[card.cardType]}
+          {labelOf(card.cardType)}
         </span>
         <span className="text-[10px] text-slate-400" data-testid="source-chip">
           p.{card.page}
@@ -148,9 +150,12 @@ function PanelCard({
               }}
               className="border border-slate-200 rounded px-1 py-1 text-xs"
             >
-              {CARD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {CARD_TYPE_LABEL[t]}
+              {[
+                ...CARD_TYPES.map((t) => ({ key: t as string, label: CARD_TYPE_LABEL[t] })),
+                ...categories.map((c) => ({ key: c.key, label: c.label })),
+              ].map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label}
                 </option>
               ))}
             </select>

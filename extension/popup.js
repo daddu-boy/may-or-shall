@@ -132,11 +132,37 @@ function fillMatters(matters, selectedId) {
   }
 }
 
+const acctRow = document.getElementById("acctrow");
+const acct = document.getElementById("acct");
+const switchedBox = document.getElementById("switched");
+
+/* Signing out has to revoke the token, not just forget it, or the clipper on
+   another machine would go on saving as this account. */
+document.getElementById("signout").addEventListener("click", () => {
+  setStatus("Signing out…");
+  chrome.runtime.sendMessage({ type: "signOut" }, () => {
+    acctRow.style.display = "none";
+    switchedBox.style.display = "none";
+    refresh();
+  });
+});
+
+function showAccount(email) {
+  if (!email) {
+    acctRow.style.display = "none";
+    return;
+  }
+  acct.textContent = `Saving to ${email}`;
+  acct.title = `Clips go to the May or Shall account ${email}`;
+  acctRow.style.display = "flex";
+}
+
 function refresh() {
   setStatus("Connecting…");
   chrome.runtime.sendMessage({ type: "getState" }, (res) => {
     if (res?.config?.apiBase) appUrl = res.config.apiBase;
     if (res?.config) applyEnabled(res.config.enabled !== false);
+    showAccount(res?.needsAuth ? "" : res?.config?.email || "");
     if (res?.needsAuth) {
       // not signed in / no token yet — guide the user to connect their account
       matterSelect.innerHTML = "<option>—</option>";
@@ -180,6 +206,14 @@ refresh();
 const updatedBox = document.getElementById("updated");
 chrome.runtime.sendMessage({ type: "reloadState" }, (res) => {
   if (res?.needsReload) updatedBox.style.display = "block";
+});
+
+/* Set by the handshake when signing into the app switched accounts. Shown once,
+   because the surprise is the switch, not the state. */
+chrome.storage.local.get({ switchedTo: "" }).then(({ switchedTo }) => {
+  if (!switchedTo) return;
+  document.getElementById("switched").style.display = "block";
+  chrome.storage.local.remove("switchedTo");
 });
 document.getElementById("doreload").addEventListener("click", () => {
   const btn = document.getElementById("doreload");

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { typeIsAllowed } from "@/lib/cardCategories";
 import { syncCardChronology } from "@/lib/chronology";
 import { requireMatterOwner, isResponse } from "@/lib/requestUser";
 import { resolvePara, type ParaMarker } from "@/lib/pdf/paraMap";
@@ -66,7 +67,8 @@ const createSchema = z.object({
   para: z.string().nullable().optional(),
   quote: z.string().optional().default(""),
   rects: z.array(rectSchema).optional().default([]),
-  cardType: z.enum(CARD_TYPES).optional().default("MISC"),
+  // a built in type, or one this account invented; checked against the account below
+  cardType: z.string().optional().default("MISC"),
   body: z.string().optional().default(""),
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   tags: z.array(z.string()).optional().default([]),
@@ -87,6 +89,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
   const data = parsed.data;
+  if (!(await typeIsAllowed(owner, data.cardType))) {
+    return NextResponse.json({ error: `Unknown card type "${data.cardType}".` }, { status: 400 });
+  }
 
   // Detect the paragraph number from the document's para_map unless the
   // caller supplied one explicitly (user can always type it manually).

@@ -69,6 +69,21 @@ h1, h2, h3 {
   transition: background 0.12s ease;
 }
 .btn-quiet:hover { background: rgba(0, 0, 0, 0.03); color: var(--text); }
+.night .btn-quiet { color: var(--text); border-color: var(--glass-edge); background: var(--glass); }
+.night .btn-quiet:hover { background: var(--glass-hover); }
+
+/* Destructive, and visibly so: deleting a document was a grey word people never found. */
+.btn-danger {
+  background: transparent;
+  color: #d92d20;
+  border: 1px solid rgba(217, 45, 32, 0.35);
+  border-radius: 999px;
+  font-weight: 500;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.btn-danger:hover { background: rgba(217, 45, 32, 0.08); }
+.night .btn-danger { color: #ff8078; border-color: rgba(255, 128, 120, 0.4); }
+.night .btn-danger:hover { background: rgba(255, 128, 120, 0.12); }
 
 .field {
   background: var(--surface);
@@ -147,6 +162,10 @@ h1, h2, h3 {
   transition: background 0.14s ease, color 0.14s ease, transform 0.14s ease;
 }
 .chip:hover { background: var(--glass-hover); color: var(--text); }
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .chip:active { transform: scale(0.97); }
 
 /*

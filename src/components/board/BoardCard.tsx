@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import type { CardDto } from "@/lib/clientTypes";
-import { CARD_TYPE_COLOR, CARD_TYPE_LABEL } from "@/lib/labels";
+import { useCardTypes } from "@/lib/useCardTypes";
 import CardMenu from "./CardMenu";
 
 function BoardCard({
@@ -22,6 +22,7 @@ function BoardCard({
   onDropOn: () => void;
   onChanged: () => void;
 }) {
+  const { labelOf, colorOf } = useCardTypes();
   return (
     <div
       draggable
@@ -47,9 +48,9 @@ function BoardCard({
         />
         <span
           className="text-[10px] font-semibold text-white rounded-full px-2 py-0.5"
-          style={{ background: CARD_TYPE_COLOR[card.cardType] }}
+          style={{ background: colorOf(card.cardType) }}
         >
-          {CARD_TYPE_LABEL[card.cardType]}
+          {labelOf(card.cardType)}
         </span>
         {card.pinned && <span title="Pinned">📌</span>}
         {card.eventDate && (

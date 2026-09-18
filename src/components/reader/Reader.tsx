@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import Link from "next/link";
 import { api, type CardDto, type DocumentDto, type HighlightRect } from "@/lib/clientTypes";
 import {
   CARD_TYPES,
@@ -293,10 +294,45 @@ export default function Reader({
   }, [cards]);
 
   if (error) {
-    return <p className="p-6 text-sm text-red-600">Failed to load document: {error}</p>;
+    return (
+      <div className="p-6 max-w-lg text-sm">
+        <h2 className="text-base font-semibold mb-2">This PDF did not open</h2>
+        <p className="mb-3" style={{ color: "var(--text-secondary)" }}>
+          May or Shall could not display {doc?.filename ? `"${doc.filename}"` : "this document"}. This
+          usually means the file is password protected, was damaged before it was uploaded, or is
+          larger than the reader can handle. Your cards from it are safe.
+        </p>
+        <p className="mb-4 text-xs" style={{ color: "var(--text-tertiary)" }}>
+          Reported by the reader: {error}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => location.reload()} className="btn-primary px-4 py-2 text-xs">
+            Try again
+          </button>
+          <a
+            href={`/api/documents/${docId}/file?original=1`}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-quiet px-4 py-2 text-xs"
+          >
+            Download the original
+          </a>
+          <Link href={`/matters/${matterId}/documents`} className="btn-quiet px-4 py-2 text-xs">
+            Back to documents
+          </Link>
+        </div>
+        <p className="mt-4 text-xs" style={{ color: "var(--text-tertiary)" }}>
+          If it opens elsewhere but not here, send it to sdhkapr22@gmail.com and it will be looked at.
+        </p>
+      </div>
+    );
   }
   if (!doc || !pdf) {
-    return <p className="p-6 text-sm text-slate-400">Loading document…</p>;
+    return (
+      <p className="p-6 text-sm" style={{ color: "var(--text-secondary)" }}>
+        Opening the document… Large scans can take a few seconds.
+      </p>
+    );
   }
 
   return (

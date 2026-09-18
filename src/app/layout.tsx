@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import VersionWatch from "@/components/VersionWatch";
 
 export const metadata: Metadata = {
   title: "May or Shall",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <VersionWatch />
+      </body>
     </html>
   );
 }

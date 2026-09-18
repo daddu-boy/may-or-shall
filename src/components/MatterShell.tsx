@@ -324,10 +324,10 @@ export default function MatterShell({
         <div className="px-5 pt-5 pb-5">
           <Link
             href="/"
-            className="text-[11.5px] transition-colors hover:text-[var(--text)]"
-            style={{ color: "var(--text-tertiary)" }}
+            className="chip inline-flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-medium"
+            style={{ color: "var(--text)" }}
           >
-            ← All matters
+            <span aria-hidden>←</span> All matters
           </Link>
           <h2 className="mt-3 text-[16px] font-semibold leading-snug">{title}</h2>
           {subtitle && (
@@ -415,7 +415,9 @@ export default function MatterShell({
           <button
             onClick={toggleNav}
             title={navOpen ? "Hide the sidebar" : "Show the sidebar"}
-            className="chip mr-3 shrink-0 px-2.5 py-1.5 text-[13px]"
+            className="chip mr-3 shrink-0 px-2.5 py-1.5 text-[15px] leading-none"
+            style={{ color: "var(--text)" }}
+            aria-label={navOpen ? "Hide the sidebar" : "Show the sidebar"}
           >
             {navOpen ? "\u00ab" : "\u00bb"}
           </button>

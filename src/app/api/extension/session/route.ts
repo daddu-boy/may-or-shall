@@ -17,6 +17,22 @@ import { generateToken, hashToken } from "@/lib/apiAuth";
  */
 const EXT_TOKEN_NAME = "Chrome extension";
 
+/**
+ * Sign the clipper out: revoke the token this account's extension is holding.
+ * The extension forgets it locally too, but a token that still works on the
+ * server is a token someone else's browser could keep using.
+ */
+export async function DELETE() {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  const { count } = await prisma.apiToken.updateMany({
+    where: { userId, name: EXT_TOKEN_NAME, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  return NextResponse.json({ ok: true, revoked: count });
+}
+
 export async function GET() {
   const session = await auth();
   const userId = session?.user?.id;

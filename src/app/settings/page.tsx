@@ -74,7 +74,7 @@ export default function SettingsPage() {
       </Link>
       <h1 className="text-2xl font-semibold mt-2 mb-1">Settings</h1>
       <p className="text-sm text-slate-500 mb-8">
-        API tokens for the browser extension and other clients.
+        Your account, and the tools you have connected to it.
       </p>
 
       {/*
@@ -132,11 +132,14 @@ export default function SettingsPage() {
         </ul>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="text-sm font-semibold mb-1">API tokens</h2>
-        <p className="text-xs text-slate-500 mb-4">
-          The Chrome extension authenticates with a token (Extension options → paste it there).
-          Tokens are shown once at creation and stored hashed.
+      <details className="rounded-lg border border-slate-200 bg-white p-5">
+        <summary className="text-sm font-semibold cursor-pointer select-none">
+          Advanced: API tokens
+        </summary>
+        <p className="text-xs text-slate-500 mt-2 mb-4">
+          You do not need this. The Chrome clipper connects itself the moment you sign in. Tokens
+          are only for the Word add-in, your own scripts, or a copy of May or Shall you run
+          yourself. They are shown once and stored hashed.
         </p>
 
         <form onSubmit={create} className="flex gap-2 mb-4">
@@ -210,15 +213,15 @@ export default function SettingsPage() {
             <p className="text-xs text-slate-400 py-2">No tokens yet.</p>
           )}
         </ul>
-      </section>
+      </details>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5 mt-6 text-sm">
         <h2 className="text-sm font-semibold mb-2">Clients</h2>
         <ul className="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
           <li>
-            <strong>Chrome extension</strong> — load <code>extension/</code> from the repo via
-            chrome://extensions → &quot;Load unpacked&quot;, then paste a token and pick a matter in its
-            options.
+            <strong>Chrome clipper</strong> — install it from the Chrome Web Store. It connects
+            itself while you are signed in here, so there is no token to paste. Its icon shows
+            which account it is saving to, and can sign it out of this browser.
           </li>
           <li>
             <strong>Word add-in</strong> — see <code>office-addin/README.md</code> in the repo;

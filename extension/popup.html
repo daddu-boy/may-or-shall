@@ -98,6 +98,17 @@
     </div>
   </div>
 
+  <!-- Who this clipper is saving as. Without it, two accounts are
+       indistinguishable until a clip lands in the wrong one. -->
+  <div id="acctrow" class="row" style="display:none;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;font-size:11px;color:var(--muted)">
+    <span id="acct" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button id="signout" class="ghost" type="button" title="Forget this account on this browser">Sign out</button>
+  </div>
+  <div id="switched" style="display:none;margin-bottom:10px;font-size:11.5px;color:var(--text);background:var(--fill);border:1px solid var(--line);border-radius:12px;padding:10px">
+    <b>Switched account.</b><br>
+    The clipper now saves to the account you signed into in May or Shall. Pick a matter below.
+  </div>
+
   <label for="matter">Matter</label>
   <select id="matter"><option>Loading…</option></select>
   <div class="newrow" id="newrow">

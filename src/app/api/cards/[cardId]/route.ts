@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { typeIsAllowed } from "@/lib/cardCategories";
 import { syncCardChronology } from "@/lib/chronology";
-import { CARD_TYPES } from "@/lib/labels";
 import { cardOut } from "@/lib/jsonFields";
 import { requireResourceOwner, isResponse } from "@/lib/requestUser";
 
@@ -20,7 +20,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 const patchSchema = z.object({
-  cardType: z.enum(CARD_TYPES).optional(),
+  // built in, or a category this account invented; checked against the account below
+  cardType: z.string().optional(),
   body: z.string().optional(),
   para: z.string().nullable().optional(),
   eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
@@ -42,6 +43,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
   const { eventDate, tags, remindAt, ...rest } = parsed.data;
+  if (rest.cardType && !(await typeIsAllowed(owner, rest.cardType))) {
+    return NextResponse.json({ error: `Unknown card type "${rest.cardType}".` }, { status: 400 });
+  }
 
   /*
    * A reminder belongs on a personal note and nowhere else. Every other type

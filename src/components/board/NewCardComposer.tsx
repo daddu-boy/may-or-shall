@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useCardTypes } from "@/lib/useCardTypes";
 import { api, type CardDto, type DocumentDto } from "@/lib/clientTypes";
 import {
   CARD_TYPES,
   CARD_TYPE_COLOR,
   cardTypeLabel,
-  type CardTypeValue,
   type MatterKind,
 } from "@/lib/labels";
 import { extractDate } from "@/lib/dates";
@@ -38,6 +38,7 @@ export default function NewCardComposer({
   onSaved: (card: CardDto) => void;
   onClose: () => void;
 }) {
+  const { categories } = useCardTypes();
   const [body, setBody] = useState("");
   const [when, setWhen] = useState("");
   const [docId, setDocId] = useState("");
@@ -63,7 +64,7 @@ export default function NewCardComposer({
     setWhen(extractDate(body) ?? "");
   }, [body]);
 
-  const save = async (cardType: CardTypeValue) => {
+  const save = async (cardType: string) => {
     const text = body.trim();
     if (!text || busy) return;
     setBusy(true);
@@ -190,16 +191,19 @@ export default function NewCardComposer({
             Save it as
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {CARD_TYPES.filter((t) => t !== "MISC").map((t) => (
+            {[
+              ...CARD_TYPES.filter((t) => t !== "MISC").map((t) => ({ key: t as string, label: cardTypeLabel(t, kind), color: CARD_TYPE_COLOR[t] })),
+              ...categories.map((c) => ({ key: c.key, label: c.label, color: c.color })),
+            ].map((t) => (
               <button
-                key={t}
+                key={t.key}
                 disabled={!body.trim() || busy}
-                onClick={() => save(t)}
+                onClick={() => save(t.key)}
                 className="rounded-full px-2.5 py-1 text-xs font-medium text-white disabled:opacity-40"
-                style={{ background: CARD_TYPE_COLOR[t] }}
-                data-testid={`new-card-chip-${t}`}
+                style={{ background: t.color }}
+                data-testid={`new-card-chip-${t.key}`}
               >
-                {cardTypeLabel(t, kind)}
+                {t.label}
               </button>
             ))}
           </div>

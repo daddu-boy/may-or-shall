@@ -86,6 +86,19 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
   };
 
   const remove = async (doc: DocumentDto) => {
+    /*
+     * Deleting a document is not undoable, so it asks first and names the file.
+     * The control itself used to be a grey word people could not find; it is
+     * now a labelled button that says what it will destroy.
+     */
+    const n = doc._count?.cards ?? 0;
+    if (
+      !confirm(
+        `Delete "${doc.filename}"?\n\nThis removes the PDF and its text from this matter. It cannot be undone.` +
+          (n ? `\n\n${n} card${n === 1 ? "" : "s"} came from this document.` : "")
+      )
+    )
+      return;
     try {
       await api(`/api/documents/${doc.id}`, { method: "DELETE" });
     } catch (e) {
@@ -196,6 +209,9 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
                 >
                   {doc.filename}
                 </Link>
+                <p className="text-[11px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                  Click the name to read it here and turn passages into cards.
+                </p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {doc.pageCount} pages · {doc._count?.cards ?? 0} cards
                   {!doc.hasTextLayer && (
@@ -206,7 +222,18 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
                 </p>
                 {doc.extractionReport?.message && <p className="text-xs text-amber-700 mt-1">{doc.extractionReport.message}</p>}
                 {!!doc.extractionReport?.warningPages?.length && <p className="text-xs text-amber-700">Check pages: {doc.extractionReport.warningPages.join(", ")}</p>}
-                <a href={`/api/documents/${doc.id}/file?original=1`} target="_blank" rel="noreferrer" className="text-xs underline">Open original PDF</a>
+                <a
+                  href={`/api/documents/${doc.id}/file?original=1`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs underline"
+                  title="Opens the raw file in your browser. Selecting text there does not make cards. Open the document in May or Shall to clip it."
+                >
+                  Download the original PDF
+                </a>
+                <span className="ml-2 text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                  (opens outside May or Shall, where highlighting does not make cards)
+                </span>
                 {(!doc.hasTextLayer || !!doc.extractionReport?.warningPages?.length) && (
                   <button disabled={ocrBusy !== null} onClick={() => retryOcr(doc)} className="ml-3 text-xs underline disabled:opacity-50">{ocrBusy === doc.id ? "Running OCR…" : "Retry OCR"}</button>
                 )}
@@ -224,7 +251,8 @@ export default function DocumentsView({ matterId }: { matterId: string }) {
               </select>
               <button
                 onClick={() => remove(doc)}
-                className="text-xs text-slate-400 hover:text-red-600"
+                className="btn-danger shrink-0 px-3 py-1.5 text-xs"
+                title={`Delete ${doc.filename} from this matter`}
               >
                 Delete
               </button>

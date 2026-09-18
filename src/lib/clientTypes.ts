@@ -36,6 +36,14 @@ export interface DocumentDto {
   _count?: { cards: number };
 }
 
+/** A card type this account invented; see src/lib/cardCategories.ts. */
+export interface CategoryDto {
+  id: string;
+  key: string;
+  label: string;
+  color: string;
+}
+
 export interface CardDto {
   id: string;
   matterId: string;

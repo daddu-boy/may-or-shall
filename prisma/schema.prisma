@@ -33,6 +33,7 @@ model User {
 
   accounts    Account[]
   sessions    Session[]
+  cardCategories CardCategory[]
   matters     Matter[]
   apiTokens   ApiToken[]
   oauthCodes  OAuthCode[]
@@ -383,4 +384,21 @@ model CardLink {
 
   @@unique([fromCardId, toCardId])
   @@index([matterId])
+}
+
+/// A card type the person invented, beside the ten the product ships with.
+/// Held against the account rather than the matter, because a way of sorting
+/// (Compliance, Costs, Witness) belongs to how someone works, not to one file.
+model CardCategory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// stored in Card.cardType; always begins CUSTOM_ so it cannot collide with a built-in
+  key       String
+  label     String
+  color     String   @default("#6b7280")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([userId])
 }

@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useCardTypes } from "@/lib/useCardTypes";
 import { api, type CardDto } from "@/lib/clientTypes";
 import {
   CARD_TYPES,
   CARD_TYPE_LABEL,
-  CARD_TYPE_COLOR,
   LINK_KIND_LABEL,
   LINK_KIND_INVERSE_LABEL,
-  type CardTypeValue,
   type LinkKindValue,
 } from "@/lib/labels";
 
@@ -34,9 +33,10 @@ export default function CardDrawer({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const { colorOf, categories } = useCardTypes();
   const [card, setCard] = useState<CardDto | null>(null);
   const [body, setBody] = useState("");
-  const [cardType, setCardType] = useState<CardTypeValue>("MISC");
+  const [cardType, setCardType] = useState<string>("MISC");
   const [eventDate, setEventDate] = useState("");
   const [tags, setTags] = useState("");
   const [pinned, setPinned] = useState(false);
@@ -172,7 +172,7 @@ export default function CardDrawer({
                     <span className="mt-1 flex items-start gap-1.5">
                       <span
                         className="mt-1 w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ background: CARD_TYPE_COLOR[other.cardType as CardTypeValue] }}
+                        style={{ background: colorOf(other.cardType) }}
                       />
                       <span className="text-slate-700 line-clamp-2">
                         {other.quote || other.body}
@@ -196,10 +196,10 @@ export default function CardDrawer({
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} className={input} />
 
         <label className={label}>Type</label>
-        <select value={cardType} onChange={(e) => setCardType(e.target.value as CardTypeValue)} className={input}>
-          {CARD_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {CARD_TYPE_LABEL[t]}
+        <select value={cardType} onChange={(e) => setCardType(e.target.value)} className={input}>
+          {[...CARD_TYPES.map((t) => ({ key: t as string, label: CARD_TYPE_LABEL[t] })), ...categories.map((c) => ({ key: c.key, label: c.label }))].map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
             </option>
           ))}
         </select>

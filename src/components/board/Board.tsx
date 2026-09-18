@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, type CardDto, type DocumentDto } from "@/lib/clientTypes";
+import { api, type CardDto, type CategoryDto, type DocumentDto } from "@/lib/clientTypes";
 import {
   CARD_TYPES,
   CARD_TYPE_COLOR,
   cardTypeLabel,
   type MatterKind,
 } from "@/lib/labels";
+import { refreshCardTypes, useCardTypes } from "@/lib/useCardTypes";
 import NewCardComposer from "./NewCardComposer";
 import CardDrawer from "./CardDrawer";
 import BoardCard from "./BoardCard";
@@ -23,6 +24,7 @@ export default function Board({
   initialCardId?: string;
   kind?: MatterKind;
 }) {
+  const { categories } = useCardTypes();
   const [cards, setCards] = useState<CardDto[]>([]);
   const [docs, setDocs] = useState<DocumentDto[]>([]);
   const [groupBy, setGroupBy] = useState<GroupBy>("type");
@@ -36,6 +38,8 @@ export default function Board({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
+  const [newCategory, setNewCategory] = useState<string | null>(null);
+  const [categoryError, setCategoryError] = useState("");
 
   /*
    * A note you cannot write down quickly is a note you do not write down. "n"
@@ -62,6 +66,49 @@ export default function Board({
     setCards(c);
     setDocs(d);
   }, [matterId]);
+
+  /*
+   * The ten built in types are a litigator's vocabulary. Anyone filing by
+   * Compliance, Costs or Witness needs their own, so a category is a row in
+   * the account and behaves exactly like a built in everywhere else.
+   */
+  const addCategory = async (label: string) => {
+    setCategoryError("");
+    try {
+      await api<CategoryDto>("/api/card-types", {
+        method: "POST",
+        body: JSON.stringify({ label }),
+      });
+      await refreshCardTypes();
+      setNewCategory(null);
+    } catch (e) {
+      setCategoryError((e as Error).message);
+    }
+  };
+
+  const removeCategory = async (cat: CategoryDto) => {
+    const n = cards.filter((c) => c.cardType === cat.key).length;
+    if (
+      !confirm(
+        `Delete the "${cat.label}" category?` +
+          (n ? `\n\n${n} card${n === 1 ? "" : "s"} filed under it in this matter will become Personal notes. Nothing is deleted.` : "")
+      )
+    )
+      return;
+    await api(`/api/card-types/${cat.id}`, { method: "DELETE" });
+    if (filterType === cat.key) setFilterType("");
+    await refreshCardTypes();
+    await load();
+  };
+
+  /** Every type this account can file under, built in first, then its own. */
+  const allTypes = useMemo(
+    () => [
+      ...CARD_TYPES.map((t) => ({ key: t as string, label: cardTypeLabel(t, kind), color: CARD_TYPE_COLOR[t], custom: null as CategoryDto | null })),
+      ...categories.map((c) => ({ key: c.key, label: c.label, color: c.color, custom: c })),
+    ],
+    [categories, kind]
+  );
 
   useEffect(() => {
     load();
@@ -98,12 +145,14 @@ export default function Board({
   const columns = useMemo((): { key: string; title: string; color?: string; cards: CardDto[] }[] => {
     const sortCol = (list: CardDto[]) => [...list].sort((a, b) => a.orderIndex - b.orderIndex);
     if (groupBy === "type") {
-      return CARD_TYPES.map((t) => ({
-        key: t,
-        title: cardTypeLabel(t, kind),
-        color: CARD_TYPE_COLOR[t],
-        cards: sortCol(filtered.filter((c) => c.cardType === t)),
-      })).filter((col) => col.cards.length > 0 || !filterType);
+      return allTypes
+        .map((t) => ({
+          key: t.key,
+          title: t.label,
+          color: t.color,
+          cards: sortCol(filtered.filter((c) => c.cardType === t.key)),
+        }))
+        .filter((col) => col.cards.length > 0 || !filterType);
     }
     if (groupBy === "document") {
       const cols = docs.map((d) => ({
@@ -139,7 +188,7 @@ export default function Board({
     const undated = filtered.filter((c) => !c.eventDate);
     if (undated.length) cols.push({ key: "__nodate", title: "No date", cards: undated });
     return cols;
-  }, [filtered, groupBy, docs, allTags, filterType]);
+  }, [filtered, groupBy, docs, allTags, filterType, allTypes]);
 
   /** Reorder within a column by dropping onto a target card (order persists via orderIndex). */
   const dropOn = async (target: CardDto, column: CardDto[]) => {
@@ -247,12 +296,69 @@ export default function Board({
         <span className="text-slate-200 mx-1">|</span>
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className={select}>
           <option value="">All types</option>
-          {CARD_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {cardTypeLabel(t, kind)}
+          {allTypes.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
             </option>
           ))}
         </select>
+        {newCategory === null ? (
+          <button
+            onClick={() => { setNewCategory(""); setCategoryError(""); }}
+            className="rounded-full border border-slate-300 px-3 py-1.5 font-medium text-slate-600 hover:border-slate-500 hover:text-slate-900"
+            title="Add a card category of your own, beside Fact, Date and the rest"
+            data-testid="new-category"
+          >
+            + Category
+          </button>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (newCategory.trim()) addCategory(newCategory.trim());
+            }}
+            className="flex items-center gap-1.5"
+          >
+            <input
+              autoFocus
+              value={newCategory}
+              maxLength={24}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") setNewCategory(null); }}
+              placeholder="Category name, e.g. Compliance"
+              className="rounded border border-slate-300 px-2 py-1 text-xs w-52"
+              data-testid="new-category-name"
+            />
+            <button type="submit" className="rounded-full bg-slate-900 px-3 py-1.5 font-semibold text-white">
+              Add
+            </button>
+            <button type="button" onClick={() => setNewCategory(null)} className="text-slate-500 hover:text-slate-900">
+              Cancel
+            </button>
+          </form>
+        )}
+        {categoryError && <span className="text-red-600">{categoryError}</span>}
+        {categories.length > 0 && newCategory === null && (
+          <span className="flex items-center gap-1.5">
+            {categories.map((c) => (
+              <span
+                key={c.id}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-white"
+                style={{ background: c.color }}
+              >
+                {c.label}
+                <button
+                  onClick={() => removeCategory(c)}
+                  title={`Delete the ${c.label} category`}
+                  aria-label={`Delete the ${c.label} category`}
+                  className="opacity-70 hover:opacity-100"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </span>
+        )}
         <select value={filterDoc} onChange={(e) => setFilterDoc(e.target.value)} className={select}>
           <option value="">All documents</option>
           {docs.map((d) => (

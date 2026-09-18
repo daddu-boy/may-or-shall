@@ -15,6 +15,8 @@ const APP_ORIGINS = [
 const DEFAULTS = {
   apiBase: HOSTED_URL,
   token: "",
+  /// the account the token belongs to, so a sign-in as someone else is noticed
+  email: "",
   matterId: "",
   enabled: true,
   theme: "auto", // auto | light | dark
@@ -136,31 +138,72 @@ async function createCard(payload) {
   if (payload.matterId && payload.matterId !== config.matterId) {
     await chrome.storage.sync.set({ matterId: payload.matterId });
   }
-  return apiFetch(config, `/api/matters/${matterId}/cards`, {
-    method: "POST",
-    body: JSON.stringify({
-      cardType: payload.cardType,
-      quote: payload.quote,
-      body: payload.note || payload.quote,
-      eventDate: payload.eventDate || null,
-      sourceUrl: payload.sourceUrl,
-      sourceTitle: payload.sourceTitle,
-      sourceContext: payload.sourceContext || null,
-    }),
-  });
+  try {
+    return await apiFetch(config, `/api/matters/${matterId}/cards`, {
+      method: "POST",
+      body: JSON.stringify({
+        cardType: payload.cardType,
+        quote: payload.quote,
+        body: payload.note || payload.quote,
+        eventDate: payload.eventDate || null,
+        sourceUrl: payload.sourceUrl,
+        sourceTitle: payload.sourceTitle,
+        sourceContext: payload.sourceContext || null,
+      }),
+    });
+  } catch (e) {
+    /*
+     * "Matter not found" here almost always means the selected matter belongs
+     * to an account this clipper is no longer signed into. Rather than repeat
+     * the server's wording, forget the stale choice and say what to do; the
+     * next clip offers this account's own matters.
+     */
+    if (/not found/i.test(e.message || "")) {
+      await chrome.storage.sync.set({ matterId: "" });
+      const err = new Error("That matter belongs to another account. Pick a matter again from the clipper icon.");
+      err.pickMatter = true;
+      throw err;
+    }
+    throw e;
+  }
 }
 
 // Store the token handed over by the auto-connect handshake (connect.js) once
 // the user is signed into the web app, so being logged in IS the connection.
-async function connect({ apiBase, token, matters }) {
-  const patch = { token };
+async function connect({ apiBase, token, email, matters }) {
+  const patch = { token, email: email || "" };
   if (apiBase) patch.apiBase = apiBase.replace(/\/$/, "");
-  // pre-select a matter so the very first clip has somewhere to go
-  const current = await chrome.storage.sync.get({ matterId: "" });
-  if (!current.matterId && Array.isArray(matters) && matters[0]) {
-    patch.matterId = matters[0].id;
+  const current = await chrome.storage.sync.get({ matterId: "", email: "" });
+  /*
+   * A different account means a different set of matters, so the selected one
+   * cannot travel: keeping it is what made the clipper save into a matter the
+   * new account does not own, which the server rightly refuses.
+   */
+  const switched = !!current.email && !!email && current.email.toLowerCase() !== email.toLowerCase();
+  if (switched || !current.matterId) {
+    patch.matterId = Array.isArray(matters) && matters[0] ? matters[0].id : "";
   }
   await chrome.storage.sync.set(patch);
+  if (switched) await chrome.storage.local.set({ switchedTo: email });
+  return { ok: true, switched };
+}
+
+/**
+ * Sign the clipper out. The token is revoked on the server as well as dropped
+ * here, and the chosen matter goes with it, because it belonged to that
+ * account. Signing into the app again reconnects on the next page load.
+ */
+async function signOut() {
+  const config = await getConfig();
+  if (config.token) {
+    try {
+      await apiFetch(config, "/api/extension/session", { method: "DELETE" });
+    } catch {
+      /* revoking is best effort: the local token goes regardless */
+    }
+  }
+  await chrome.storage.sync.set({ token: "", email: "", matterId: "" });
+  await chrome.storage.local.remove("switchedTo");
   return { ok: true };
 }
 
@@ -281,7 +324,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse(await connect(msg));
       } else if (msg.type === "connectStatus") {
         const cfg = await getConfig();
-        sendResponse({ ok: true, connected: !!cfg.token });
+        sendResponse({ ok: true, connected: !!cfg.token, email: cfg.email || "" });
+      } else if (msg.type === "signOut") {
+        sendResponse(await signOut());
       } else if (msg.type === "reloadState") {
         const { needsReload } = await chrome.storage.local.get({ needsReload: false });
         sendResponse({ ok: true, needsReload });
