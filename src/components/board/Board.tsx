@@ -390,6 +390,17 @@ export default function Board({
         />
       )}
 
+      {cards.length === 0 && (
+        <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+          <strong className="font-semibold">Nothing in this matter yet.</strong> Write a note with
+          + New note above, put the PDFs in under{" "}
+          <a href={`/matters/${matterId}/documents`} className="underline">
+            Upload
+          </a>{" "}
+          and select any passage to make a card, or clip from the web with the Chrome clipper.
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto">
         <div className="flex gap-3 p-4 min-h-full items-start">
           {columns.map((col) => (

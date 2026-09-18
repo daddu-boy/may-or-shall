@@ -49,12 +49,21 @@ const NAV_GROUPS: { heading: string; projectHeading?: string; items: NavItem[] }
     projectHeading: "Reading",
     items: [
       {
+        label: "Cards",
+        slug: "cards",
+        hint: "Every passage you have marked",
+        tip: {
+          title: "Everything you marked lands here",
+          body: "Cards are grouped by what they are. Filter them, tag them by issue, reorder them, and export the whole set to Word or PDF with every citation attached.",
+        },
+      },
+      {
         label: "Upload",
         slug: "documents",
         projectHint: "Put your documents in as PDFs",
         hint: "Put the case bundle in as PDFs",
         tip: {
-          title: "Start here",
+          title: "Putting the file in",
           body: "Drag the PDFs of your bundle into this screen. Open one and it becomes a reader: select any passage and it saves as a card that remembers its document, page and paragraph.",
         },
       },
@@ -65,15 +74,6 @@ const NAV_GROUPS: { heading: string; projectHeading?: string; items: NavItem[] }
         tip: {
           title: "Two documents, one view",
           body: "Choose a document for each side, then link a passage in one to a passage in the other and say how they relate. Click any card in the rails to jump straight to the line it came from.",
-        },
-      },
-      {
-        label: "Cards",
-        slug: "cards",
-        hint: "Every passage you have marked",
-        tip: {
-          title: "Everything you marked lands here",
-          body: "Cards are grouped by what they are. Filter them, tag them by issue, reorder them, and export the whole set to Word or PDF with every citation attached.",
         },
       },
     ],

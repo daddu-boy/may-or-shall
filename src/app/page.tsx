@@ -135,7 +135,7 @@ export default function Dashboard() {
           <NewMatterForm
             onCreated={(matterId) => {
               setShowForm(false);
-              router.push(`/matters/${matterId}/documents`);
+              router.push(`/matters/${matterId}/cards`);
             }}
           />
         )}
@@ -278,7 +278,7 @@ function MatterTile({
       */}
       {!renaming && (
         <Link
-          href={`/matters/${matter.id}/documents`}
+          href={`/matters/${matter.id}/cards`}
           aria-label={`Open ${matter.title}`}
           className="absolute inset-0 rounded-[14px]"
         />
