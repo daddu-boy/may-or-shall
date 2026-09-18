@@ -75,6 +75,9 @@ export default function Reader({
   const [searchQ, setSearchQ] = useState("");
   const [searchHits, setSearchHits] = useState<{ page: number; snippet: string }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [qualityOpen, setQualityOpen] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barWidth, setBarWidth] = useState(1024);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -111,6 +114,26 @@ export default function Reader({
       cancelled = true;
     };
   }, [docId, matterId]);
+
+  /*
+   * The bar answers to its own width, not the window's: the cards rail, the
+   * side by side workspace and a narrow window all squeeze it, and a viewport
+   * breakpoint knows about none of them. Measured after every render as well
+   * as on resize, because the bar only exists once the document has loaded.
+   */
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const measure = () => setBarWidth((w) => (Math.abs(w - el.clientWidth) > 1 ? el.clientWidth : w));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  });
 
   const refreshCards = useCallback(async () => {
     setCards(await api<CardDto[]>(`/api/matters/${matterId}/cards?documentId=${docId}`));
@@ -293,6 +316,24 @@ export default function Reader({
     return map;
   }, [cards]);
 
+  /*
+   * What is worth knowing about this document's text, in the order it matters.
+   * Kept as plain sentences so the chip can simply list them.
+   */
+  const quality: string[] = [];
+  if (doc && !doc.hasTextLayer) {
+    quality.push("This file carries no selectable text of its own, so what you read here came from recognition.");
+  }
+  if (doc?.extractionReport?.ocr === "completed") {
+    quality.push("The text was recognised from the page image. Check any passage you quote against the page itself.");
+  }
+  if (doc?.extractionReport?.warningPages?.length) {
+    quality.push(
+      `Little text was found on page${doc.extractionReport.warningPages.length === 1 ? "" : "s"} ` +
+        `${doc.extractionReport.warningPages.join(", ")}, so passages there may be incomplete.`
+    );
+  }
+
   if (error) {
     return (
       <div className="p-6 max-w-lg text-sm">
@@ -335,18 +376,46 @@ export default function Reader({
     );
   }
 
+  /*
+   * What fits. The bar is squeezed by the cards rail and by the side by side
+   * workspace, so each part has a width below which it costs more than it is
+   * worth. Nothing is ever cut off: it leaves in order of usefulness.
+   */
+  const showSearch = !compact && barWidth >= 620;
+  const showPages = barWidth >= 430;
+  const showName = barWidth >= 320;
+  const chipLabel = barWidth >= 380;
+
   return (
     <div className="flex h-full">
       {/* main reader column */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="h-11 shrink-0 border-b border-slate-200 bg-white flex items-center gap-3 px-4 text-sm">
-          <span className="font-medium truncate max-w-xs">{doc.filename}</span>
-          <span className="text-slate-300">|</span>
-          <div className="flex items-center gap-1">
+        {/*
+          One row that never wraps. The text quality warnings used to be two
+          full sentences sitting in the flow, so on a narrow pane they wrapped
+          over the controls and spilled into the cards rail. They are now a
+          single chip that opens what it has to say.
+        */}
+        <div
+          ref={barRef}
+          className="h-11 shrink-0 border-b border-slate-200 bg-white flex items-center gap-2 px-3 text-sm flex-nowrap"
+        >
+          {showName && (
+            <span
+              className="font-medium truncate min-w-0"
+              style={{ maxWidth: barWidth < 560 ? "7rem" : "14rem" }}
+              title={doc.filename}
+            >
+              {doc.filename}
+            </span>
+          )}
+
+          <div className="shrink-0 flex items-center gap-0.5 rounded-lg border border-slate-200 px-0.5 py-0.5">
             <button
               onClick={() => setManualScale(+(scale - 0.1).toFixed(2))}
-              className="px-2 py-0.5 rounded hover:bg-slate-100"
+              className="px-2 py-0.5 rounded hover:bg-slate-100 text-slate-600"
               title="Zoom out"
+              aria-label="Zoom out"
             >
               −
             </button>
@@ -360,60 +429,98 @@ export default function Reader({
                 value={zoomText || `${Math.round(scale * 100)}%`}
                 onChange={(e) => setZoomText(e.target.value)}
                 onFocus={(e) => {
-                  // select what is there, so typing replaces rather than appends
                   setZoomText(String(Math.round(scale * 100)));
                   requestAnimationFrame(() => e.target.select());
                 }}
                 onBlur={commitZoomText}
                 title="Type a zoom level, for example 140"
-                className="w-12 text-center text-xs rounded px-1 py-0.5 bg-transparent hover:bg-slate-100 focus:bg-white focus:outline-none"
+                className="w-11 text-center text-xs rounded px-1 py-0.5 bg-transparent hover:bg-slate-100 focus:bg-white focus:outline-none"
                 style={{ color: "var(--text-secondary)" }}
                 data-testid="zoom-input"
               />
             </form>
             <button
               onClick={() => setManualScale(+(scale + 0.1).toFixed(2))}
-              className="px-2 py-0.5 rounded hover:bg-slate-100"
+              className="px-2 py-0.5 rounded hover:bg-slate-100 text-slate-600"
               title="Zoom in"
+              aria-label="Zoom in"
             >
               +
             </button>
             <button
               onClick={() => setFitWidth(true)}
               title="Fit the page to the width of this pane, and keep it fitted as the pane resizes"
-              className="ml-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+              className="ml-0.5 rounded-md px-2 py-0.5 text-[11px] font-medium"
               style={
                 fitWidth
                   ? { background: "var(--text)", color: "var(--bg)" }
-                  : { color: "var(--text-secondary)", border: "1px solid var(--hairline)" }
+                  : { color: "var(--text-secondary)" }
               }
               data-testid="zoom-fit"
             >
               Fit
             </button>
           </div>
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const n = parseInt(pageInput, 10);
               if (n >= 1 && n <= doc.pageCount) scrollToPage(n);
             }}
-            className="flex items-center gap-1 text-xs text-slate-500"
+            className={`shrink-0 items-center gap-1 text-xs text-slate-500 ${showPages ? "flex" : "hidden"}`}
           >
             <input
               value={pageInput}
               onChange={(e) => setPageInput(e.target.value)}
               placeholder="p."
-              className="w-12 border border-slate-200 rounded px-1.5 py-0.5"
+              aria-label="Go to page"
+              className="w-11 border border-slate-200 rounded px-1.5 py-0.5"
             />
-            / {doc.pageCount}
+            <span className="whitespace-nowrap">of {doc.pageCount}</span>
           </form>
-          <div className={`relative ml-auto ${compact ? "hidden" : ""}`}>
+
+          {quality.length > 0 && (
+            <div className="shrink-0 relative">
+              <button
+                onClick={() => setQualityOpen((v) => !v)}
+                aria-expanded={qualityOpen}
+                title="How reliable the text of this document is"
+                className={`flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-100 ${chipLabel ? "px-2.5" : "px-1.5"}`}
+                aria-label="Text quality of this document"
+                data-testid="text-quality"
+              >
+                <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                {chipLabel && "Text quality"}
+              </button>
+              {qualityOpen && (
+                <div
+                  className="absolute left-0 top-9 z-40 w-72 max-w-[min(18rem,80vw)] rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-xl"
+                  data-testid="text-quality-note"
+                >
+                  <p className="font-semibold mb-1.5 text-slate-700">About this document&apos;s text</p>
+                  <ul className="space-y-1.5 text-slate-600 list-disc pl-4">
+                    {quality.map((q) => (
+                      <li key={q}>{q}</li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={`/matters/${matterId}/documents`}
+                    className="mt-2.5 inline-block underline text-slate-500 hover:text-slate-800"
+                  >
+                    Documents, where OCR can be run again
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className={`relative ml-auto shrink-0 ${showSearch ? "" : "hidden"}`}>
             <input
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               placeholder="Find in document…"
-              className="w-56 border border-slate-200 rounded px-2 py-1 text-xs bg-slate-50"
+              className="w-48 border border-slate-200 rounded px-2 py-1 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-slate-400"
             />
             {searchHits && (
               <div className="absolute right-0 top-8 w-80 max-h-72 overflow-auto bg-white border border-slate-200 rounded-lg shadow-xl z-40 text-xs">
@@ -435,14 +542,6 @@ export default function Reader({
               </div>
             )}
           </div>
-          {doc.extractionReport?.ocr === "completed" && (
-            <span className="text-xs text-amber-700">OCR text — verify quotations against the page image.</span>
-          )}
-          {!!doc.extractionReport?.warningPages?.length && (
-            <span className="text-xs text-amber-700">Limited text on pages {doc.extractionReport.warningPages.join(", ")}</span>
-          )}
-          {!doc.hasTextLayer && <span className="text-xs text-amber-600">No text layer — retry OCR from Documents</span>}
-
         </div>
 
         <div
