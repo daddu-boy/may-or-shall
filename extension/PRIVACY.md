@@ -48,6 +48,9 @@ card you created.
 
 ## Data retention and deletion
 
+The clipper's icon shows which account it is saving to, and its Sign out button
+forgets that account on this browser and revokes the token on the server.
+
 Saved cards live in your May or Shall account. You can delete individual cards, or a whole
 matter, from the web app at any time, and you can revoke the extension's token under
 Settings → API tokens. To have your account and all its data deleted, email the address
