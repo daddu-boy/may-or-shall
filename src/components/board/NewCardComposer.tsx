@@ -1,12 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useCardTypes } from "@/lib/useCardTypes";
 import { api, type CardDto, type DocumentDto } from "@/lib/clientTypes";
 import {
-  CARD_TYPES,
-  CARD_TYPE_COLOR,
-  cardTypeLabel,
   type MatterKind,
 } from "@/lib/labels";
 import { extractDate } from "@/lib/dates";
@@ -29,17 +25,23 @@ export default function NewCardComposer({
   matterId,
   documents,
   kind,
+  types,
+  initialType = "MISC",
   onSaved,
   onClose,
 }: {
   matterId: string;
   documents: DocumentDto[];
   kind: MatterKind;
+  /** every heading this account can file under, built in and its own */
+  types: { key: string; label: string; color: string }[];
+  /** the heading the note starts under, e.g. the column its + was pressed on */
+  initialType?: string;
   onSaved: (card: CardDto) => void;
   onClose: () => void;
 }) {
-  const { categories } = useCardTypes();
   const [body, setBody] = useState("");
+  const [type, setType] = useState(initialType);
   const [when, setWhen] = useState("");
   const [docId, setDocId] = useState("");
   const [page, setPage] = useState("");
@@ -94,7 +96,7 @@ export default function NewCardComposer({
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") onClose();
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) save("MISC");
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) save(type);
   };
 
   const field =
@@ -118,13 +120,27 @@ export default function NewCardComposer({
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
         <button
-          onClick={() => save("MISC")}
+          onClick={() => save(type)}
           disabled={!body.trim() || busy}
           className="rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
           data-testid="new-card-save"
         >
           {busy ? "Saving…" : "Save note"}
         </button>
+        <label className="text-xs text-slate-500">under</label>
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className={field}
+          title="Which heading this note is filed under"
+          data-testid="new-card-type"
+        >
+          {types.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={() => setTagsOpen((v) => !v)}
@@ -191,10 +207,7 @@ export default function NewCardComposer({
             Save it as
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {[
-              ...CARD_TYPES.filter((t) => t !== "MISC").map((t) => ({ key: t as string, label: cardTypeLabel(t, kind), color: CARD_TYPE_COLOR[t] })),
-              ...categories.map((c) => ({ key: c.key, label: c.label, color: c.color })),
-            ].map((t) => (
+            {types.filter((t) => t.key !== "MISC").map((t) => (
               <button
                 key={t.key}
                 disabled={!body.trim() || busy}

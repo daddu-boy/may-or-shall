@@ -37,7 +37,7 @@ export default function Board({
   const [drawerCardId, setDrawerCardId] = useState<string | null>(initialCardId ?? null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [dragId, setDragId] = useState<string | null>(null);
-  const [composing, setComposing] = useState(false);
+  const [composing, setComposing] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState("");
 
@@ -52,7 +52,7 @@ export default function Board({
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
       if (el?.isContentEditable) return;
       e.preventDefault();
-      setComposing(true);
+      setComposing("MISC");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -278,7 +278,7 @@ export default function Board({
     <div className="h-full flex flex-col">
       <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 flex items-center gap-2 flex-wrap text-xs">
         <button
-          onClick={() => setComposing((v) => !v)}
+          onClick={() => setComposing((v) => (v === null ? "MISC" : null))}
           className="rounded-full bg-slate-900 px-3.5 py-1.5 font-semibold text-white"
           title="Write a note by hand (n)"
           data-testid="new-card"
@@ -302,63 +302,6 @@ export default function Board({
             </option>
           ))}
         </select>
-        {newCategory === null ? (
-          <button
-            onClick={() => { setNewCategory(""); setCategoryError(""); }}
-            className="rounded-full border border-slate-300 px-3 py-1.5 font-medium text-slate-600 hover:border-slate-500 hover:text-slate-900"
-            title="Add a card category of your own, beside Fact, Date and the rest"
-            data-testid="new-category"
-          >
-            + Category
-          </button>
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (newCategory.trim()) addCategory(newCategory.trim());
-            }}
-            className="flex items-center gap-1.5"
-          >
-            <input
-              autoFocus
-              value={newCategory}
-              maxLength={24}
-              onChange={(e) => setNewCategory(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Escape") setNewCategory(null); }}
-              placeholder="Category name, e.g. Compliance"
-              className="rounded border border-slate-300 px-2 py-1 text-xs w-52"
-              data-testid="new-category-name"
-            />
-            <button type="submit" className="rounded-full bg-slate-900 px-3 py-1.5 font-semibold text-white">
-              Add
-            </button>
-            <button type="button" onClick={() => setNewCategory(null)} className="text-slate-500 hover:text-slate-900">
-              Cancel
-            </button>
-          </form>
-        )}
-        {categoryError && <span className="text-red-600">{categoryError}</span>}
-        {categories.length > 0 && newCategory === null && (
-          <span className="flex items-center gap-1.5">
-            {categories.map((c) => (
-              <span
-                key={c.id}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-white"
-                style={{ background: c.color }}
-              >
-                {c.label}
-                <button
-                  onClick={() => removeCategory(c)}
-                  title={`Delete the ${c.label} category`}
-                  aria-label={`Delete the ${c.label} category`}
-                  className="opacity-70 hover:opacity-100"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </span>
-        )}
         <select value={filterDoc} onChange={(e) => setFilterDoc(e.target.value)} className={select}>
           <option value="">All documents</option>
           {docs.map((d) => (
@@ -435,13 +378,15 @@ export default function Board({
         </div>
       </div>
 
-      {composing && (
+      {composing !== null && (
         <NewCardComposer
           matterId={matterId}
           documents={docs}
           kind={kind}
+          types={allTypes.map((t) => ({ key: t.key, label: t.label, color: t.color }))}
+          initialType={composing}
           onSaved={(card) => setCards((prev) => [...prev, card])}
-          onClose={() => setComposing(false)}
+          onClose={() => setComposing(null)}
         />
       )}
 
@@ -460,6 +405,27 @@ export default function Board({
                 )}
                 <span className="text-xs font-semibold truncate">{col.title}</span>
                 <span className="text-xs text-slate-400 ml-auto">{col.cards.length}</span>
+                {groupBy === "type" && (
+                  <button
+                    onClick={() => setComposing(col.key)}
+                    title={`Write a note filed under ${col.title}`}
+                    aria-label={`Write a note filed under ${col.title}`}
+                    className="rounded-full border border-slate-300 px-1.5 leading-none text-[13px] text-slate-600 hover:border-slate-500 hover:text-slate-900"
+                    data-testid={`add-here-${col.key}`}
+                  >
+                    +
+                  </button>
+                )}
+                {groupBy === "type" && categories.some((c) => c.key === col.key) && (
+                  <button
+                    onClick={() => removeCategory(categories.find((c) => c.key === col.key)!)}
+                    title={`Delete the ${col.title} category`}
+                    aria-label={`Delete the ${col.title} category`}
+                    className="text-[13px] leading-none text-slate-400 hover:text-red-600"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
               <div className="px-2 pb-2 space-y-2 max-h-[calc(100vh-160px)] overflow-auto">
                 {col.cards.map((card) => (
@@ -477,6 +443,53 @@ export default function Board({
               </div>
             </div>
           ))}
+          {/*
+            Adding a heading belongs beside the headings, not among the filters.
+            It reads as the next column, which is what it becomes.
+          */}
+          {groupBy === "type" && (
+            <div className="w-72 shrink-0 rounded-lg border border-dashed border-slate-300 p-3">
+              {newCategory === null ? (
+                <button
+                  onClick={() => { setNewCategory(""); setCategoryError(""); }}
+                  className="w-full text-left text-xs font-semibold text-slate-500 hover:text-slate-900"
+                  data-testid="new-category"
+                >
+                  ＋ New category
+                  <span className="block mt-1 font-normal text-[11px] text-slate-400">
+                    A heading of your own, beside Fact and Date, to file notes under.
+                  </span>
+                </button>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (newCategory.trim()) addCategory(newCategory.trim());
+                  }}
+                >
+                  <input
+                    autoFocus
+                    value={newCategory}
+                    maxLength={24}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") setNewCategory(null); }}
+                    placeholder="Category name, e.g. Compliance"
+                    className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+                    data-testid="new-category-name"
+                  />
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <button type="submit" className="rounded-full bg-slate-900 px-3 py-1.5 font-semibold text-white">
+                      Add
+                    </button>
+                    <button type="button" onClick={() => setNewCategory(null)} className="text-slate-500 hover:text-slate-900">
+                      Cancel
+                    </button>
+                  </div>
+                  {categoryError && <p className="mt-2 text-xs text-red-600">{categoryError}</p>}
+                </form>
+              )}
+            </div>
+          )}
           {columns.length === 0 && (
             <p className="text-sm text-slate-400 p-4">No cards match the current filters.</p>
           )}
