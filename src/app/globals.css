@@ -464,3 +464,9 @@ h1, h2, h3 {
   cursor: default;
   user-select: none;
 }
+
+/* while a drag is in progress the block covers the page, so the selection can
+   run on past the end of a line instead of stopping in the gap between spans */
+.textLayer.selecting .endOfContent {
+  top: 0;
+}

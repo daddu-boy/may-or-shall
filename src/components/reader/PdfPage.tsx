@@ -103,6 +103,19 @@ function PdfPage({
           viewport,
         });
         await textLayer.render();
+        /*
+         * pdf.js positions every glyph absolutely, so dragging past the end of a
+         * line lands in the gap between spans and the selection stops there.
+         * Its own viewer works around this with an invisible block after the
+         * text: while the pointer is down it covers the rest of the page, so a
+         * drag continues to select instead of dying in a gap. We use the low
+         * level TextLayer, so that behaviour has to be added here.
+         */
+        if (!textDiv.querySelector(".endOfContent")) {
+          const end = document.createElement("div");
+          end.className = "endOfContent";
+          textDiv.append(end);
+        }
         if (!cancelled) setRendered(true);
       } catch (e) {
         if (!(e instanceof Error && e.name === "RenderingCancelledException")) {
@@ -115,6 +128,16 @@ function PdfPage({
       cancelled = true;
     };
   }, [visible, pdf, pageNumber, scale, onSize]);
+
+  useEffect(() => {
+    const clear = () => textRef.current?.classList.remove("selecting");
+    window.addEventListener("pointerup", clear);
+    window.addEventListener("pointercancel", clear);
+    return () => {
+      window.removeEventListener("pointerup", clear);
+      window.removeEventListener("pointercancel", clear);
+    };
+  }, []);
 
   return (
     <div
@@ -161,7 +184,16 @@ function PdfPage({
             ))
         )}
       </div>
-      <div ref={textRef} className="textLayer" />
+      <div
+        ref={textRef}
+        className="textLayer"
+        onPointerDown={(e) => e.currentTarget.classList.add("selecting")}
+        onPointerUp={(e) => e.currentTarget.classList.remove("selecting")}
+        onPointerLeave={(e) => {
+          // the drag can end anywhere, including outside the page
+          if (e.buttons === 0) e.currentTarget.classList.remove("selecting");
+        }}
+      />
     </div>
   );
 }

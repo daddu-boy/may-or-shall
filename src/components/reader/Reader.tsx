@@ -28,6 +28,8 @@ interface PendingHighlight {
   /** viewport coords for the popover anchor */
   anchorX: number;
   anchorY: number;
+  /** top of the selection, so the popover can sit above it and not cover the text */
+  anchorTop: number;
 }
 
 export default function Reader({
@@ -267,8 +269,16 @@ export default function Reader({
     }
     if (rects.length === 0) return;
 
-    const last = range.getClientRects()[range.getClientRects().length - 1];
-    setPending({ page, rects, quote, anchorX: last.right, anchorY: last.bottom });
+    const all = range.getClientRects();
+    const last = all[all.length - 1];
+    setPending({
+      page,
+      rects,
+      quote,
+      anchorX: last.right,
+      anchorY: last.bottom,
+      anchorTop: range.getBoundingClientRect().top,
+    });
   }, []);
 
   const saveCard = useCallback(
@@ -637,11 +647,42 @@ function HighlightPopover({
     }
   };
 
-  const left = Math.min(pending.anchorX, window.innerWidth - 340);
-  const top = Math.min(pending.anchorY + 8, window.innerHeight - 240);
+  /*
+   * Two things people hit with this panel: it stayed until Dismiss was pressed,
+   * and it sat directly over the words they were about to carry on selecting.
+   * It now closes on any click outside it or on Escape, and it prefers to sit
+   * above the selection, where there is nothing left to read.
+   */
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(200);
+
+  useEffect(() => {
+    if (boxRef.current) setHeight(boxRef.current.offsetHeight);
+  }, [askDate, tagsOpen, note]);
+
+  useEffect(() => {
+    const away = (e: PointerEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) onDismiss();
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    };
+    // pointerdown, not click: starting a new selection should clear the old panel
+    document.addEventListener("pointerdown", away, true);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", away, true);
+      document.removeEventListener("keydown", key);
+    };
+  }, [onDismiss]);
+
+  const left = Math.max(8, Math.min(pending.anchorX, window.innerWidth - 340));
+  const above = pending.anchorTop - height - 10;
+  const top = above > 8 ? above : Math.min(pending.anchorY + 10, window.innerHeight - height - 10);
 
   return (
     <div
+      ref={boxRef}
       className="fixed z-50 w-80 rounded-lg border border-slate-200 bg-white shadow-2xl p-3"
       style={{ left, top }}
       data-testid="highlight-popover"
