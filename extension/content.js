@@ -833,13 +833,11 @@
     const box = document.createElement("div");
     box.className = "box glass pdfbox";
     box.innerHTML = `
-      <div class="head"><img class="logo" src="${iconUrl()}" alt=""><span class="title">Clip this PDF in May or Shall</span>
+      <div class="head"><img class="logo" src="${iconUrl()}" alt=""><span class="title">Open this in May or Shall</span>
         <button class="icon close" title="Not for this PDF">${ICON_CLOSE}</button></div>
-      <div class="lede">${local
-        ? "This PDF is on your computer. Drag it into May or Shall's Upload screen, then highlight it there and every passage becomes a card."
-        : "Chrome's PDF viewer can't be clipped. Add this PDF to a matter and highlight it in <b>May or Shall</b>, where every passage becomes a card with its page."}</div>
+      ${local ? `<div class="lede">Drag it into May or Shall's Upload screen to clip it.</div>` : ""}
       <select class="matter"><option value="">Loading matters…</option></select>
-      <button type="button" class="savebtn">${local ? "Open Upload in May or Shall" : "Add to matter and open"}</button>
+      <button type="button" class="savebtn">${local ? "Open Upload" : "Open"}</button>
       <div class="status"></div>`;
     shadow.appendChild(box);
     document.documentElement.appendChild(pdfHost);
