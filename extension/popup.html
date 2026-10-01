@@ -144,6 +144,12 @@
 
   <div class="status" id="status"></div>
 
+  <!-- Chrome's PDF viewer can't be clipped, so the clipper offers to take the
+       PDF into a matter instead. Some people will not want to be asked. -->
+  <label id="pdfrow" style="display:flex;align-items:center;gap:8px;margin:2px 0 10px;font-size:11.5px;color:var(--muted);cursor:pointer">
+    <input type="checkbox" id="pdfoffer" style="width:auto;margin:0"> Offer to add PDFs open in Chrome to a matter
+  </label>
+
   <!-- jump into the app: the PDF reader and the matter list aren't otherwise
        discoverable to someone who only ever uses the clipper -->
   <div class="row" id="applinks">

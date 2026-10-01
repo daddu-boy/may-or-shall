@@ -157,12 +157,18 @@ function showAccount(email) {
   acctRow.style.display = "flex";
 }
 
+const pdfOffer = document.getElementById("pdfoffer");
+pdfOffer.addEventListener("change", () => {
+  chrome.runtime.sendMessage({ type: "setConfig", config: { pdfOffer: pdfOffer.checked } });
+});
+
 function refresh() {
   setStatus("Connecting…");
   chrome.runtime.sendMessage({ type: "getState" }, (res) => {
     if (res?.config?.apiBase) appUrl = res.config.apiBase;
     if (res?.config) applyEnabled(res.config.enabled !== false);
     showAccount(res?.needsAuth ? "" : res?.config?.email || "");
+    pdfOffer.checked = res?.config?.pdfOffer !== false;
     if (res?.needsAuth) {
       // not signed in / no token yet — guide the user to connect their account
       matterSelect.innerHTML = "<option>—</option>";

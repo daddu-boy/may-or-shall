@@ -139,6 +139,7 @@
       try {
         apiOrigin = new URL(res.config.apiBase).origin;
       } catch {}
+      if (enabled && res.config.pdfOffer !== false) offerPdf(res.config);
     }
   });
 
@@ -148,8 +149,12 @@
     if (area !== "sync") return;
     if (changes.enabled) {
       enabled = changes.enabled.newValue !== false;
-      if (!enabled) dismiss();
+      if (!enabled) {
+        dismiss();
+        closePdfOffer();
+      }
     }
+    if (changes.pdfOffer && changes.pdfOffer.newValue === false) closePdfOffer();
     if (changes.theme) {
       theme = changes.theme.newValue || "auto";
       applyTheme();
@@ -767,11 +772,170 @@
   document.addEventListener("mouseup", onMouseUp);
   document.addEventListener("keydown", onKeyDown);
 
+
+  // ------------------------------------------------------- PDFs in Chrome's viewer
+
+  /*
+   * Chrome shows a PDF in its own viewer, which no extension can see inside:
+   * a passage selected there never reaches this script, so it cannot become a
+   * card. What can be done is to offer the whole document instead. One click
+   * adds the PDF to a matter and opens it in May or Shall's reader, where every
+   * highlight becomes a card with its page and paragraph. The offer appears
+   * once per PDF, never acts without a click, and can be switched off in the
+   * toolbar popup.
+   */
+  const PDF_SEEN_KEY = "pdfOffersDismissed";
+  let pdfHost = null;
+
+  function isPdfTab() {
+    return window.top === window && document.contentType === "application/pdf";
+  }
+
+  function offerPdf(config) {
+    if (!isPdfTab() || pdfHost || dead) return;
+    const here = location.href.split("#")[0];
+    chrome.storage.local.get({ [PDF_SEEN_KEY]: [] }, (v) => {
+      if (dead || (v[PDF_SEEN_KEY] || []).includes(here)) return;
+      renderPdfOffer(config, here);
+    });
+  }
+
+  function forgetPdfOffer(here) {
+    chrome.storage.local.get({ [PDF_SEEN_KEY]: [] }, (v) => {
+      const seen = (v[PDF_SEEN_KEY] || []).filter((u) => u !== here);
+      seen.push(here);
+      chrome.storage.local.set({ [PDF_SEEN_KEY]: seen.slice(-300) });
+    });
+  }
+
+  function closePdfOffer() {
+    pdfHost?.remove();
+    pdfHost = null;
+  }
+
+  function renderPdfOffer(config, here) {
+    pdfHost = document.createElement("div");
+    // below Chrome's own toolbar, at the right, out of the way of the page
+    pdfHost.style.cssText = "position:fixed;top:66px;right:18px;z-index:2147483647";
+    pdfHost.classList.toggle("dark", isDark());
+    const shadow = pdfHost.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = STYLE + `
+      .pdfbox{width:300px}
+      .lede{font-size:12px;line-height:1.5;margin:2px 0 11px;color:var(--text)}
+      .lede b{font-weight:600}
+      .savebtn{width:100%}
+      .status a{color:var(--accent);font-weight:600}`;
+    shadow.appendChild(style);
+    for (const type of SWALLOWED) pdfHost.addEventListener(type, (e) => e.stopPropagation());
+
+    const local = location.protocol === "file:";
+    const box = document.createElement("div");
+    box.className = "box glass pdfbox";
+    box.innerHTML = `
+      <div class="head"><img class="logo" src="${iconUrl()}" alt=""><span class="title">Clip this PDF in May or Shall</span>
+        <button class="icon close" title="Not for this PDF">${ICON_CLOSE}</button></div>
+      <div class="lede">${local
+        ? "This PDF is on your computer. Drag it into May or Shall's Upload screen, then highlight it there and every passage becomes a card."
+        : "Chrome's PDF viewer can't be clipped. Add this PDF to a matter and highlight it in <b>May or Shall</b>, where every passage becomes a card with its page."}</div>
+      <select class="matter"><option value="">Loading matters…</option></select>
+      <button type="button" class="savebtn">${local ? "Open Upload in May or Shall" : "Add to matter and open"}</button>
+      <div class="status"></div>`;
+    shadow.appendChild(box);
+    document.documentElement.appendChild(pdfHost);
+
+    const sel = box.querySelector(".matter");
+    const go = box.querySelector(".savebtn");
+    const status = box.querySelector(".status");
+    const base = (config.apiBase || "").replace(/\/$/, "");
+    const say = (text, kind = "") => {
+      status.textContent = text;
+      status.className = `status ${kind}`;
+    };
+    const link = (label, href) => {
+      const a = document.createElement("a");
+      a.textContent = label;
+      a.href = href;
+      a.target = "_blank";
+      a.rel = "noopener";
+      status.appendChild(document.createElement("br"));
+      status.appendChild(a);
+    };
+
+    box.querySelector(".close").addEventListener("click", () => {
+      forgetPdfOffer(here);
+      closePdfOffer();
+    });
+
+    send({ type: "getState" }, (res) => {
+      if (!pdfHost) return;
+      if (res?.needsAuth) {
+        sel.style.display = "none";
+        go.style.display = "none";
+        say("Sign in to May or Shall to add this PDF to a matter.");
+        link("Open May or Shall", base || "https://app.mayorshall.com");
+        return;
+      }
+      if (!res?.ok || res.error) {
+        // a failure to load is not the same as having no matters, so say which
+        sel.style.display = "none";
+        go.style.display = "none";
+        say(res?.error || "Could not reach May or Shall.", "err");
+        return;
+      }
+      const matters = res.matters || [];
+      if (!matters.length) {
+        sel.style.display = "none";
+        go.style.display = "none";
+        say("Create a matter in May or Shall first.");
+        link("Open May or Shall", base);
+        return;
+      }
+      sel.innerHTML = "";
+      for (const m of matters) {
+        const o = document.createElement("option");
+        o.value = m.id;
+        o.textContent = m.title;
+        sel.appendChild(o);
+      }
+      sel.value = matters.some((m) => m.id === res.config.matterId) ? res.config.matterId : matters[0].id;
+    });
+
+    go.addEventListener("click", () => {
+      const matterId = sel.value;
+      if (!matterId) return;
+      if (local) {
+        window.open(`${base}/matters/${matterId}/documents`, "_blank", "noopener");
+        forgetPdfOffer(here);
+        closePdfOffer();
+        return;
+      }
+      go.disabled = true;
+      sel.disabled = true;
+      say("Adding it to your matter… a long or scanned PDF can take a minute.");
+      send({ type: "importPdf", url: here, title: document.title, matterId }, (r) => {
+        if (!pdfHost) return;
+        if (r?.ok) {
+          say("✓ Added. It is open in a new tab, ready to highlight.", "ok");
+          forgetPdfOffer(here);
+          setTimeout(closePdfOffer, 2500);
+          return;
+        }
+        go.disabled = false;
+        sel.disabled = false;
+        say(r?.error || "Could not add this PDF.", "err");
+        if (r?.needsAuth) link("Open May or Shall", base);
+        if (r?.uploadPage) link("Open Upload in May or Shall", `${base}/matters/${matterId}/documents`);
+      });
+    });
+  }
+
   // Let a newer copy of this script retire this one cleanly, so that updating
   // the extension swaps the code in an open tab instead of needing a reload.
   function teardown() {
     dead = true;
     dismiss();
+    closePdfOffer();
     document.removeEventListener("mouseup", onMouseUp);
     document.removeEventListener("keydown", onKeyDown);
     darkMedia?.removeEventListener?.("change", applyTheme);
@@ -780,5 +944,5 @@
     } catch {}
   }
 
-  window.__mosClipper = { version: "2.3.0", teardown };
+  window.__mosClipper = { version: chrome.runtime.getManifest().version, teardown };
 })();

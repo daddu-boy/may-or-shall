@@ -71,9 +71,13 @@ export function middleware(req: NextRequest) {
     req.cookies.has("authjs.session-token") ||
     req.cookies.has("__Secure-authjs.session-token");
   if (!hasSession) {
+    // remember where they were going, so signing in returns them there (a PDF
+    // the clipper just added, a reminder email, a citation from ChatGPT) and
+    // not to the list of matters
+    const back = req.nextUrl.pathname + req.nextUrl.search;
     const url = req.nextUrl.clone();
     url.pathname = "/signin";
-    url.search = "";
+    url.search = back && back !== "/" ? `?callbackUrl=${encodeURIComponent(back)}` : "";
     return NextResponse.redirect(url);
   }
   return NextResponse.next();

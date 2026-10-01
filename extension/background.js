@@ -20,6 +20,8 @@ const DEFAULTS = {
   matterId: "",
   enabled: true,
   theme: "auto", // auto | light | dark
+  /// offer to take a PDF open in Chrome's viewer into a matter
+  pdfOffer: true,
 };
 
 async function getConfig() {
@@ -166,6 +168,82 @@ async function createCard(payload) {
     }
     throw e;
   }
+}
+
+/**
+ * Take a PDF the person is reading in Chrome's own viewer into a matter.
+ *
+ * Chrome's viewer is closed to extensions, so a passage selected there can
+ * never be clipped. The next best thing is the document itself: fetched here
+ * (the worker may read any site the clipper is allowed on, with the person's
+ * cookies for that site), uploaded to the matter like any other PDF, and
+ * opened in May or Shall's reader where every highlight becomes a card.
+ * Only ever on a click; nothing is uploaded on its own.
+ */
+const MAX_PDF = 50 * 1024 * 1024;
+
+function pdfName(url, title) {
+  let name = "";
+  try {
+    name = decodeURIComponent(new URL(url).pathname.split("/").pop() || "");
+  } catch {}
+  if (!/\.pdf$/i.test(name)) name = (title || name || "Document").replace(/[\\/:*?"<>|]+/g, " ").trim() + ".pdf";
+  return name.slice(-180);
+}
+
+async function importPdf({ url, title, matterId }) {
+  const config = await getConfig();
+  if (!config.token) {
+    const e = new Error("Sign in to May or Shall first, then try again.");
+    e.needsAuth = true;
+    throw e;
+  }
+  const id = matterId || config.matterId;
+  if (!id) throw new Error("Pick a matter first.");
+
+  let pdf;
+  try {
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) throw new Error(String(res.status));
+    pdf = await res.blob();
+  } catch {
+    const e = new Error("This site would not hand the PDF to the clipper. Download it and drag it into May or Shall instead.");
+    e.uploadPage = true;
+    throw e;
+  }
+  if (pdf.size > MAX_PDF) throw new Error("This PDF is over 50 MB, which is more than May or Shall accepts.");
+
+  const form = new FormData();
+  form.append("file", new File([pdf], pdfName(url, title), { type: "application/pdf" }));
+  const base = config.apiBase.replace(/\/$/, "");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5 * 60 * 1000); // scans are recognised before this returns
+  let res;
+  try {
+    res = await fetch(`${base}/api/matters/${id}/documents`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${config.token}` },
+      body: form,
+      signal: controller.signal,
+    });
+  } catch (e) {
+    throw new Error(e.name === "AbortError" ? "May or Shall took too long to read this PDF." : `Can't reach ${base}.`);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (res.status === 401) {
+    await chrome.storage.sync.set({ token: "" });
+    const e = new Error("Sign in to May or Shall again, then try again.");
+    e.needsAuth = true;
+    throw e;
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `May or Shall could not add this PDF (${res.status}).`);
+
+  await chrome.storage.sync.set({ matterId: id });
+  const open = `${base}/matters/${id}/documents/${body.id}`;
+  await chrome.tabs.create({ url: open });
+  return { docId: body.id, url: open, pages: body.pageCount || 0, imported: body.importedCards || 0 };
 }
 
 // Store the token handed over by the auto-connect handshake (connect.js) once
@@ -322,6 +400,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: true, matter: await createMatter(msg.title, msg.kind) });
       } else if (msg.type === "connect") {
         sendResponse(await connect(msg));
+      } else if (msg.type === "importPdf") {
+        try {
+          sendResponse({ ok: true, ...(await importPdf(msg)) });
+        } catch (e) {
+          sendResponse({ ok: false, error: e.message, needsAuth: !!e.needsAuth, uploadPage: !!e.uploadPage });
+        }
       } else if (msg.type === "connectStatus") {
         const cfg = await getConfig();
         sendResponse({ ok: true, connected: !!cfg.token, email: cfg.email || "" });
