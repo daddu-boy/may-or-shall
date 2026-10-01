@@ -1,6 +1,6 @@
 # May or Shall — Web Clipper: Privacy Policy
 
-*Last updated: 17 September 2026*
+*Last updated: 2 October 2026*
 
 **The short version: the clipper sends what you choose to save to your own May or Shall
 account, and nothing else. No analytics, no advertising, no tracking, no third parties.**
@@ -25,6 +25,11 @@ data goes only there.
   whole page), so the clip can still be read later where the page needs your login. This is sent to your May or Shall
   account so that each saved passage keeps its citation. It is never sold, and never
   shared with any third party.
+- **A PDF, when you ask for it.** When a PDF is open in Chrome's own viewer, the clipper
+  offers to add it to one of your matters. Only if you click to add it does the extension
+  fetch that PDF and send it to your May or Shall account, where it is stored with the
+  matter like any document you upload. Nothing is sent if you dismiss the offer, and the
+  offer can be switched off from the toolbar icon.
 - **Your account credential.** Signing in to May or Shall (by email link) issues the
   extension an API token identifying your account. The token is stored in your browser via
   `chrome.storage.sync` and is sent only to the May or Shall server.
