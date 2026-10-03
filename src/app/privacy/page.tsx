@@ -87,9 +87,7 @@ export default function PrivacyPage() {
       <p className="mb-6">
         Data is held in the service&rsquo;s hosted database and file storage (Railway), and
         sign-in emails are delivered via Resend. These providers process data only to run
-        the service. May or Shall is free software under the GNU Affero General Public
-        Licence, so you are free to inspect how your data is handled and to run your own
-        copy on your own infrastructure if you would rather not use this one.
+        the service.
       </p>
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Retention and deletion</h2>

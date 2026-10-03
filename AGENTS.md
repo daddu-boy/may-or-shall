@@ -5,7 +5,7 @@ code, and several items are traps that have already cost real time.
 
 May or Shall is a litigation matter workspace: Next.js 14 App Router,
 TypeScript, Tailwind, Prisma with PostgreSQL, Auth.js v5 with database
-sessions, hosted on Railway at https://app.mayorshall.com. AGPL v3.
+sessions, hosted on Railway at https://app.mayorshall.com.
 
 ## Setting up
 

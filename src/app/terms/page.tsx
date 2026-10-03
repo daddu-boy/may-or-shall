@@ -117,28 +117,9 @@ export default function TermsPage() {
 
       <h2 className="text-lg font-semibold mt-8 mb-2">The software, and the name</h2>
       <p className="mb-6">
-        May or Shall is free software under the{" "}
-        <a
-          className="text-indigo-600"
-          href="https://www.gnu.org/licenses/agpl-3.0.html"
-          target="_blank"
-          rel="noopener"
-        >
-          GNU Affero General Public Licence v3
-        </a>
-        , and you are welcome to read it, modify it and run your own copy. Those terms cover
-        the source code. They are not these terms, which cover the hosted service, and they
-        do not grant rights in the name &ldquo;May or Shall&rdquo;, the MS monogram, or the
-        other brand assets. If you run your own copy, please give it a different name. See{" "}
-        <a
-          className="text-indigo-600"
-          href="https://github.com/daddu-boy/may-or-shall"
-          target="_blank"
-          rel="noopener"
-        >
-          the repository
-        </a>
-        .
+        These terms let you use the hosted service. They do not grant any rights in the May or
+        Shall software, the name &ldquo;May or Shall&rdquo;, the MS monogram, or the other brand
+        assets.
       </p>
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Changes</h2>

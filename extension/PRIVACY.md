@@ -1,6 +1,6 @@
 # May or Shall — Web Clipper: Privacy Policy
 
-*Last updated: 2 October 2026*
+*Last updated: 4 October 2026*
 
 **The short version: the clipper sends what you choose to save to your own May or Shall
 account, and nothing else. No analytics, no advertising, no tracking, no third parties.**
@@ -13,9 +13,9 @@ note ("card") in a matter in your May or Shall account.
 
 By default the clipper talks to the hosted May or Shall service at
 `https://app.mayorshall.com`, which is operated by the developer of
-this extension (Sidharth Kapoor). May or Shall is free software (GNU AGPL v3), so you can
-also run your own copy and point the extension at it in its Options, in which case your
-data goes only there.
+this extension (Sidharth Kapoor). If you are given the address of a different May or Shall
+server, you can point the extension at it in its Options, in which case your data goes
+only there.
 
 ## What the extension collects
 

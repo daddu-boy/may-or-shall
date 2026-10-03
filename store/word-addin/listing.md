@@ -14,7 +14,7 @@ Plot your litigation matter's source-cited highlight cards into the document you
 
 Turn your reading into reusable litigation work-product.
 
-May or Shall is a self-hosted workspace for litigation matters: every highlight — made in
+May or Shall is a workspace for litigation matters: every highlight — made in
 its PDF reader or clipped from any web page with the companion Chrome extension — becomes a
 typed, source-linked "card" (a fact, a date, an admission, a case-law proposition…).
 
@@ -32,9 +32,7 @@ sent to us or any third party; no analytics, no tracking.
 
 REQUIREMENTS
 
-This is a companion to the open-source May or Shall app, which you run yourself
-(instructions at https://github.com/daddu-boy/may-or-shall — `docker compose up` is
-enough). In the pane's settings, enter your app's URL and an API token from the app's
+This is a companion to May or Shall at https://app.mayorshall.com. In the pane's settings, enter your app's URL and an API token from the app's
 Settings page. Use the same values as the Chrome extension and both clients share one
 card base: clip in Chrome, plot in Word.
 

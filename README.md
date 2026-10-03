@@ -67,11 +67,7 @@ traverse, the briefs and the compilation are all assembled from the card base, n
 retyped. Chronology rows sync from Date cards automatically, and rows that look like
 duplicates (same date, similar text) are flagged for merging.
 
-## Run your own copy
-
-May or Shall is free software under the [GNU AGPL v3](LICENSE). You are welcome to run it
-yourself. If you modify it and run it as a network service, you must offer your users the
-modified source (AGPL §13).
+## Development
 
 Requirements: Node 20 or later, and a PostgreSQL database.
 
@@ -185,18 +181,3 @@ Settings, and the connection reads nothing until a tool is called.
 - Rich text is a pragmatic subset: paragraphs, headings, bold, italic and bullets. Word
   export converts that subset.
 - The Word add in is distributed by sideloading rather than through AppSource.
-
-## Licence
-
-**GNU Affero General Public License v3.0 or later.** Copyright (c) 2026 Sidharth Kapoor.
-
-You are free to read, run, modify and share this software. The one condition that matters:
-if you run a modified version as a network service, you must make your modified source
-available to its users (AGPL §13). See [LICENSE](LICENSE).
-
-The licence covers the code. It does not cover the name "May or Shall", the brand assets, or
-the hosted service at https://app.mayorshall.com. See [NOTICE](NOTICE). If you run your own
-copy, please give it a different name.
-
-May or Shall is not a law firm and does not give legal advice. Anything it drafts, extracts
-or exports must be reviewed by the lawyer responsible for the matter.

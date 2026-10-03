@@ -1,9 +1,9 @@
 # Testing instructions for Microsoft validation
 
-May or Shall is a self-hosted product: the add-in's task pane (hosted at
+May or Shall is a hosted product: the add-in's task pane (hosted at
 https://daddu-boy.github.io/may-or-shall/taskpane.html) is a viewer over a card database
-that lives on the user's own server. To exercise the add-in end to end, run the free
-open-source server locally (about 3 minutes with Docker):
+that lives on the user's own server. To exercise the add-in end to end, run the
+server locally (about 3 minutes with Docker):
 
 1. `git clone https://github.com/daddu-boy/may-or-shall && cd may-or-shall`
 2. `docker compose up --build`

@@ -200,11 +200,10 @@ export default async function Welcome() {
 
       <footer className="lp-foot">
         <div className="lp-foot-in">
-          <p>May or Shall is free software under the GNU AGPL v3.</p>
+          <p>Copyright © 2026 May or Shall.</p>
           <nav>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
-            <a href="https://github.com/daddu-boy/may-or-shall" target="_blank" rel="noreferrer">Source code</a>
             <a href="mailto:sdhkapr22@gmail.com">Contact</a>
           </nav>
         </div>

@@ -36,7 +36,7 @@ ALSO IN THE CLIPPER
 
 YOUR DATA
 
-The clipper sends only what you choose to save, to your own May or Shall account at app.mayorshall.com. There are no analytics, no advertising and no tracking, and nothing is sold or shared with third parties. May or Shall is open source under the GNU AGPL v3, so you can also run your own copy and point the clipper at it. The privacy policy has the details.
+The clipper sends only what you choose to save, to your own May or Shall account at app.mayorshall.com. There are no analytics, no advertising and no tracking, and nothing is sold or shared with third parties. The privacy policy has the details.
 
 GETTING STARTED
 
