@@ -323,6 +323,14 @@ export default function MatterShell({
       >
         <div className="px-5 pt-5 pb-5">
           <Link
+            href="/welcome"
+            className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] hover:underline"
+            style={{ color: "var(--text-tertiary)" }}
+            title="What May or Shall is, and how it works"
+          >
+            May or Shall
+          </Link>
+          <Link
             href="/"
             className="chip inline-flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] font-medium"
             style={{ color: "var(--text)" }}

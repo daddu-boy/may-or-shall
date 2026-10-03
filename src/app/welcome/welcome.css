@@ -1,0 +1,151 @@
+/*
+ * The front door, in the manner of apple.com: full width tiles that alternate
+ * light grey and black, one large plain headline per tile, a subhead under
+ * it, flat blue buttons, and nothing decorative between them. Every class is
+ * prefixed lp- so nothing here leaks into the app.
+ */
+.lp {
+  --lp-ink: #1d1d1f;
+  --lp-grey: #6e6e73;
+  --lp-light: #f5f5f7;
+  --lp-blue: #0071e3;
+  --lp-blue-link: #0066cc;
+  --lp-blue-dark-link: #2997ff;
+  background: #fff;
+  color: var(--lp-ink);
+  font-family: "SF Pro Text", "SF Pro Icons", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: -0.022em;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: light;
+}
+.lp-display { font-family: "SF Pro Display", "SF Pro Icons", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+
+/* the thin bar across the top */
+.lp-nav {
+  position: sticky; top: 0; z-index: 10; height: 44px;
+  background: rgba(245, 245, 247, 0.8);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+.lp-nav-in { max-width: 1024px; height: 100%; margin: 0 auto; padding: 0 22px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.lp-brand { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--lp-ink); }
+.lp-brand img { width: 22px; height: 22px; border-radius: 5px; }
+.lp-nav-links { display: flex; align-items: center; gap: 30px; font-size: 12px; letter-spacing: -0.01em; }
+.lp-nav-links a { color: rgba(0, 0, 0, 0.8); }
+.lp-nav-links a:hover { color: #000; }
+.lp-nav-links .lp-strong { color: var(--lp-blue-link); }
+
+/* tiles */
+.lp-tiles { display: flex; flex-direction: column; gap: 12px; padding: 12px 0 0; }
+.lp-tile { position: relative; text-align: center; padding: 56px 22px 64px; overflow: hidden; }
+.lp-light { background: var(--lp-light); color: var(--lp-ink); }
+.lp-white { background: #fff; color: var(--lp-ink); }
+.lp-dark { background: #000; color: #f5f5f7; }
+.lp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 12px; }
+.lp-row .lp-tile { padding: 52px 30px 56px; }
+
+.lp-eyebrow { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--lp-grey); margin-bottom: 6px; }
+.lp-dark .lp-eyebrow { color: #86868b; }
+.lp-h1 { font-size: 56px; line-height: 1.07; font-weight: 600; letter-spacing: -0.005em; }
+.lp-h2 { font-size: 48px; line-height: 1.08; font-weight: 600; letter-spacing: -0.003em; }
+.lp-h3 { font-size: 40px; line-height: 1.1; font-weight: 600; }
+.lp-sub { margin: 8px auto 0; max-width: 760px; font-size: 28px; line-height: 1.14; font-weight: 400; letter-spacing: 0.007em; }
+.lp-sub-sm { margin: 10px auto 0; max-width: 520px; font-size: 21px; line-height: 1.24; font-weight: 400; letter-spacing: 0.011em; }
+.lp-body { margin: 18px auto 0; max-width: 680px; font-size: 19px; line-height: 1.47; color: var(--lp-grey); }
+.lp-dark .lp-body { color: #a1a1a6; }
+
+/* buttons and links, as apple.com draws them */
+.lp-ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: 17px; margin-top: 22px; }
+.lp-btn {
+  display: inline-block; min-width: 28px; padding: 11px 21px; border-radius: 980px; border: 1px solid transparent;
+  font-size: 17px; line-height: 1.18; font-weight: 400; letter-spacing: -0.022em; text-align: center; white-space: nowrap;
+  cursor: pointer;
+}
+.lp-btn-fill { background: var(--lp-blue); color: #fff; }
+.lp-btn-fill:hover { background: #0077ed; }
+.lp-btn-line { background: transparent; color: var(--lp-blue-link); border-color: var(--lp-blue-link); }
+.lp-btn-line:hover { background: var(--lp-blue-link); color: #fff; }
+.lp-dark .lp-btn-line { color: var(--lp-blue-dark-link); border-color: var(--lp-blue-dark-link); }
+.lp-dark .lp-btn-line:hover { background: var(--lp-blue-dark-link); color: #000; }
+.lp-link { font-size: 17px; color: var(--lp-blue-link); }
+.lp-link:hover { text-decoration: underline; }
+.lp-dark .lp-link { color: var(--lp-blue-dark-link); }
+.lp-link::after { content: " ›"; }
+.lp-fine { margin-top: 14px; font-size: 14px; color: var(--lp-grey); }
+
+/* the film, with a still and a play button until it is started */
+.lp-film { position: relative; max-width: 980px; margin: 44px auto 0; background: #000; }
+.lp-film video, .lp-film img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.lp-play {
+  position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: flex-start;
+  padding: 0 0 28px 28px; border: 0; cursor: pointer; color: #fff; text-align: left;
+  background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.55));
+}
+.lp-play-in { display: inline-flex; align-items: center; gap: 14px; }
+.lp-play-btn {
+  width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.92); transition: transform 0.2s ease, background 0.2s ease;
+}
+.lp-play-btn svg { margin-left: 4px; }
+.lp-play:hover .lp-play-btn { transform: scale(1.06); background: #fff; }
+.lp-play-label { font-size: 21px; font-weight: 600; letter-spacing: 0.011em; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5); }
+.lp-play-label small { display: block; font-size: 14px; font-weight: 400; opacity: 0.85; }
+
+/* the before and after */
+.lp-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; max-width: 900px; margin: 48px auto 0; text-align: left; }
+.lp-compare h4 { font-size: 24px; line-height: 1.17; font-weight: 600; }
+.lp-compare p { margin-top: 10px; font-size: 17px; line-height: 1.47; color: #a1a1a6; }
+.lp-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; color: #86868b; }
+.lp-label-new { color: #30d158; }
+.lp-chain { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 18px; font-size: 15px; color: #a1a1a6; }
+.lp-chain b { font-weight: 600; color: #f5f5f7; }
+
+/* steps */
+.lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 1024px; margin: 44px auto 0; text-align: left; }
+.lp-step { background: #fff; padding: 30px 28px 34px; }
+.lp-num { font-size: 48px; line-height: 1; font-weight: 600; color: var(--lp-blue); }
+.lp-step h4 { margin-top: 16px; font-size: 24px; font-weight: 600; }
+.lp-step p { margin-top: 8px; font-size: 17px; line-height: 1.47; color: var(--lp-grey); }
+.lp-mock { margin-top: 20px; padding: 14px 16px; background: var(--lp-light); font-family: "New York", "Iowan Old Style", Georgia, serif; font-size: 15px; line-height: 1.5; color: #333; }
+.lp-mock mark { background: rgba(0, 113, 227, 0.22); color: inherit; }
+.lp-cite { display: inline-block; margin-top: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--lp-blue-link); }
+.lp-saved { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: #248a3d; }
+
+/* what is next */
+.lp-next { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; max-width: 900px; margin: 40px auto 0; text-align: left; }
+.lp-next h4 { font-size: 21px; font-weight: 600; }
+.lp-next p { margin-top: 6px; font-size: 17px; line-height: 1.47; color: var(--lp-grey); }
+.lp-wip { display: inline-block; margin-top: 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #b25000; }
+
+/* footer, small and grey */
+.lp-foot { background: var(--lp-light); margin-top: 12px; }
+.lp-foot-in { max-width: 980px; margin: 0 auto; padding: 18px 22px 22px; font-size: 12px; line-height: 1.33; color: rgba(0, 0, 0, 0.56); letter-spacing: -0.01em; }
+.lp-foot-in nav { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #d2d2d7; }
+.lp-foot-in a { color: #424245; }
+.lp-foot-in a:hover { text-decoration: underline; }
+
+@media (max-width: 1068px) {
+  .lp-h1 { font-size: 48px; }
+  .lp-h2 { font-size: 40px; }
+  .lp-sub { font-size: 24px; }
+}
+@media (max-width: 734px) {
+  .lp-nav-links .lp-hide-sm { display: none; }
+  .lp-nav-links { gap: 18px; }
+  .lp-tile { padding: 44px 18px 48px; }
+  .lp-h1 { font-size: 40px; }
+  .lp-h2 { font-size: 32px; }
+  .lp-h3 { font-size: 28px; }
+  .lp-sub { font-size: 21px; }
+  .lp-sub-sm { font-size: 19px; }
+  .lp-body { font-size: 17px; }
+  .lp-row, .lp-compare, .lp-steps, .lp-next { grid-template-columns: 1fr; }
+  .lp-row { padding: 0; }
+  .lp-compare { gap: 32px; }
+  .lp-next { gap: 24px; }
+  .lp-film { margin-left: -18px; margin-right: -18px; }
+  .lp-play { padding: 0 0 16px 16px; }
+  .lp-play-btn { width: 44px; height: 44px; }
+  .lp-play-btn svg { width: 16px; height: 18px; }
+  .lp-play-label { font-size: 17px; }
+}

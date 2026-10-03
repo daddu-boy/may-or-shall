@@ -18,6 +18,7 @@ const ALLOWED_ORIGINS = new Set(
 // which a client must be able to read before any user has signed in; "/oauth"
 // is the consent screen, which handles its own sign-in redirect because the
 // gate below discards the query string and the OAuth parameters live there.
+// "/welcome" is the front door, which explains the product to a stranger.
 const PUBLIC_PREFIXES = [
   "/signin",
   "/addin",
@@ -29,6 +30,7 @@ const PUBLIC_PREFIXES = [
   "/.well-known",
   "/oauth",
   "/demo-signin",
+  "/welcome",
 ];
 
 function withCors(req: NextRequest, res: NextResponse): NextResponse {
@@ -71,6 +73,14 @@ export function middleware(req: NextRequest) {
     req.cookies.has("authjs.session-token") ||
     req.cookies.has("__Secure-authjs.session-token");
   if (!hasSession) {
+    // a first visit to the bare address meets the front door, which explains
+    // what this is, rather than a sign in form that explains nothing
+    if (pathname === "/") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/welcome";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
     // remember where they were going, so signing in returns them there (a PDF
     // the clipper just added, a reminder email, a citation from ChatGPT) and
     // not to the list of matters

@@ -69,12 +69,14 @@ export default function Dashboard() {
       <div className="mx-auto max-w-5xl px-6 py-16">
         <header className="flex items-start justify-between gap-6">
           <div>
-            <p
-              className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+            <Link
+              href="/welcome"
+              className="text-[10px] font-semibold uppercase tracking-[0.16em] hover:underline"
               style={{ color: "var(--text-tertiary)" }}
+              title="What May or Shall is, and how it works"
             >
               May or Shall
-            </p>
+            </Link>
             <h1 className="mt-3 text-[44px] font-semibold leading-none">Matters</h1>
             <p className="mt-4 text-[13.5px]" style={{ color: "var(--text-secondary)" }}>
               {loading

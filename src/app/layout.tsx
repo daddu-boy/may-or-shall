@@ -4,7 +4,7 @@ import VersionWatch from "@/components/VersionWatch";
 
 export const metadata: Metadata = {
   title: "May or Shall",
-  description: "Read once, use everywhere — a workspace for litigation matters",
+  description: "Save the lines that matter as you read, then let ChatGPT draft from them.",
 };
 
 export default function RootLayout({
