@@ -38,7 +38,7 @@ export default async function Welcome() {
             <a className="lp-hide-sm" href="#idea">The idea</a>
             <a className="lp-hide-sm" href="#how">How it works</a>
             <a className="lp-hide-sm" href="#next">Coming next</a>
-            <a href={CHROME_STORE} target="_blank" rel="noreferrer">Add to Chrome</a>
+            <a href={CHROME_STORE} target="_blank" rel="noreferrer">Add to browser</a>
             <Link className="lp-strong" href={enter.href}>{enter.label}</Link>
           </nav>
         </div>
@@ -52,7 +52,7 @@ export default async function Welcome() {
           <p className="lp-sub lp-display">Save the lines that matter. Then let ChatGPT draft from them.</p>
           <div className="lp-ctas">
             <a className="lp-btn lp-btn-fill" href={CHROME_STORE} target="_blank" rel="noreferrer">
-              Add to Chrome
+              Add to browser
             </a>
             <Link className="lp-btn lp-btn-line" href={enter.href}>
               {enter.label}
@@ -156,7 +156,7 @@ export default async function Welcome() {
               May or Shall.
             </p>
             <div className="lp-ctas">
-              <a className="lp-link" href={CHROME_STORE} target="_blank" rel="noreferrer">Add to Chrome</a>
+              <a className="lp-link" href={CHROME_STORE} target="_blank" rel="noreferrer">Add to browser</a>
             </div>
           </section>
         </div>
@@ -189,7 +189,7 @@ export default async function Welcome() {
           <p className="lp-sub lp-display">Let the drafting keep up.</p>
           <div className="lp-ctas">
             <a className="lp-btn lp-btn-fill" href={CHROME_STORE} target="_blank" rel="noreferrer">
-              Add to Chrome
+              Add to browser
             </a>
             <Link className="lp-btn lp-btn-line" href={enter.href}>
               {enter.label}
