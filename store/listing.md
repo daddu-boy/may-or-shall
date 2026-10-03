@@ -1,51 +1,50 @@
-# Chrome Web Store listing — copy-paste kit
+# Chrome Web Store listing: copy and paste kit
 
-## Name
+Paste the detailed description into the developer dashboard (Store listing → Description).
+The name and the one line summary come from `extension/manifest.json`, so they change only
+with the next upload. The new wording for both is below, ready for that upload.
 
-May or Shall — Web Clipper
+## Name (manifest `name`, next upload)
 
-## Short description (under 132 characters)
+May or Shall: Web Clipper
 
-Clip text from any page into your May or Shall litigation matter as typed, source-linked
-cards. Self-hosted — your data stays yours.
+## Summary (manifest `description`, under 132 characters, next upload)
+
+Highlight the lines that matter on any page, keep them with their source, and use them in ChatGPT to search and draft.
 
 ## Detailed description
 
-Turn your reading into reusable litigation work-product.
+Save the lines that matter while you read, and then ask ChatGPT about them.
 
-May or Shall is a self-hosted workspace for litigation matters: every highlight becomes a
-typed, source-linked "card" (a fact, a date, an admission, a case-law proposition…) that
-later assembles your chronology, written statement, briefs and compilations. This
-extension brings that capture step to the whole web.
+May or Shall is a note taker for people who read a lot, built first for lawyers. Select a line on any web page, click Save, and it is kept as a note in your May or Shall account along with the page it came from. PDFs work the same way inside May or Shall.
+
+Then connect May or Shall to ChatGPT. When you ask a question or ask for a draft, ChatGPT looks through your own notes first and shows which note each point came from, so every line can be checked against its source.
 
 HOW IT WORKS
 
-• Select text on any page — a judgment on Indian Kanoon, a news report, an order on a
-  court website.
-• A small popover appears: pick the card type (Fact, Date, Issue, Admission, Evidence,
-  Case law, Argument, Question), optionally add a note.
-• The selection is saved to your chosen matter with the page's URL and title as its
-  source citation. Dates are auto-detected for Date cards.
-• The toolbar popup also takes rough free-text notes, switches the active matter, and
-  creates new matters on the spot.
+1. Select text on any page, for example a judgment, an order on a court website or a news report.
+2. Click the May or Shall button that appears beside it, add a note if you like, and save. The note keeps the page's title and link, and the passage around your selection.
+3. Open app.mayorshall.com to see everything you saved, kept by case or project, with a link back to each source.
+4. In ChatGPT, add the May or Shall app and ask it to search your notes or draft from them.
 
-YOUR DATA STAYS YOURS
+ALSO IN THE CLIPPER
 
-The extension talks only to the May or Shall server you configure — typically running on
-your own machine or your firm's network. Nothing is sent to us or to any third party; no
-analytics, no tracking. See the privacy policy.
+• Legal tags when you want them, such as Fact, Date, Admission and Case law.
+• Choose the case or project a note goes into, or create a new one from the clipper.
+• When a PDF is open in Chrome, the clipper offers to open it in May or Shall so you can highlight it there. The PDF is sent only if you click to add it.
+• Light and dark mode that follow your system.
 
-REQUIREMENTS
+YOUR DATA
 
-This is a companion to the open-source May or Shall app, which you run yourself
-(instructions at https://github.com/daddu-boy/may-or-shall). In the extension's options,
-set your app's URL, paste an API token from the app's Settings page, and pick a matter.
+The clipper sends only what you choose to save, to your own May or Shall account at app.mayorshall.com. There are no analytics, no advertising and no tracking, and nothing is sold or shared with third parties. May or Shall is open source under the GNU AGPL v3, so you can also run your own copy and point the clipper at it. The privacy policy has the details.
 
-Read once, use everywhere.
+GETTING STARTED
+
+Install the extension, click its icon and sign in with your email address. Signing in is the connection, so there is nothing to copy or configure.
 
 ## Category
 
-Productivity → Tools (or "Workflow & Planning" if the picker offers it)
+Productivity → Tools
 
 ## Language
 
@@ -54,7 +53,7 @@ English
 ## Assets
 
 - Store icon 128×128: `extension/icons/icon-128.png`
-- Screenshots (1280×800): `store/screenshots/01-popover.png`, `02-popup.png`, `03-board.png`
+- Screenshots (1280×800): `store/screenshots/`
 - Privacy policy URL: https://github.com/daddu-boy/may-or-shall/blob/main/extension/PRIVACY.md
-- Homepage URL: https://github.com/daddu-boy/may-or-shall
+- Homepage URL: https://app.mayorshall.com
 - Support URL: https://github.com/daddu-boy/may-or-shall/issues

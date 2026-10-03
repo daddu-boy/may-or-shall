@@ -1,26 +1,40 @@
 # May or Shall
 
-A workspace for litigation matters. Read the case bundle, turn every highlight into a
-reusable note that permanently remembers where it came from, and assemble the chronology,
-the written statement, the compilation and the annexure index out of those notes instead of
-retyping them.
+Save the lines that matter while you read, and then ask ChatGPT about them.
 
-Built by a practising litigator for the way Indian litigation actually runs: traverse
-paragraph by paragraph, list of dates, convenience compilation, annexure labels.
+May or Shall is a note taker built for litigators. A Chrome extension saves any line you
+select on a web page, and the built in reader does the same for PDFs, and every note keeps
+exactly where it came from. Connect May or Shall to ChatGPT and it searches and drafts from
+your own notes first, showing the source of each point so every line can be checked.
+
+Underneath the notes is a full workspace for a matter, which assembles the chronology, the
+written statement, the compilation and the annexure index out of those notes instead of
+retyping them. It is built by a practising litigator for the way Indian litigation actually
+runs: traverse paragraph by paragraph, list of dates, convenience compilation, annexure
+labels.
 
 **Try it: [app.mayorshall.com](https://app.mayorshall.com).** Sign in with your email
-address. There is no password and nothing to install. A sample matter with a real plaint is
-waiting in your account, so you can see the whole flow before uploading anything of your own.
+address, and add the
+[Web Clipper](https://chromewebstore.google.com/detail/jcdaggdinfgihjbjgmpieohgehalpfac)
+to Chrome to save from the web. A sample matter with a real plaint is waiting in your
+account, so you can see the whole flow before uploading anything of your own.
 
 ## What it does
 
+- **Clip from the web.** Select text on any website, whether a judgment on Indian Kanoon, a
+  news report or an order on a court site, and the Chrome and Edge extension saves it as a
+  note with the page's title, link and the passage around it. Choose the case or project it
+  goes into, or create one from the clipper. When a PDF is open in Chrome, the clipper
+  offers to open it in May or Shall so it can be highlighted there.
+- **Ask ChatGPT about your notes.** Add the May or Shall app in ChatGPT and ask it to search
+  your notes or draft from them. It looks through what you saved before anything else, and
+  each answer names the note it came from. Claude and other clients that take a custom
+  connector work the same way; see [Connect it to your AI tools](#connect-it-to-your-ai-tools).
 - **Read and highlight.** Upload the matter's PDFs. Select text in the built in reader and
   one click saves it as a **card**, typed as a Fact, Date, Issue, Admission, Evidence, Case
-  law, Argument or Question, permanently carrying its exact quote and its source (document,
-  page, paragraph). Highlights stay painted on the PDF, coloured by type.
-- **Clip from the web.** A companion Chrome and Edge extension saves selected text from any
-  website, whether a judgment on Indian Kanoon, a news report or an order on a court site,
-  as a card with the page URL as its source.
+  law, Argument or Question, or a category of your own, permanently carrying its exact quote
+  and its source (document, page, paragraph). Highlights stay painted on the PDF, coloured
+  by type, and scanned PDFs are read by OCR on upload.
 - **Think on a board.** All cards on a board. Group them by type, document, tag or date;
   filter, search, tag by issue, and drag to reorder.
 - **Chronology and List of Dates.** Date cards assemble themselves into a chronology.
